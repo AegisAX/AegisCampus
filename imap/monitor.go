@@ -169,7 +169,33 @@ func checkForNewEmails(im models.IMAP) {
 					reportingFailed = append(reportingFailed, m.SeqNum)
 					continue
 				}
-				err = result.HandleEmailReport(models.EventDetails{})
+				// err = result.HandleEmailReport(models.EventDetails{})
+                                // Build "report" details for the Email Reported event
+                                rd := models.ReportDetails{
+                                        Method:   "imap",
+                                        Reporter: im.Username, // 이 IMAP 모니터 계정
+                                        Subject:  m.Email.Subject,
+                                }
+                                // 안전하게 몇 개의 대표 헤더만 저장 (PII/용량 고려)
+                                hdrs := map[string]string{}
+                                if m.Email.Headers != nil {
+                                        if v := m.Email.Headers.Get("Message-ID"); v != "" {
+                                                rd.MessageID = v
+                                        }
+                                        if v := m.Email.Headers.Get("Date"); v != "" {
+                                                hdrs["Date"] = v
+                                        }
+                                }
+                                if m.Email.From != "" {
+                                        hdrs["From"] = m.Email.From
+                                }
+                                if len(m.Email.To) > 0 {
+                                        hdrs["To"] = strings.Join(m.Email.To, ", ")
+                                }
+                                if len(hdrs) > 0 {
+                                        rd.Headers = hdrs
+                                }
+                                err = result.HandleEmailReport(models.EventDetails{Report: &rd})
 				if err != nil {
 					log.Error("Error updating GoPhish email with rid ", rid, ": ", err.Error())
 					continue

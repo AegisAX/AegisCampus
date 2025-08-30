@@ -31,7 +31,7 @@ var statuses = {
     "Email Reported": {
         color: "#45d6ef",
         label: "label-warning",
-        icon: "fa-bullhorne",
+        icon: "fa-bullhorn", // fix: fa-bullhorne -> fa-bullhorn
         point: "ct-point-reported"
     },
     "Clicked Link": {
@@ -164,49 +164,57 @@ function renderPieChart(chartopts) {
     })
 }
 
+/** 안전 숫자 게터 */
+function getStat(campaign, key) {
+    var v = campaign && campaign.stats ? campaign.stats[key] : undefined;
+    return (typeof v === 'number' && isFinite(v)) ? v : 0;
+}
+
 function generateStatsPieCharts(campaigns) {
-    var stats_data = []
-    var stats_series_data = {}
-    var total = 0
+    // 1) 모든 지표를 0으로 초기화 (항상 렌더: 0이어도 도넛이 보이게)
+    var buckets = {
+        sent: 0,
+        opened: 0,
+        clicked: 0,
+        submitted_data: 0,
+        attachment_executed: 0,
+        email_reported: 0
+    };
+    var total = 0;
 
+    // 2) 합산
     $.each(campaigns, function (i, campaign) {
-        $.each(campaign.stats, function (status, count) {
-            if (status == "total") {
-                total += count
-                return true
-            }
-            if (!stats_series_data[status]) {
-                stats_series_data[status] = count;
-            } else {
-                stats_series_data[status] += count;
-            }
-        })
-    })
-    $.each(stats_series_data, function (status, count) {
-        // I don't like this, but I guess it'll have to work.
-        // Turns submitted_data into Submitted Data
-        if (!(status in statsMapping)) {
-            return true
-        }
-        status_label = statsMapping[status]
-        stats_data.push({
-            name: status_label,
-            y: Math.floor((count / total) * 100),
-            count: count
-        })
-        stats_data.push({
-            name: '',
-            y: 100 - Math.floor((count / total) * 100)
-        })
-        var stats_chart = renderPieChart({
-            elemId: status + '_chart',
-            title: status_label,
-            name: status,
-            data: stats_data,
-            colors: [statuses[status_label].color, "#dddddd"]
-        })
+        var stats = campaign.stats || {};
+        total += (typeof stats.total === 'number' && isFinite(stats.total)) ? stats.total : 0;
 
-        stats_data = []
+        // 존재/미존재와 상관없이 안전 합산
+        buckets.sent                += getStat(campaign, 'sent');
+        buckets.opened              += getStat(campaign, 'opened');
+        buckets.clicked             += getStat(campaign, 'clicked');
+        buckets.submitted_data      += getStat(campaign, 'submitted_data');
+        buckets.attachment_executed += getStat(campaign, 'attachment_executed');
+        buckets.email_reported      += getStat(campaign, 'email_reported');
+    });
+
+    // 3) 항상 모든 키에 대해 차트 렌더 (0이어도)
+    Object.keys(statsMapping).forEach(function (statusKey) {
+        var status_label = statsMapping[statusKey];
+        var count = buckets[statusKey] || 0;
+        var denom = total || 1; // total=0이면 NaN 방지
+        var pct = Math.floor((count / denom) * 100);
+
+        var stats_data = [
+            { name: status_label, y: pct, count: count },
+            { name: '', y: 100 - pct }
+        ];
+
+        renderPieChart({
+            elemId: statusKey + '_chart', // 예: attachment_executed_chart
+            title: status_label,
+            name: statusKey,
+            data: stats_data,
+            colors: [ (statuses[status_label] && statuses[status_label].color) || '#95a5a6', '#dddddd' ]
+        });
     });
 }
 
@@ -217,8 +225,10 @@ function generateTimelineChart(campaigns) {
         // Add it to the chart data
         campaign.y = 0
         // Clicked events also contain our data submitted events
-        campaign.y += campaign.stats.clicked
-        campaign.y = Math.floor((campaign.y / campaign.stats.total) * 100)
+        campaign.y += getStat(campaign, 'clicked')
+        var denom = (campaign.stats && typeof campaign.stats.total === 'number' && isFinite(campaign.stats.total))
+            ? campaign.stats.total : 0;
+        campaign.y = Math.floor((denom ? (campaign.y / denom) : 0) * 100)
         // Add the data to the overview chart
         overview_data.push({
             campaign_id: campaign.id,
@@ -263,7 +273,7 @@ function generateTimelineChart(campaigns) {
             enabled: false
         },
         plotOptions: {
-            series: {
+                series: {
                 marker: {
                     enabled: true,
                     symbol: 'circle',
@@ -308,58 +318,48 @@ $(document).ready(function () {
                             orderable: false,
                             targets: "no-sort"
                         },
-                        {
-                            className: "color-sent",
-                            targets: [2]
-                        },
-                        {
-                            className: "color-opened",
-                            targets: [3]
-                        },
-                        {
-                            className: "color-clicked",
-                            targets: [4]
-                        },
-                        {
-                            className: "color-success",
-                            targets: [5]
-                        },
-                        {
-                            className: "color-executed",
-                            targets: [6]
-                        },
-                        {
-                            className: "color-reported",
-                            targets: [7]
-                        }
+                        { className: "color-sent",     targets: [2] },
+                        { className: "color-opened",   targets: [3] },
+                        { className: "color-clicked",  targets: [4] },
+                        { className: "color-success",  targets: [5] },
+                        { className: "color-executed", targets: [6] },
+                        { className: "color-reported", targets: [7] }
                     ],
-                    order: [
-                        [1, "desc"]
-                    ]
+                    order: [[1, "desc"]]
                 });
                 campaignRows = []
                 $.each(campaigns, function (i, campaign) {
                     var campaign_date = moment(campaign.created_date).format('MMMM Do YYYY, h:mm:ss a')
-                    var label = statuses[campaign.status].label || "label-default";
+                    var label = (statuses[campaign.status] && statuses[campaign.status].label) || "label-default";
+
                     //section for tooltips on the status of a campaign to show some quick stats
                     var launchDate;
-                    if (moment(campaign.launch_date).isAfter(moment())) {
+                    var isFuture = moment(campaign.launch_date).isAfter(moment());
+                    if (isFuture) {
                         launchDate = "Scheduled to start: " + moment(campaign.launch_date).format('MMMM Do YYYY, h:mm:ss a')
-                        var quickStats = launchDate + "<br><br>" + "Number of recipients: " + campaign.stats.total
+                        var quickStats = launchDate + "<br><br>" + "Number of recipients: " + ((campaign.stats && campaign.stats.total) || 0)
                     } else {
                         launchDate = "Launch Date: " + moment(campaign.launch_date).format('MMMM Do YYYY, h:mm:ss a')
-                        var quickStats = launchDate + "<br><br>" + "Number of recipients: " + campaign.stats.total + "<br><br>" + "Emails opened: " + campaign.stats.opened + "<br><br>" + "Emails clicked: " + campaign.stats.clicked + "<br><br>" + "Submitted Credentials: " + campaign.stats.submitted_data + "<br><br>" + "Attachment Executed: " + campaign.stats.attachment_executed + "<br><br>" + "Errors : " + campaign.stats.error + "<br><br>" + "Reported : " + campaign.stats.email_reported
+                        var quickStats = launchDate
+                            + "<br><br>Number of recipients: " + ((campaign.stats && campaign.stats.total) || 0)
+                            + "<br><br>Emails opened: " + getStat(campaign,'opened')
+                            + "<br><br>Emails clicked: " + getStat(campaign,'clicked')
+                            + "<br><br>Submitted Credentials: " + getStat(campaign,'submitted_data')
+                            + "<br><br>Attachment Executed: " + getStat(campaign,'attachment_executed')
+                            + "<br><br>Errors : " + ((campaign.stats && campaign.stats.error) || 0)
+                            + "<br><br>Reported : " + getStat(campaign,'email_reported');
                     }
-                    // Add it to the list
+
+                    // Add it to the list (모든 숫자는 안전 게터로 0 보장)
                     campaignRows.push([
                         escapeHtml(campaign.name),
                         campaign_date,
-                        campaign.stats.sent,
-                        campaign.stats.opened,
-                        campaign.stats.clicked,
-                        campaign.stats.submitted_data,
-                        campaign.stats.attachment_executed,
-                        campaign.stats.email_reported,
+                        getStat(campaign,'sent'),
+                        getStat(campaign,'opened'),
+                        getStat(campaign,'clicked'),
+                        getStat(campaign,'submitted_data'),
+                        getStat(campaign,'attachment_executed'),
+                        getStat(campaign,'email_reported'),
                         "<span class=\"label " + label + "\" data-toggle=\"tooltip\" data-placement=\"right\" data-html=\"true\" title=\"" + quickStats + "\">" + campaign.status + "</span>",
                         "<div class='pull-right'><a class='btn btn-primary' href='/campaigns/" + campaign.id + "' data-toggle='tooltip' data-placement='left' title='View Results'>\
                     <i class='fa fa-bar-chart'></i>\
@@ -371,7 +371,8 @@ $(document).ready(function () {
                     $('[data-toggle="tooltip"]').tooltip()
                 })
                 campaignTable.rows.add(campaignRows).draw()
-                // Build the charts
+
+                // Build the charts (항상 attachment_executed 포함해서 렌더)
                 generateStatsPieCharts(campaigns)
                 generateTimelineChart(campaigns)
             } else {
@@ -382,3 +383,4 @@ $(document).ready(function () {
             errorFlash("Error fetching campaigns")
         })
 })
+

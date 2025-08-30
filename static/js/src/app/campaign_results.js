@@ -1,6 +1,10 @@
 var map = null
 var doPoll = true;
 
+/* =========================
+ * Status metadata + helpers
+ * ========================= */
+
 // statuses is a helper map to point result statuses to ui classes
 var statuses = {
     "Email Sent": {
@@ -94,7 +98,45 @@ var statuses = {
     "Campaign Created": {
         label: "label-success",
         icon: "fa-rocket"
+    },
+
+    // Project rule: only use "Attachment Executed" for attachments (very high risk - red)
+    "Attachment Executed": {
+        color: "#e74c3c",
+        label: "label-danger",
+        icon: "fa-exclamation-triangle",
+        point: "ct-point-executed"
+    },
+
+    // Safe default when we don't recognize a status key
+    "__default": {
+        color: "#95a5a6",
+        label: "label-default",
+        icon: "fa-circle",
+        point: "ct-point-default"
     }
+};
+
+// Normalize server-provided status strings to our canonical keys
+function normalizeStatus(raw) {
+    if (!raw) return "";
+    var s = ("" + raw).trim();
+    switch (s) {
+        case "Success":
+            return "Submitted Data"; // gophish legacy → canonical
+        case "Attach Opened":
+        case "Attachment Opened":
+        case "Attachment Executed":
+            return "Attachment Executed"; // project standard
+        default:
+            return s;
+    }
+}
+
+// Safe metadata accessor
+function getStatusMeta(name) {
+    var key = normalizeStatus(name);
+    return statuses[key] || statuses["__default"];
 }
 
 var statusMapping = {
@@ -103,6 +145,8 @@ var statusMapping = {
     "Clicked Link": "clicked",
     "Submitted Data": "submitted_data",
     "Email Reported": "reported",
+    // Project addition (donut id must be 'attachment_executed_chart')
+    "Attachment Executed": "attachment_executed"
 }
 
 // This is an underwhelming attempt at an enum
@@ -295,13 +339,17 @@ function replay(event_idx) {
 /**
  * Returns an HTML string that displays the OS and browser that clicked the link
  * or submitted credentials.
- * 
+ *
  * @param {object} event_details - The "details" parameter for a campaign
  *  timeline event
- * 
+ *
  */
 var renderDevice = function (event_details) {
-    var ua = UAParser(details.browser['user-agent'])
+    var ua = UAParser(
+        event_details && event_details.browser
+            ? event_details.browser['user-agent'] || ''
+            : ''
+    )
     var detailsString = '<div class="timeline-device-details">'
 
     var deviceIcon = 'laptop'
@@ -366,6 +414,7 @@ var renderDevice = function (event_details) {
 }
 
 function renderTimeline(data) {
+    // executed는 테이블 데이터에 포함되지 않으므로 제거
     record = {
         "id": data[0],
         "name": data[2],
@@ -374,8 +423,7 @@ function renderTimeline(data) {
         "position": data[5],
         "status": data[6],
         "reported": data[7],
-        "send_date": data[8],
-        "executed": data[9]
+        "send_date": data[8]
     }
     results = '<div class="timeline col-sm-12 well well-lg">' +
         '<h6>Timeline for ' + escapeHtml(record.name) + ' ' + escapeHtml(record.department) +
@@ -387,9 +435,10 @@ function renderTimeline(data) {
             // Add the event
             results += '<div class="timeline-entry">' +
                 '    <div class="timeline-bar"></div>'
+            var meta = getStatusMeta(event.message)
             results +=
-                '    <div class="timeline-icon ' + statuses[event.message].label + '">' +
-                '    <i class="fa ' + statuses[event.message].icon + '"></i></div>' +
+                '    <div class="timeline-icon ' + meta.label + '">' +
+                '    <i class="fa ' + meta.icon + '"></i></div>' +
                 '    <div class="timeline-message">' + escapeHtml(event.message) +
                 '    <span class="timeline-date">' + moment.utc(event.time).local().format('MMMM Do YYYY h:mm:ss a') + '</span>'
             if (event.details) {
@@ -405,6 +454,11 @@ function renderTimeline(data) {
                     results += '<i class="fa fa-refresh"></i> Replay Credentials</button></div>'
                     results += '<div class="timeline-event-details"><i class="fa fa-caret-right"></i> View Details</div>'
                 }
+                // Email Reported도 payload를 표로 보여주기 위한 토글만 추가
+                if (event.message == "Email Reported") {
+                    results += '<div class="timeline-event-details"><i class="fa fa-caret-right"></i> View Details</div>'
+                }
+                // 공통: payload 표 렌더 (Submitted Data / Email Reported 포함)
                 if (details.payload) {
                     results += '<div class="timeline-event-results">'
                     results += '    <table class="table table-condensed table-bordered table-striped">'
@@ -413,9 +467,13 @@ function renderTimeline(data) {
                         if (param == "rid") {
                             return true;
                         }
+                        var val = details.payload[param]
+                        if (Array.isArray(val)) {
+                            val = val.join(", ")
+                        }
                         results += '    <tr>'
                         results += '        <td>' + escapeHtml(param) + '</td>'
-                        results += '        <td>' + escapeHtml(details.payload[param]) + '</td>'
+                        results += '        <td>' + escapeHtml(val) + '</td>'
                         results += '    </tr>'
                     })
                     results += '       </tbody></table>'
@@ -433,11 +491,12 @@ function renderTimeline(data) {
     })
     // Add the scheduled send event at the bottom
     if (record.status == "Scheduled" || record.status == "Retrying") {
+        var meta2 = getStatusMeta(record.status)
         results += '<div class="timeline-entry">' +
             '    <div class="timeline-bar"></div>'
         results +=
-            '    <div class="timeline-icon ' + statuses[record.status].label + '">' +
-            '    <i class="fa ' + statuses[record.status].icon + '"></i></div>' +
+            '    <div class="timeline-icon ' + meta2.label + '">' +
+            '    <i class="fa ' + meta2.icon + '"></i></div>' +
             '    <div class="timeline-message">' + "Scheduled to send at " + record.send_date + '</span>'
     }
     results += '</div></div>'
@@ -610,16 +669,17 @@ var updateMap = function (results) {
 
 /**
  * Creates a status label for use in the results datatable
- * @param {string} status 
- * @param {moment(datetime)} send_date 
+ * @param {string} status
+ * @param {moment(datetime)} send_date
  */
 function createStatusLabel(status, send_date) {
-    var label = statuses[status].label || "label-default";
-    var statusColumn = "<span class=\"label " + label + "\">" + status + "</span>"
+    var meta = getStatusMeta(status);
+    var label = meta.label || "label-default";
+    var statusColumn = "<span class=\"label " + label + "\">" + normalizeStatus(status) + "</span>"
     // Add the tooltip if the email is scheduled to be sent
     if (status == "Scheduled" || status == "Retrying") {
         var sendDateMessage = "Scheduled to send at " + send_date
-        statusColumn = "<span class=\"label " + label + "\" data-toggle=\"tooltip\" data-placement=\"top\" data-html=\"true\" title=\"" + sendDateMessage + "\">" + status + "</span>"
+        statusColumn = "<span class=\"label " + label + "\" data-toggle=\"tooltip\" data-placement=\"top\" data-html=\"true\" title=\"" + sendDateMessage + "\">" + normalizeStatus(status) + "</span>"
     }
     return statusColumn
 }
@@ -636,17 +696,26 @@ function poll() {
     api.campaignId.results(campaign.id)
         .success(function (c) {
             campaign = c
+
+            // ===== Executed 이메일(Attachment Executed 이벤트) 선계산 =====
+            var executedEmails = new Set(
+                (campaign.timeline || [])
+                    .filter(function (ev) { return normalizeStatus(ev.message) === "Attachment Executed"; })
+                    .map(function (ev) { return ev.email; })
+            );
+
             /* Update the timeline */
             var timeline_series_data = []
             $.each(campaign.timeline, function (i, event) {
                 var event_date = moment.utc(event.time).local()
+                var meta = getStatusMeta(event.message);
                 timeline_series_data.push({
                     email: event.email,
-                    message: event.message,
+                    message: normalizeStatus(event.message),
                     x: event_date.valueOf(),
                     y: 1,
                     marker: {
-                        fillColor: statuses[event.message].color
+                        fillColor: meta.color
                     }
                 })
             })
@@ -654,36 +723,53 @@ function poll() {
             timeline_chart.series[0].update({
                 data: timeline_series_data
             })
+
             /* Update the results donut chart */
             var email_series_data = {}
             // Load the initial data
             Object.keys(statusMapping).forEach(function (k) {
                 email_series_data[k] = 0
             });
+
             $.each(campaign.results, function (i, result) {
-                email_series_data[result.status]++;
+                var st = normalizeStatus(result.status);
+                // ensure bucket exists even if unexpected status arrives
+                if (email_series_data[st] === undefined && statusMapping[st]) {
+                    email_series_data[st] = 0;
+                }
+                if (email_series_data[st] !== undefined) {
+                    email_series_data[st]++;
+                }
                 if (result.reported) {
                     email_series_data['Email Reported']++
                 }
-                // Backfill status values
-                var step = progressListing.indexOf(result.status)
-                for (var i = 0; i < step; i++) {
-                    email_series_data[progressListing[i]]++
+
+                // --- Attachment Executed 집계 (status 또는 타임라인 기반) ---
+                if (st === "Attachment Executed" || executedEmails.has(result.email)) {
+                    email_series_data['Attachment Executed']++
+                }
+
+                // Backfill status values (email funnel only)
+                var step = progressListing.indexOf(st)
+                for (var j = 0; j < step; j++) {
+                    email_series_data[progressListing[j]]++
                 }
             })
+
             $.each(email_series_data, function (status, count) {
-                var email_data = []
                 if (!(status in statusMapping)) {
                     return true
                 }
+                var email_data = []
+                var total = campaign.results.length || 1; // avoid NaN when 0 results
                 email_data.push({
                     name: status,
-                    y: Math.floor((count / campaign.results.length) * 100),
+                    y: Math.floor((count / total) * 100),
                     count: count
                 })
                 email_data.push({
                     name: '',
-                    y: 100 - Math.floor((count / campaign.results.length) * 100)
+                    y: 100 - Math.floor((count / total) * 100)
                 })
                 var chart = $("#" + statusMapping[status] + "_chart").highcharts()
                 chart.series[0].update({
@@ -701,7 +787,7 @@ function poll() {
                     if (result.id == rid) {
                         rowData[8] = moment(result.send_date).format('MMMM Do YYYY, h:mm:ss a')
                         rowData[7] = result.reported
-                        rowData[6] = result.status
+                        rowData[6] = normalizeStatus(result.status)
                         resultsTable.row(i).data(rowData)
                         if (row.child.isShown()) {
                             $(row.node()).find("#caret").removeClass("fa-caret-right")
@@ -790,12 +876,21 @@ function load() {
                     ]
                 });
                 resultsTable.clear();
+
+                // ===== Executed 이메일(Attachment Executed 이벤트) 선계산 =====
+                var executedEmails = new Set(
+                    (campaign.timeline || [])
+                        .filter(function (ev) { return normalizeStatus(ev.message) === "Attachment Executed"; })
+                        .map(function (ev) { return ev.email; })
+                );
+
                 var email_series_data = {}
                 var timeline_series_data = []
                 Object.keys(statusMapping).forEach(function (k) {
                     email_series_data[k] = 0
                 });
                 $.each(campaign.results, function (i, result) {
+                    var st = normalizeStatus(result.status)
                     resultsTable.row.add([
                         result.id,
                         "<i id=\"caret\" class=\"fa fa-caret-right\"></i>",
@@ -803,18 +898,29 @@ function load() {
                         escapeHtml(result.department) || "",
                         escapeHtml(result.email) || "",
                         escapeHtml(result.position) || "",
-                        result.status,
+                        st,
                         result.reported,
                         moment(result.send_date).format('MMMM Do YYYY, h:mm:ss a')
                     ])
-                    email_series_data[result.status]++;
+                    if (email_series_data[st] === undefined && statusMapping[st]) {
+                        email_series_data[st] = 0
+                    }
+                    if (email_series_data[st] !== undefined) {
+                        email_series_data[st]++;
+                    }
                     if (result.reported) {
                         email_series_data['Email Reported']++
                     }
+
+                    // --- Attachment Executed 집계 (status 또는 타임라인 기반) ---
+                    if (st === "Attachment Executed" || executedEmails.has(result.email)) {
+                        email_series_data['Attachment Executed']++
+                    }
+
                     // Backfill status values
-                    var step = progressListing.indexOf(result.status)
-                    for (var i = 0; i < step; i++) {
-                        email_series_data[progressListing[i]]++
+                    var step = progressListing.indexOf(st)
+                    for (var j = 0; j < step; j++) {
+                        email_series_data[progressListing[j]]++
                     }
                 })
                 resultsTable.draw();
@@ -844,13 +950,14 @@ function load() {
                         return true
                     }
                     var event_date = moment.utc(event.time).local()
+                    var meta = getStatusMeta(event.message)
                     timeline_series_data.push({
                         email: event.email,
-                        message: event.message,
+                        message: normalizeStatus(event.message),
                         x: event_date.valueOf(),
                         y: 1,
                         marker: {
-                            fillColor: statuses[event.message].color
+                            fillColor: meta.color
                         }
                     })
                 })
@@ -858,25 +965,27 @@ function load() {
                     data: timeline_series_data
                 })
                 $.each(email_series_data, function (status, count) {
-                    var email_data = []
                     if (!(status in statusMapping)) {
                         return true
                     }
+                    var email_data = []
+                    var total = campaign.results.length || 1; // avoid NaN
                     email_data.push({
                         name: status,
-                        y: Math.floor((count / campaign.results.length) * 100),
+                        y: Math.floor((count / total) * 100),
                         count: count
                     })
                     email_data.push({
                         name: '',
-                        y: 100 - Math.floor((count / campaign.results.length) * 100)
+                        y: 100 - Math.floor((count / total) * 100)
                     })
+                    var meta = getStatusMeta(status)
                     var chart = renderPieChart({
                         elemId: statusMapping[status] + '_chart',
                         title: status,
                         name: status,
                         data: email_data,
-                        colors: [statuses[status].color, '#dddddd']
+                        colors: [meta.color, '#dddddd']
                     })
                 })
 
@@ -937,7 +1046,7 @@ function report_mail(rid, cid) {
             api.campaignId.get(cid).success((function(c) {
                 report_url = new URL(c.url)
                 report_url.pathname = '/report'
-                report_url.search = "?rid=" + rid 
+                report_url.search = "?rid=" + rid
                 fetch(report_url)
                 .then(response => {
                     if (!response.ok) {
@@ -973,3 +1082,4 @@ $(document).ready(function () {
     // Start the polling loop
     setRefresh = setTimeout(refresh, 60000)
 })
+

@@ -379,12 +379,11 @@ func (ps *PhishingServer) ReportFormPost(w http.ResponseWriter, r *http.Request)
 	// 입력값
 	get := func(k string) string { return strings.TrimSpace(r.Form.Get(k)) }
 	rid := get(models.RecipientParameter)
+	viewedAt      := get("viewed_at")
 	reporterName  := get("reporter_name")
 	reporterEmail := get("reporter_email") // 수신자 이메일
-	mailSubject   := get("mail_subject")
 	mailFrom      := get("mail_from")      // 발신자 이메일
-	viewedAt      := get("viewed_at")
-
+	mailSubject   := get("mail_subject")
 	yn  := func(k string) string {
 		if strings.ToLower(get(k)) == "yes" { return "Yes" }
 		return "No"
@@ -429,8 +428,8 @@ func (ps *PhishingServer) ReportFormPost(w http.ResponseWriter, r *http.Request)
 
 	// report_note 요약 저장
         res.ReportNote = fmt.Sprintf(
-                `[신고 일시: %s] [신고자: %s (%s)] [메일 제목: %s] [발신자: %s] [메일 열람: %s] [링크 클릭: %s] [정보 입력: %s] [파일 다운로드: %s] [파일 실행: %s]`,
-                viewedAt, reporterName, reporterEmail, mailSubject, mailFrom, opened, clicked, submitted, downloaded, executed,
+                `[신고 일시: %s] [신고자: %s (%s)] [발신자: %s] [메일 제목: %s] [메일 열람: %s] [링크 클릭: %s] [정보 입력: %s] [파일 다운로드: %s] [파일 실행: %s]`,
+                viewedAt, reporterName, reporterEmail, mailFrom, mailSubject, opened, clicked, submitted, downloaded, executed,
         )
 
 	// 이벤트 Details 에 원본 폼 포함

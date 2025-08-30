@@ -153,13 +153,22 @@ func (r *Result) HandleFormSubmit(details EventDetails) error {
 // HandleEmailReport updates a Result in the case where they report a simulated
 // phishing email using the HTTP handler.
 func (r *Result) HandleEmailReport(details EventDetails) error {
-	event, err := r.createEvent(EventReported, details)
-	if err != nil {
-		return err
-	}
-	r.Reported = true
-	r.ModifiedDate = event.Time
-	return db.Save(r).Error
+        // details를 JSON 문자열로 직렬화(빈 구조체면 ""가 되지 않게 "null" 회피)
+        data := ""
+        if b, err := json.Marshal(details); err == nil && string(b) != "null" {
+            data = string(b)
+        }
+        e := &Event{
+            Email:   r.Email,
+            Message: EventReported, // "Email Reported"
+            Details: data,
+        }
+        if err := AddEvent(e, r.CampaignId); err != nil {
+            return err
+        }
+        r.Reported = true
+        r.ModifiedDate = e.Time // AddEvent 안에서 Time이 세팅됨
+        return db.Save(r).Error
 }
 
 // UpdateGeo updates the latitude and longitude of the result in

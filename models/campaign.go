@@ -69,6 +69,7 @@ type CampaignStats struct {
 	SubmittedData int64 `json:"submitted_data"`
 	EmailReported int64 `json:"email_reported"`
 	Error         int64 `json:"error"`
+        AttachmentExecuted int64 `json:"attachment_executed"`
 }
 
 // Event contains the fields for an event
@@ -82,11 +83,21 @@ type Event struct {
 	Details    string    `json:"details"`
 }
 
-// EventDetails is a struct that wraps common attributes we want to store
-// in an event
+// EventDetails wraps optional details we store per event type.
+// Backwards compatible: new fields are optional.
 type EventDetails struct {
-	Payload url.Values        `json:"payload"`
-	Browser map[string]string `json:"browser"`
+    Payload url.Values        `json:"payload,omitempty"` // Submitted Data
+    Browser map[string]string `json:"browser,omitempty"` // UA parsed info
+    Report  *ReportDetails    `json:"report,omitempty"`  // Email Reported
+}
+
+// ReportDetails captures context when a user reports the phishing email.
+type ReportDetails struct {
+    Method    string            `json:"method,omitempty"`     // "imap" | "api" | "manual"
+    Reporter  string            `json:"reporter,omitempty"`   // mailbox or user that reported
+    Subject   string            `json:"subject,omitempty"`
+    MessageID string            `json:"message_id,omitempty"`
+    Headers   map[string]string `json:"headers,omitempty"`    // selected headers if available
 }
 
 // EventError is a struct that wraps an error that occurs when sending an
@@ -283,6 +294,10 @@ func getCampaignStats(cid int64) (CampaignStats, error) {
 	if err != nil {
 		return s, err
 	}
+        query.Where("executed = ?", true).Count(&s.AttachmentExecuted)
+        if err != nil {
+            return s, err
+        }
 	// Every submitted data event implies they clicked the link
 	s.ClickedLink += s.SubmittedData
 	err = query.Where("status=?", EventOpened).Count(&s.OpenedEmail).Error
@@ -290,7 +305,7 @@ func getCampaignStats(cid int64) (CampaignStats, error) {
 		return s, err
 	}
 	// Every clicked link event implies they opened the email
-	s.OpenedEmail += s.ClickedLink
+        s.OpenedEmail += s.ClickedLink
 	err = query.Where("status=?", EventSent).Count(&s.EmailsSent).Error
 	if err != nil {
 		return s, err
