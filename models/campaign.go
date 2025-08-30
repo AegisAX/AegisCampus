@@ -554,8 +554,8 @@ func PostCampaign(c *Campaign, uid int64) error {
 				BaseRecipient: BaseRecipient{
 					Email:     t.Email,
 					Position:  t.Position,
-					FirstName: t.FirstName,
-					LastName:  t.LastName,
+					Name: t.Name,
+					Department:  t.Department,
 				},
 				Status:       StatusScheduled,
 				CampaignId:   c.Id,

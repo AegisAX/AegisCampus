@@ -36,8 +36,8 @@ func (as *Server) SendTestEmail(w http.ResponseWriter, r *http.Request) {
 		//default message body
 		text := "It works!\n\nThis is an email letting you know that your gophish\nconfiguration was successful.\n" +
 			"Here are the details:\n\nWho you sent from: {{.From}}\n\nWho you sent to: \n" +
-			"{{if .FirstName}} First Name: {{.FirstName}}\n{{end}}" +
-			"{{if .LastName}} Last Name: {{.LastName}}\n{{end}}" +
+			"{{if .Name}} Name: {{.Name}}\n{{end}}" +
+			"{{if .Department}} Department: {{.Department}}\n{{end}}" +
 			"{{if .Position}} Position: {{.Position}}\n{{end}}" +
 			"\nNow go send some phish!"
 		t := models.Template{

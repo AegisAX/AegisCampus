@@ -43,7 +43,7 @@ type emailResponse struct {
 func (as *Server) ImportGroup(w http.ResponseWriter, r *http.Request) {
 	ts, err := util.ParseCSV(r)
 	if err != nil {
-		JSONResponse(w, models.Response{Success: false, Message: "Error parsing CSV"}, http.StatusInternalServerError)
+		JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
 		return
 	}
 	JSONResponse(w, ts, http.StatusOK)
@@ -69,9 +69,7 @@ func (as *Server) ImportEmail(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Error(err)
 	}
-	// If the user wants to convert links to point to
-	// the landing page, let's make it happen by changing up
-	// e.HTML
+	// Convert links to landing page placeholder
 	if ir.ConvertLinks {
 		d, err := goquery.NewDocumentFromReader(bytes.NewReader(e.HTML))
 		if err != nil {
@@ -155,3 +153,4 @@ func (as *Server) ImportSite(w http.ResponseWriter, r *http.Request) {
 	cs := cloneResponse{HTML: h}
 	JSONResponse(w, cs, http.StatusOK)
 }
+

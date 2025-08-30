@@ -1,8 +1,8 @@
 The target's unique ID: {{.RId}}
 
-The target's first name: {{.FirstName}}
+The target's name: {{.Name}}
 
-The target's last name: {{.LastName}}
+The target's department: {{.Department}}
 
 The target's position: {{.Position}}
 

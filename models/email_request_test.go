@@ -61,7 +61,7 @@ func (s *ModelsSuite) TestEmailRequestGenerate(ch *check.C) {
 	}
 	template := Template{
 		Name:    "Test Template",
-		Subject: "{{.FirstName}} - Subject",
+		Subject: "{{.Name}} - Subject",
 		Text:    "{{.Email}} - Text",
 		HTML:    "{{.Email}} - HTML",
 	}
@@ -69,8 +69,8 @@ func (s *ModelsSuite) TestEmailRequestGenerate(ch *check.C) {
 		SMTP:     smtp,
 		Template: template,
 		BaseRecipient: BaseRecipient{
-			FirstName: "First",
-			LastName:  "Last",
+			Name: "Name",
+			Department:  "Department",
 			Email:     "firstlast@example.com",
 		},
 		FromAddress: smtp.FromAddress,
@@ -87,7 +87,7 @@ func (s *ModelsSuite) TestEmailRequestGenerate(ch *check.C) {
 	ch.Assert(err, check.Equals, nil)
 
 	expected := &email.Email{
-		Subject: fmt.Sprintf("%s - Subject", req.FirstName),
+		Subject: fmt.Sprintf("%s - Subject", req.Name),
 		Text:    []byte(fmt.Sprintf("%s - Text", req.Email)),
 		HTML:    []byte(fmt.Sprintf("%s - HTML", req.Email)),
 	}
@@ -112,7 +112,7 @@ func (s *ModelsSuite) TestGetSmtpFrom(ch *check.C) {
 	}
 	template := Template{
 		Name:    "Test Template",
-		Subject: "{{.FirstName}} - Subject",
+		Subject: "{{.Name}} - Subject",
 		Text:    "{{.Email}} - Text",
 		HTML:    "{{.Email}} - HTML",
 	}
@@ -121,8 +121,8 @@ func (s *ModelsSuite) TestGetSmtpFrom(ch *check.C) {
 		Template: template,
 		URL:      "http://127.0.0.1/{{.Email}}",
 		BaseRecipient: BaseRecipient{
-			FirstName: "First",
-			LastName:  "Last",
+			Name: "Name",
+			Department:  "Department",
 			Email:     "firstlast@example.com",
 		},
 		FromAddress: smtp.FromAddress,
@@ -152,8 +152,8 @@ func (s *ModelsSuite) TestEmailRequestURLTemplating(ch *check.C) {
 		Template: template,
 		URL:      "http://127.0.0.1/{{.Email}}",
 		BaseRecipient: BaseRecipient{
-			FirstName: "First",
-			LastName:  "Last",
+			Name: "Name",
+			Department:  "Department",
 			Email:     "firstlast@example.com",
 		},
 		FromAddress: smtp.FromAddress,
@@ -190,8 +190,8 @@ func (s *ModelsSuite) TestEmailRequestGenerateEmptySubject(ch *check.C) {
 		SMTP:     smtp,
 		Template: template,
 		BaseRecipient: BaseRecipient{
-			FirstName: "First",
-			LastName:  "Last",
+			Name: "Name",
+			Department:  "Department",
 			Email:     "firstlast@example.com",
 		},
 		FromAddress: smtp.FromAddress,
@@ -243,8 +243,8 @@ func (s *ModelsSuite) TestPostSendTestEmailRequest(ch *check.C) {
 		TemplateId: template.Id,
 		PageId:     page.Id,
 		BaseRecipient: BaseRecipient{
-			FirstName: "First",
-			LastName:  "Last",
+			Name: "Name",
+			Department:  "Department",
 			Email:     "firstlast@example.com",
 		},
 	}

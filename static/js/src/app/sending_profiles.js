@@ -11,8 +11,8 @@ function sendTestEmail() {
     })
     var test_email_request = {
         template: {},
-        first_name: $("input[name=to_first_name]").val(),
-        last_name: $("input[name=to_last_name]").val(),
+        name: $("input[name=to_name]").val(),
+        department: $("input[name=to_department]").val(),
         email: $("input[name=to_email]").val(),
         position: $("input[name=to_position]").val(),
         url: '',

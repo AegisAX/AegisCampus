@@ -53,18 +53,18 @@ type Target struct {
 // BaseRecipient contains the fields for a single recipient. This is the base
 // struct used in members of groups and campaign results.
 type BaseRecipient struct {
-	Email     string `json:"email"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Position  string `json:"position"`
+	Email       string `json:"email"`
+	Name        string `json:"name"`
+	Department  string `json:"department"`
+	Position    string `json:"position"`
 }
 
 // FormatAddress returns the email address to use in the "To" header of the email
 func (r *BaseRecipient) FormatAddress() string {
 	addr := r.Email
-	if r.FirstName != "" && r.LastName != "" {
+	if r.Name != "" { 
 		a := &mail.Address{
-			Name:    fmt.Sprintf("%s %s", r.FirstName, r.LastName),
+			Name:    fmt.Sprintf("%s", r.Name),
 			Address: r.Email,
 		}
 		addr = a.String()
@@ -75,9 +75,9 @@ func (r *BaseRecipient) FormatAddress() string {
 // FormatAddress returns the email address to use in the "To" header of the email
 func (t *Target) FormatAddress() string {
 	addr := t.Email
-	if t.FirstName != "" && t.LastName != "" {
+	if t.Name != "" {
 		a := &mail.Address{
-			Name:    fmt.Sprintf("%s %s", t.FirstName, t.LastName),
+			Name:    fmt.Sprintf("%s", t.Name),
 			Address: t.Email,
 		}
 		addr = a.String()
@@ -343,8 +343,8 @@ func insertTargetIntoGroup(tx *gorm.DB, t Target, gid int64) error {
 // UpdateTarget updates the given target information in the database.
 func UpdateTarget(tx *gorm.DB, target Target) error {
 	targetInfo := map[string]interface{}{
-		"first_name": target.FirstName,
-		"last_name":  target.LastName,
+		"name": target.Name,
+		"department":  target.Department,
 		"position":   target.Position,
 	}
 	err := tx.Model(&target).Where("id = ?", target.Id).Updates(targetInfo).Error
@@ -359,6 +359,6 @@ func UpdateTarget(tx *gorm.DB, target Target) error {
 // GetTargets performs a many-to-many select to get all the Targets for a Group
 func GetTargets(gid int64) ([]Target, error) {
 	ts := []Target{}
-	err := db.Table("targets").Select("targets.id, targets.email, targets.first_name, targets.last_name, targets.position").Joins("left join group_targets gt ON targets.id = gt.target_id").Where("gt.group_id=?", gid).Scan(&ts).Error
+	err := db.Table("targets").Select("targets.id, targets.email, targets.name, targets.department, targets.position").Joins("left join group_targets gt ON targets.id = gt.target_id").Where("gt.group_id=?", gid).Scan(&ts).Error
 	return ts, err
 }

@@ -12,7 +12,7 @@ import (
 )
 
 func buildCSVRequest(csvPayload string) (*http.Request, error) {
-	csvHeader := "First Name,Last Name,Email\n"
+	csvHeader := "Name,Department,Email\n"
 	body := new(bytes.Buffer)
 	writer := multipart.NewWriter(body)
 	part, err := writer.CreateFormFile("files[]", "example.csv")
@@ -36,13 +36,13 @@ func buildCSVRequest(csvPayload string) (*http.Request, error) {
 func TestParseCSVEmail(t *testing.T) {
 	expected := models.Target{
 		BaseRecipient: models.BaseRecipient{
-			FirstName: "John",
-			LastName:  "Doe",
-			Email:     "johndoe@example.com",
+			Name:       "John Doe",
+			Department: "HQ",
+			Email:      "johndoe@example.com",
 		},
 	}
 
-	csvPayload := fmt.Sprintf("%s,%s,<%s>", expected.FirstName, expected.LastName, expected.Email)
+	csvPayload := fmt.Sprintf("%s,%s,<%s>", expected.Name, expected.Department, expected.Email)
 	r, err := buildCSVRequest(csvPayload)
 	if err != nil {
 		t.Fatalf("error building CSV request: %v", err)

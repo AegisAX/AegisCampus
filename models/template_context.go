@@ -108,8 +108,8 @@ func ValidateTemplate(text string) error {
 	td := Result{
 		BaseRecipient: BaseRecipient{
 			Email:     "foo@bar.com",
-			FirstName: "Foo",
-			LastName:  "Bar",
+			Name: "Foo",
+			Department:  "HQ",
 			Position:  "Test",
 		},
 		RId: "123456",

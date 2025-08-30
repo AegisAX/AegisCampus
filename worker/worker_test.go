@@ -50,8 +50,8 @@ func createTestData(t *testing.T, ctx *testContext) {
 		group.Targets = append(group.Targets, models.Target{
 			BaseRecipient: models.BaseRecipient{
 				Email:     fmt.Sprintf("test%d@example.com", i),
-				FirstName: "First",
-				LastName:  "Example"}})
+				Name: "First",
+				Department:  "Example"}})
 	}
 	group.UserId = 1
 	models.PostGroup(&group)

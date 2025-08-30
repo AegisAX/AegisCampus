@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"math"
 	"math/big"
 	"net/mail"
@@ -17,6 +18,7 @@ import (
 	"github.com/gophish/gophish/config"
 	log "github.com/gophish/gophish/logger"
 	"github.com/gophish/gophish/mailer"
+	"github.com/gophish/gophish/util/mimeutil"
 )
 
 // MaxSendAttempts set to 8 since we exponentially backoff after each failed send
@@ -203,11 +205,22 @@ func (m *MailLog) Generate(msg *gomail.Message) error {
 	}
 
 	// Add Message-Id header as described in RFC 2822.
-	messageID, err := m.generateMessageID()
-	if err != nil {
-		return err
-	}
-	msg.SetHeader("Message-Id", messageID)
+	// messageID, err := m.generateMessageID()
+	// if err != nil {
+		// return err
+	// }
+	// msg.SetHeader("Message-Id", messageID)
+
+        // Date 헤더
+        msg.SetHeader("Date", time.Now().Format(time.RFC1123Z))
+        // Gmail 550-5.7.1 회피: FQDN 기반 Message-ID 생성
+        msgidDomain := pickMsgIDDomain(c)
+        messageID, err := m.generateMessageIDForDomain(msgidDomain)
+        if err != nil {
+                return err
+        }
+        // 표준 케이스로 설정 (케이스는 무관하지만 일관성 유지)
+        msg.SetHeader("Message-ID", messageID)
 
 	// Parse the customHeader templates
 	for _, header := range c.SMTP.Headers {
@@ -222,7 +235,13 @@ func (m *MailLog) Generate(msg *gomail.Message) error {
 		}
 
 		// Add our header immediately
-		msg.SetHeader(key, value)
+		// msg.SetHeader(key, value)
+                // Message-ID/Date는 덮어쓰기 금지
+                kl := strings.ToLower(strings.TrimSpace(key))
+                if kl == "message-id" || kl == "messageid" || kl == "date" {
+                        continue
+                }
+                msg.SetHeader(key, value)
 	}
 
 	// Parse remaining templates
@@ -233,10 +252,16 @@ func (m *MailLog) Generate(msg *gomail.Message) error {
 	}
 	// don't set Subject header if the subject is empty
 	if subject != "" {
-		msg.SetHeader("Subject", subject)
+		// 비-ASCII 제목을 RFC 2047로 강제 인코딩
+		msg.SetHeader("Subject", mimeutil.EncodeHeaderRFC2047(subject))
 	}
 
-	msg.SetHeader("To", r.FormatAddress())
+	// To: 표시명에 비-ASCII가 있을 수 있으니 안전 포맷 적용
+	if addr, err := mail.ParseAddress(r.FormatAddress()); err == nil {
+		msg.SetAddressHeader("To", addr.Address, addr.Name)
+	} else {
+		msg.SetHeader("To", r.FormatAddress())
+	}
 	if c.Template.Text != "" {
 		text, err := ExecuteTemplate(c.Template.Text, ptx)
 		if err != nil {
@@ -303,6 +328,38 @@ func UnlockAllMailLogs() error {
 	return db.Model(&MailLog{}).Update("processing", false).Error
 }
 
+// pickMsgIDDomain: Message-ID의 도메인 부분으로 쓸 FQDN 선택
+// 우선순위: EnvelopeSender 도메인 > FromAddress 도메인 > 고정 폴백(FQDN)
+func pickMsgIDDomain(c *Campaign) string {
+       // 1) EnvelopeSender
+       if addr, err := mail.ParseAddress(c.Template.EnvelopeSender); err == nil {
+               parts := strings.Split(addr.Address, "@")
+               if len(parts) == 2 && strings.Contains(parts[1], ".") {
+                       return strings.ToLower(parts[1])
+               }
+       }
+       // 2) SMTP.FromAddress
+       if addr, err := mail.ParseAddress(c.SMTP.FromAddress); err == nil {
+               parts := strings.Split(addr.Address, "@")
+               if len(parts) == 2 && strings.Contains(parts[1], ".") {
+                       return strings.ToLower(parts[1])
+               }
+       }
+       // 3) Fallback: 반드시 점(.)이 있는 FQDN을 사용
+       return "mail.whitehat.kr"
+}
+
+// generateMessageIDForDomain: FQDN을 사용해 RFC5322 규격 Message-ID 생성
+func (m *MailLog) generateMessageIDForDomain(domain string) (string, error) {
+       t := time.Now().UnixNano()
+       pid := os.Getpid()
+       rint, err := rand.Int(rand.Reader, maxBigInt)
+       if err != nil {
+               return "", err
+       }
+       return fmt.Sprintf("<%d.%d.%d@%s>", t, pid, rint, domain), nil
+}
+
 var maxBigInt = big.NewInt(math.MaxInt64)
 
 // generateMessageID generates and returns a string suitable for an RFC 2822
@@ -342,8 +399,9 @@ func shouldEmbedAttachment(name string) bool {
 	return false
 }
 
-// Add an attachment to a gomail message, with the Content-Disposition
-// header set to inline or attachment depending on its file extension.
+// Add an attachment to a gomail message.
+// 첨부 파트의 헤더에 RFC2231 filename* / name*을 추가하여
+// 헤더에 비-ASCII가 남지 않도록 처리한다.
 func addAttachment(msg *gomail.Message, a Attachment, ptx PhishingTemplateContext) {
 	copyFunc := gomail.SetCopyFunc(func(c Attachment) func(w io.Writer) error {
 		return func(w io.Writer) error {
@@ -355,9 +413,38 @@ func addAttachment(msg *gomail.Message, a Attachment, ptx PhishingTemplateContex
 			return err
 		}
 	}(a))
-	if shouldEmbedAttachment(a.Name) {
-		msg.Embed(a.Name, copyFunc)
+
+	inline := shouldEmbedAttachment(a.Name)
+	// gomail 내부 기본 처리에서 비-ASCII를 건드리지 않도록, 라이브러리 인자도 ASCII로 전달
+	asciiName := mimeutil.PercentASCIIName(a.Name)
+
+	// Content-Type 추정 (확장자 기반)
+	ctype := ""
+	if ext := strings.ToLower(filepath.Ext(a.Name)); ext != "" {
+		if t := mime.TypeByExtension(ext); t != "" {
+			ctype = t
+		}
+	}
+	if ctype == "" {
+		ctype = "application/octet-stream"
+	}
+	// RFC2231/5987 + ASCII 폴백 헤더 구성
+	hdr := mimeutil.BuildAttachmentHeaders(a.Name, ctype, inline)
+
+	if inline {
+		// inline 이미지는 Content-ID가 필요할 수 있는데,
+		// 여기서는 Content-ID를 지정하지 않으면 gomail이 자동으로 추가한다.
+		msg.Embed(
+                        asciiName,
+			gomail.SetHeader(hdr),
+			copyFunc,
+		)
 	} else {
-		msg.Attach(a.Name, copyFunc)
+		// 일부 클라이언트 호환을 위해 폴백 파일명도 지정
+		msg.Attach(
+                        asciiName,
+			gomail.SetHeader(hdr),
+			copyFunc,
+		)
 	}
 }

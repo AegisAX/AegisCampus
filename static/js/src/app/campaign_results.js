@@ -219,7 +219,8 @@ function exportAsCSV(scope) {
     var csvString = Papa.unparse(csvScope, {
         'escapeFormulae': true
     })
-    var csvData = new Blob([csvString], {
+    var bom = new Uint8Array([0xEF, 0xBB, 0xBF])
+    var csvData = new Blob([bom, csvString], {
         type: 'text/csv;charset=utf-8;'
     });
     if (navigator.msSaveBlob) {
@@ -367,16 +368,17 @@ var renderDevice = function (event_details) {
 function renderTimeline(data) {
     record = {
         "id": data[0],
-        "first_name": data[2],
-        "last_name": data[3],
+        "name": data[2],
+        "department": data[3],
         "email": data[4],
         "position": data[5],
         "status": data[6],
         "reported": data[7],
-        "send_date": data[8]
+        "send_date": data[8],
+        "executed": data[9]
     }
     results = '<div class="timeline col-sm-12 well well-lg">' +
-        '<h6>Timeline for ' + escapeHtml(record.first_name) + ' ' + escapeHtml(record.last_name) +
+        '<h6>Timeline for ' + escapeHtml(record.name) + ' ' + escapeHtml(record.department) +
         '</h6><span class="subtitle">Email: ' + escapeHtml(record.email) +
         '<br>Result ID: ' + escapeHtml(record.id) + '</span>' +
         '<div class="timeline-graph col-sm-6">'
@@ -797,8 +799,8 @@ function load() {
                     resultsTable.row.add([
                         result.id,
                         "<i id=\"caret\" class=\"fa fa-caret-right\"></i>",
-                        escapeHtml(result.first_name) || "",
-                        escapeHtml(result.last_name) || "",
+                        escapeHtml(result.name) || "",
+                        escapeHtml(result.department) || "",
                         escapeHtml(result.email) || "",
                         escapeHtml(result.position) || "",
                         result.status,

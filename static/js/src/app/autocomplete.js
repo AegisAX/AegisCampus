@@ -5,13 +5,13 @@ var TEMPLATE_TAGS = [{
     },
     {
         id: 2,
-        name: 'FirstName',
-        description: 'The recipient\'s first name.'
+        name: 'Name',
+        description: 'The recipient\'s name.'
     },
     {
         id: 3,
-        name: 'LastName',
-        description: 'The recipient\'s last name.'
+        name: 'Department',
+        description: 'The recipient\'s department.'
     },
     {
         id: 4,

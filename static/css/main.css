@@ -276,6 +276,10 @@ p {
     fill: #f05b4f !important;
 }
 
+.ct-point-executed {
+    fill: #ff0000 !important;
+}
+
 .chartist-tooltip {
     position: absolute;
     display: inline-block;
@@ -382,6 +386,10 @@ p {
     stroke: #428bca !important;
 }
 
+.ct-slice-donut.ct-slice-donut-executed {
+    stroke: #ff0000 !important;
+}
+
 .ct-legend-error {
     background-color: #6c7a89 !important;
 }
@@ -404,6 +412,10 @@ p {
 
 .ct-legend-sending {
     background-color: #428bca !important;
+}
+
+.ct-legend-executed {
+    background-color: #ff0000 !important;
 }
 
 .label-clicked {
@@ -697,8 +709,9 @@ table.dataTable {
     color: #45d6ef;
 }
 
-.color-success {
-    color: #f05b4f;
+.color-executed {
+    font-weight: bold;
+    color: #ff0000;
 }
 
 .nav-sidebar>li.active>a:focus,
