@@ -12,13 +12,11 @@ function save(id) {
         })
     })
     var group = {
-        name: $("#name").val(),
+        name: $("#group-name").val(),   // <-- 그룹 이름은 group-name에서 읽기
         targets: targets
     }
     // Submit the group
     if (id != -1) {
-        // If we're just editing an existing group,
-        // we need to PUT /groups/:id
         group.id = id
         api.groupId.put(group)
             .success(function (data) {
@@ -31,8 +29,6 @@ function save(id) {
                 modalError(data.responseJSON.message)
             })
     } else {
-        // Else, if this is a new group, POST it
-        // to /groups
         api.groups.post(group)
             .success(function (data) {
                 successFlash("Group added successfully!")
@@ -48,13 +44,17 @@ function save(id) {
 
 function dismiss() {
     $("#targetsTable").dataTable().DataTable().clear().draw()
-    $("#name").val("")
+    $("#group-name").val("")         // <-- 그룹 이름 초기화
+    $("#target-name").val("")        // 아래 입력들도 깔끔히 초기화(선택)
+    $("#department").val("")
+    $("#email").val("")
+    $("#position").val("")
     $("#modal\\.flashes").empty()
 }
 
 function edit(id) {
     targets = $("#targetsTable").dataTable({
-        destroy: true, // Destroy any other instantiated table - http://datatables.net/manual/tech-notes/3#destroy
+        destroy: true,
         columnDefs: [{
             orderable: false,
             targets: "no-sort"
@@ -65,13 +65,13 @@ function edit(id) {
     })
     if (id == -1) {
         $("#groupModalLabel").text("New Group");
-        var group = {}
+        $("#group-name").val("");     // 새 그룹일 때 비우기
     } else {
         $("#groupModalLabel").text("Edit Group");
         api.groupId.get(id)
             .success(function (group) {
-                $("#name").val(group.name)
-                targetRows = []
+                $("#group-name").val(group.name)   // <-- 수정 시 채우기
+                var targetRows = []
                 $.each(group.targets, function (i, record) {
                   targetRows.push([
                       escapeHtml(record.name),
@@ -142,7 +142,6 @@ var downloadCSVTemplate = function () {
     }
 }
 
-
 var deleteGroup = function (id) {
     var group = groups.find(function (x) {
         return x.id === id
@@ -199,17 +198,14 @@ function addTarget(nameInput, departmentInput, emailInput, positionInput) {
     // Check table to see if email already exists.
     var targetsTable = targets.DataTable();
     var existingRowIndex = targetsTable
-        .column(2, {
-            order: "index"
-        }) // Email column has index of 2
+        .column(2, { order: "index" }) // Email column index = 2
         .data()
         .indexOf(email);
+
     // Update or add new row as necessary.
     if (existingRowIndex >= 0) {
         targetsTable
-            .row(existingRowIndex, {
-                order: "index"
-            })
+            .row(existingRowIndex, { order: "index" })
             .data(newRow);
     } else {
         targetsTable.row.add(newRow);
@@ -235,7 +231,7 @@ function load() {
                     }]
                 });
                 groupTable.clear();
-                groupRows = []
+                var groupRows = []
                 $.each(groups, function (i, group) {
                     groupRows.push([
                         escapeHtml(group.name),
@@ -261,7 +257,6 @@ function load() {
 
 $(document).ready(function () {
     load()
-    // Setup the event listeners
     // Handle manual additions
     $("#targetForm").submit(function () {
         // Validate the form data
@@ -271,17 +266,19 @@ $(document).ready(function () {
             return
         }
         addTarget(
-            $("#name").val(),
+            $("#target-name").val(),   // <-- 개별 타겟 이름은 target-name에서 읽기
             $("#department").val(),
             $("#email").val(),
-            $("#position").val());
+            $("#position").val()
+        );
         targets.DataTable().draw();
 
         // Reset user input.
         $("#targetForm>div>input").val('');
-        $("#name").focus();
+        $("#target-name").focus();    // <-- 포커스도 타겟 이름으로
         return false;
     });
+
     // Handle Deletion
     $("#targetsTable").on("click", "span>i.fa-trash-o", function () {
         targets.DataTable()
@@ -289,8 +286,11 @@ $(document).ready(function () {
             .remove()
             .draw();
     });
+
     $("#modal").on("hide.bs.modal", function () {
         dismiss();
     });
+
     $("#csv-template").click(downloadCSVTemplate)
 });
+

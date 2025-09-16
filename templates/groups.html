@@ -47,11 +47,13 @@
             </div>
             <div class="modal-body">
                 <div class="row" id="modal.flashes"></div>
-                <label class="control-label" for="name">Name:</label>
+
+                <!-- 그룹 이름 -->
+                <label class="control-label" for="group-name">Name:</label>
                 <div class="form-group">
-                    <input type="text" class="form-control" ng-model="group.name" placeholder="Group name" id="name"
-                        autofocus />
+                    <input type="text" class="form-control" ng-model="group.name" placeholder="Group name" id="group-name" autofocus />
                 </div>
+
                 <div class="form-group">
                     <span class="btn btn-danger btn-file" data-toggle="tooltip" data-placement="right"
                         title="Supports CSV files" id="fileUpload">
@@ -61,10 +63,12 @@
                     <span id="csv-template" class="text-muted small">
                         <i class="fa fa-file-excel-o"></i> Download CSV Template</span>
                 </div>
+
+                <!-- 개별 타겟 추가 -->
                 <div class="row">
                     <form id="targetForm">
                         <div class="col-sm-2">
-                            <input type="text" class="form-control" placeholder="Name" id="name">
+                            <input type="text" class="form-control" placeholder="Name" id="target-name">
                         </div>
                         <div class="col-sm-2">
                             <input type="text" class="form-control" placeholder="Department" id="department">
@@ -81,6 +85,7 @@
                         </div>
                     </form>
                 </div>
+
                 <br />
                 <table id="targetsTable" class="table table-hover table-striped table-condensed">
                     <thead>
@@ -104,3 +109,4 @@
 {{end}} {{define "scripts"}}
 <script src="/js/dist/app/groups.min.js"></script>
 {{end}}
+

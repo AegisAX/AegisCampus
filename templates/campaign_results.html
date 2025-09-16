@@ -18,12 +18,9 @@
                     <i class="fa fa-caret-down"></i>
                 </button>
                 <ul class="dropdown-menu" aria-labelledby="exportButton">
-                    <li>
-                        <a href="#" onclick="exportAsCSV('results')">Results</a>
-                    </li>
-                    <li>
-                        <a href="#" onclick="exportAsCSV('events')">Raw Events</a>
-                    </li>
+                    <li><a href="#" onclick="exportAsCSV('results')">Results</a></li>
+                    <li><a href="#" onclick="exportAsCSV('events_flat')">Events</a></li>
+                    <li><a href="#" onclick="exportAsCSV('events')">Raw Events</a></li>
                 </ul>
             </div>
             <button id="complete_button" type="button" class="btn btn-blue" data-toggle="tooltip" onclick="completeCampaign()">

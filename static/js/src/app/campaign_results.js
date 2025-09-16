@@ -246,6 +246,30 @@ function completeCampaign() {
 // Exports campaign results as a CSV file
 function exportAsCSV(scope) {
     exportHTML = $("#exportButton").html()
+
+    // ▼ 새 분기: Events (CSV) — 첨부 Events.csv 포맷을 프런트에서 생성
+    if (scope === "events_flat") {
+        var payload = buildEventsFlatCSVData(campaign); // {fields, data}
+        $("#exportButton").html('<i class="fa fa-spinner fa-spin"></i>')
+        var csvString = Papa.unparse(payload, { 'escapeFormulae': true })
+        var bom = new Uint8Array([0xEF, 0xBB, 0xBF])
+        var csvData = new Blob([bom, csvString], { type: 'text/csv;charset=utf-8;' });
+        var filename = (campaign.name || 'Campaign') + ' - Events.csv'
+        if (navigator.msSaveBlob) {
+            navigator.msSaveBlob(csvData, filename);
+        } else {
+            var csvURL = window.URL.createObjectURL(csvData);
+            var dlLink = document.createElement('a');
+            dlLink.href = csvURL;
+            dlLink.setAttribute('download', filename)
+            document.body.appendChild(dlLink)
+            dlLink.click();
+            document.body.removeChild(dlLink)
+        }
+        $("#exportButton").html(exportHTML)
+        return;
+    }
+
     var csvScope = null
     var filename = campaign.name + ' - ' + capitalize(scope) + '.csv'
     switch (scope) {
@@ -1082,4 +1106,152 @@ $(document).ready(function () {
     // Start the polling loop
     setRefresh = setTimeout(refresh, 60000)
 })
+
+/* ============================================================
+ * ▼▼▼ Events (CSV) 프런트 생성 - 시간 & Open IP 출력 버전
+ *    - 각 이벤트는 최초 발생 시간을 기록(여러 번 발생해도 첫 번째)
+ *    - 시간 포맷: YYYY-MM-DD HH:mm:ss (로컬)
+ *    - Mail Open 시점의 IP(Address)도 함께 출력
+ * ============================================================ */
+
+// events_flat CSV: {fields, data} 형태로 빌드하여 Papa.unparse에 전달
+function buildEventsFlatCSVData(camp) {
+    var fields = [
+        "Campaign ID",
+        "Campaign Name",
+        "R_ID",
+        "Name",
+        "Department",
+        "Email",
+        "Position",
+        "Mail Sent",
+        "Mail Open",
+        "IP (Open)",           // ★ 추가
+        "Clicked Link",
+        "Submitted Data",
+        "Attachment Executed",
+        "Email Reported"
+    ];
+
+    // 타임라인을 이메일별 '최초 발생 시간' & 'Open IP'로 인덱싱
+    var idx = indexEventTimesByEmail((camp && camp.timeline) || []);
+
+    var data = [];
+    (camp && camp.results || []).forEach(function (r) {
+        var email = r.email || r.Email || "";
+        var rec   = idx[email] || {};
+
+        // Mail Sent 시간: 우선 result.send_date, 없으면 timeline의 "Email Sent"
+        var sentTime = r.send_date ? moment(r.send_date).format('YYYY-MM-DD HH:mm:ss')
+                                   : (rec.sent || "");
+
+        var row = {
+            "Campaign ID": camp.id || "",
+            "Campaign Name": camp.name || "",
+            "R_ID": getRIDFromResult(r),
+            "Name": getFullName(r),
+            "Department": r.department || r.Department || "",
+            "Email": email,
+            "Position": r.position || r.Position || "",
+            "Mail Sent": sentTime,
+            "Mail Open": rec.open || "",
+            "IP (Open)": rec.open_ip || "",
+            "Clicked Link": rec.click || "",
+            "Submitted Data": rec.submit || "",
+            "Attachment Executed": rec.exec || "",
+            "Email Reported": rec.report || ""
+        };
+        data.push(row);
+    });
+
+    return { fields: fields, data: data };
+}
+
+// 타임라인에서 이메일별 이벤트 최초발생 시간/열람IP 인덱싱
+function indexEventTimesByEmail(timeline) {
+    var m = Object.create(null);
+    (timeline || []).forEach(function (ev) {
+        var email = ev.email;
+        if (!email) return;
+
+        if (!m[email]) {
+            m[email] = { sent:"", open:"", open_ip:"", click:"", submit:"", exec:"", report:"" };
+        }
+        var msg = normalizeStatus(ev.message);
+        var ts  = formatEventTime(ev.time); // 로컬 시간 문자열
+
+        switch (msg) {
+            case "Email Sent":
+                if (!m[email].sent)   m[email].sent   = ts;
+                break;
+            case "Email Opened":
+                if (!m[email].open) {
+                    m[email].open = ts;
+                    // Open 시점 IP 추출 (details 기반, 없으면 비움)
+                    m[email].open_ip = extractOpenIP(ev);
+                }
+                break;
+            case "Clicked Link":
+                if (!m[email].click)  m[email].click  = ts;
+                break;
+            case "Submitted Data":
+                if (!m[email].submit) m[email].submit = ts;
+                break;
+            case "Attachment Executed":
+                if (!m[email].exec)   m[email].exec   = ts;
+                break;
+            case "Email Reported":
+                if (!m[email].report) m[email].report = ts;
+                break;
+        }
+    });
+    return m;
+}
+
+// 이벤트 시간 로컬 포맷
+function formatEventTime(t) {
+    try {
+        return moment.utc(t).local().format('YYYY-MM-DD HH:mm:ss');
+    } catch (e) {
+        return "";
+    }
+}
+
+// Mail Open 이벤트에서 IP 추출: DB 구조 기준 (details.browser.address 우선)
+function extractOpenIP(ev) {
+  try {
+    var d = typeof ev.details === "string" ? JSON.parse(ev.details) : (ev.details || {});
+    var b = d.browser || d.Browser || {};
+    var addr = b.address || b.Address || "";
+
+    // 보조: payload 쪽에도 남아있을 수 있으니 백업 경로 탐색
+    if (!addr) {
+      var p = d.payload || d.Payload || {};
+      addr = p.address || p.Address || p.ip || p.IP || "";
+    }
+
+    // 배열/다중 헤더(XFF 등) 처리
+    if (Array.isArray(addr)) addr = addr[0] || "";
+    if (addr && addr.indexOf(",") !== -1) addr = addr.split(",")[0].trim();
+
+    return addr || "";
+  } catch (_) {
+    return "";
+  }
+}
+
+// 결과 객체에서 RID / 이름 안전 추출
+function getRIDFromResult(r) {
+    if (r.rid) return r.rid;
+    if (r.RId) return r.RId;
+    // 필요 시: 타임라인 details.payload.rid에서 백업 추출하는 로직을 추가 가능
+    return "";
+}
+function getFullName(r) {
+    if (r.name) return r.name;
+    if (r.Name) return r.Name;
+    var fn = r.first_name || r.FirstName || "";
+    var ln = r.last_name  || r.LastName  || "";
+    return (fn && ln) ? (fn + " " + ln) : (fn || ln);
+}
 

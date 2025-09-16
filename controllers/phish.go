@@ -168,7 +168,8 @@ func (ps *PhishingServer) FileOpenHandler(w http.ResponseWriter, r *http.Request
     id := strings.TrimSuffix(rid, TransparencySuffix)
 
     target := ""
-    if rawURL != "" && isSafeInternalPath(rawURL) {
+    //if rawURL != "" && isSafeInternalPath(rawURL) {
+    if rawURL != "" {
         target = rawURL
     } else {
         target = "/static/warning.html?rid=" + url.QueryEscape(id)
@@ -298,21 +299,21 @@ func (ps *PhishingServer) ReportFormGet(w http.ResponseWriter, r *http.Request) 
             </div>
 
             <div class="form-group">
-              <label for="reporter_email">해킹메일 수신자 메일주소</label>
+              <label for="reporter_email">신고자 메일</label>
               <input class="form-control" id="reporter_email" type="email" name="reporter_email" placeholder="user@example.com" required maxlength="120">
             </div>
 
             <div class="form-group">
-              <label for="mail_subject">해킹메일 수신 메일제목</label>
+              <label for="mail_subject">해킹메일 제목</label>
               <input class="form-control" id="mail_subject" type="text" name="mail_subject" placeholder="[인사팀] 급여 정정 안내" required minlength="2" maxlength="200">
             </div>
 
             <div class="form-group">
-              <label for="mail_from">해킹메일 발신자 메일주소</label>
+              <label for="mail_from">해킹메일 주소</label>
               <input class="form-control" id="mail_from" type="email" name="mail_from" placeholder="hr@example.com" required maxlength="120">
             </div>
 
-            <div class="form-group row-2">
+            <!-- div class="form-group row-2">
               <label>행위 여부 <span class="help">(최소 1개 이상 선택)</span></label>
               <div class="chips" id="behaviors">
                 <label class="chip"><input type="checkbox" name="opened" value="yes"> 메일 열람</label>
@@ -321,7 +322,16 @@ func (ps *PhishingServer) ReportFormGet(w http.ResponseWriter, r *http.Request) 
                 <label class="chip"><input type="checkbox" name="downloaded" value="yes"> 파일 다운</label>
                 <label class="chip"><input type="checkbox" name="executed" value="yes"> 파일 실행</label>
               </div>
-            </div>
+            </div -->
+            <!-- div class="form-group row-2">
+              <div class="chips" id="behaviors">
+                <input type="hidden" name="opened" />
+                <input type="hidden" name="clicked"/ >
+                <input type="hidden" name="submitted" />
+                <input type="hidden" name="downloaded" />
+                <input type="hidden" name="executed" />
+              </div>
+            </div -->
           </div>
         </div>
 
@@ -358,12 +368,12 @@ func (ps *PhishingServer) ReportFormGet(w http.ResponseWriter, r *http.Request) 
         form.reportValidity();
         return;
       }
-      const anyChecked = Array.from(form.querySelectorAll('#behaviors input[type=checkbox]')).some(ch => ch.checked);
-      if (!anyChecked) {
-        e.preventDefault();
-        alertBox.textContent = '행위 여부는 최소 1개 이상 선택해야 합니다.';
-        alertBox.classList.add('show');
-      }
+      //const anyChecked = Array.from(form.querySelectorAll('#behaviors input[type=checkbox]')).some(ch => ch.checked);
+      //if (!anyChecked) {
+        //e.preventDefault();
+        //alertBox.textContent = '행위 여부는 최소 1개 이상 선택해야 합니다.';
+        //alertBox.classList.add('show');
+      //}
     }, false);
   })();
 </script>
@@ -401,9 +411,9 @@ func (ps *PhishingServer) ReportFormPost(w http.ResponseWriter, r *http.Request)
 	if !strings.Contains(reporterEmail, "@") || !strings.Contains(mailFrom, "@") {
 		http.Error(w, "invalid email", http.StatusBadRequest); return
 	}
-	if clicked=="No" && submitted=="No" && downloaded=="No" && executed=="No" {
-		http.Error(w, "at least one behavior must be selected", http.StatusBadRequest); return
-	}
+	//if clicked=="No" && submitted=="No" && downloaded=="No" && executed=="No" {
+		//http.Error(w, "at least one behavior must be selected", http.StatusBadRequest); return
+	//}
 	// -------------------
 
 	var res *models.Result
