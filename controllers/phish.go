@@ -11,6 +11,11 @@ import (
         "html"
 	"strings"
 	"time"
+	"encoding/json"
+	"io"
+	"os"
+	"path/filepath"
+	"strconv"
 
 	"github.com/NYTimes/gziphandler"
 	"github.com/gophish/gophish/config"
@@ -55,6 +60,8 @@ type PhishingServer struct {
 	config         config.PhishServer
 	contactAddress string
 }
+
+type PhishServer = PhishingServer
 
 // NewPhishingServer returns a new instance of the phishing server with
 // provided options applied.
@@ -124,6 +131,11 @@ func (ps *PhishingServer) registerRoutes() {
 	// 신고 폼(메모 입력) 경로 추가
 	router.HandleFunc("/report-form", ps.ReportFormGet).Methods("GET")
 	router.HandleFunc("/report-form", ps.ReportFormPost).Methods("POST")
+
+	// 동영상 관련 경로 추가
+	router.HandleFunc("/media/{id:[0-9]+}", ps.Media).Methods("GET")
+	router.HandleFunc("/track/video", ps.TrackVideo).Methods("POST")
+	router.HandleFunc("/track/video/progress", ps.GetVideoProgress).Methods("GET")
 
 	// 루트("/") 처리
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -708,3 +720,170 @@ func setupContext(r *http.Request) (*http.Request, error) {
 	r = ctx.Set(r, "details", d)
 	return r, nil
 }
+
+// Media - 공개 스트리밍 엔드포인트 (Range 지원 via http.ServeContent)
+// GET /media/{id}
+func (ps *PhishingServer) Media(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+    idStr := vars["id"]
+    id, _ := strconv.ParseInt(idStr, 10, 64)
+
+    v, err := models.GetVideo(id)
+    if err != nil || v == nil || v.Id == 0 {
+        log.Errorf("media: video not found (id=%s)", idStr)
+        http.NotFound(w, r)
+        return
+    }
+
+    path := v.FilePath
+
+    // --- 보정 추가 ---
+    // 상대경로(static/videos/...)면 절대경로로 바꿔줌
+    if !filepath.IsAbs(path) {
+        path = filepath.Join("static", "videos", filepath.Base(path))
+    }
+    // ----------------
+
+    f, err := os.Open(path)
+    if err != nil {
+        log.Errorf("media: cannot open %s: %v", path, err)
+        http.NotFound(w, r)
+        return
+    }
+    defer f.Close()
+
+    fi, _ := f.Stat()
+    w.Header().Set("Content-Type", "video/mp4")
+    w.Header().Set("Content-Disposition", "inline")
+    w.Header().Set("Cache-Control", "no-store")
+    w.Header().Set("X-Content-Type-Options", "nosniff")
+    http.ServeContent(w, r, filepath.Base(path), fi.ModTime(), f)
+}
+
+// 트래킹 페이로드 구조체
+type videoTrackPayload struct {
+    RID         string `json:"rid"`
+    VideoID     int64  `json:"video_id"`
+    Event       string `json:"event"`       // play | progress | ended | unload
+    CurrentTime int64  `json:"currentTime"` // seconds
+    Duration    int64  `json:"duration"`    // seconds (optional)
+}
+
+// TrackVideo - 랜딩 페이지에서 시청 이벤트(Beacon 등) 수신, DB에 누적/업데이트
+// POST /track/video
+func (ps *PhishingServer) TrackVideo(w http.ResponseWriter, r *http.Request) {
+    var p videoTrackPayload
+    dec := json.NewDecoder(io.LimitReader(r.Body, 1<<20)) // 1MB limit
+    if err := dec.Decode(&p); err != nil {
+        w.WriteHeader(http.StatusBadRequest)
+        return
+    }
+
+    if p.RID == "" || p.VideoID == 0 {
+        w.WriteHeader(http.StatusBadRequest)
+        return
+    }
+
+    // RID -> Result 조회 (models.GetResultByRID 구현 필요)
+    res, err := models.GetResultByRID(p.RID)
+    if err != nil {
+        log.Error(err)
+        w.WriteHeader(http.StatusInternalServerError)
+        return
+    }
+    if res == nil || res.Id == 0 {
+        // 유효한 수신자(결과)가 아니면 404
+        w.WriteHeader(http.StatusNotFound)
+        return
+    }
+
+    // 기존 진행 기록 조회/생성
+    vp, err := models.GetVideoProgress(res.UserId, res.Id, p.VideoID)
+    if err != nil {
+        log.Error(err)
+        w.WriteHeader(http.StatusInternalServerError)
+        return
+    }
+    if vp == nil {
+        vp = &models.VideoProgress{
+            UserId:   res.UserId,
+            ResultId: res.Id,
+            VideoId:  p.VideoID,
+        }
+    }
+
+    // 갱신 로직: 가장 큰 시청 초수(최대값) 유지
+    if p.CurrentTime > vp.SecondsWatched {
+        vp.SecondsWatched = p.CurrentTime
+    }
+    if p.Duration > 0 {
+        vp.Duration = p.Duration
+        if vp.SecondsWatched > 0 {
+            vp.Percent = float64(vp.SecondsWatched) / float64(vp.Duration)
+            if vp.Percent > 1 {
+                vp.Percent = 1
+            }
+        }
+    }
+
+    // 완료 판정: ended 이벤트거나 90% 이상 시청 시 완료로 표시
+    if p.Event == "ended" || (vp.Duration > 0 && vp.Percent >= 0.90) {
+        vp.Completed = true
+    }
+
+    if err := vp.Save(); err != nil {
+        log.Error(err)
+        w.WriteHeader(http.StatusInternalServerError)
+        return
+    }
+
+    w.WriteHeader(http.StatusNoContent)
+}
+
+// controllers/phish.go
+type videoProgressResponse struct {
+	SecondsWatched int64   `json:"seconds_watched"`
+	Duration       int64   `json:"duration"`
+	Percent        float64 `json:"percent"`
+	Completed      bool    `json:"completed"`
+}
+
+func (ps *PhishingServer) GetVideoProgress(w http.ResponseWriter, r *http.Request) {
+	rid := r.URL.Query().Get("rid")
+	videoIDStr := r.URL.Query().Get("video_id")
+	if rid == "" || videoIDStr == "" {
+		http.Error(w, "missing rid or video_id", http.StatusBadRequest)
+		return
+	}
+	videoID, err := strconv.ParseInt(videoIDStr, 10, 64)
+	if err != nil || videoID <= 0 {
+		http.Error(w, "invalid video_id", http.StatusBadRequest)
+		return
+	}
+
+	// 결과 조회 (여기서 r_id 로 조회)
+	res, err := models.GetResultByRID(rid)
+	if err != nil || res == nil || res.Id == 0 {
+		http.Error(w, "result not found", http.StatusNotFound)
+		return
+	}
+
+	// 진행률 조회
+	vp, err := models.GetVideoProgress(res.UserId, res.Id, videoID)
+	if err != nil {
+		log.Error(err)
+		http.Error(w, "error", http.StatusInternalServerError)
+		return
+	}
+	if vp == nil {
+		api.JSONResponse(w, videoProgressResponse{}, http.StatusOK)
+		return
+	}
+	api.JSONResponse(w, videoProgressResponse{
+		SecondsWatched: vp.SecondsWatched,
+		Duration:       vp.Duration,
+		Percent:        vp.Percent,
+		Completed:      vp.Completed,
+	}, http.StatusOK)
+}
+

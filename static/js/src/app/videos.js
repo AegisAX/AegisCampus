@@ -60,7 +60,7 @@ function renderVideos() {
       "<td>", escapeHtml(v.name), "</td>",
       "<td>", escapeHtml(v.description || ""), "</td>",
       "<td>", v.modified_date ? moment(v.modified_date).format('MMMM Do YYYY, h:mm:ss a') : "", "</td>",
-      "<td class='text-right'>",
+      "<td>",
         "<button class='btn btn-primary btn-xs' data-toggle='tooltip' title='Preview' onclick='previewVideo(", v.id, ")'>",
           "<i class='fa fa-play'></i>",
         "</button> ",
@@ -77,16 +77,16 @@ function renderVideos() {
 
 /* === Preview === */
 function previewVideo(id) {
-  // Set source to stream endpoint and show modal
-  var src = "/videos/stream/" + id;
-  $("#preview-src").attr("src", src);
-  var v = document.getElementById("preview-video");
-  try {
-    // reload the media element so the new src is picked up
-    v.load();
-  } catch (e) {
-    console.error("Video load error:", e);
+  var vid = videos.find(function(v){ return v.id === id; });
+  if (vid) {
+    $("#preview-title").text(vid.name);   // 새 span/div에 제목 넣기
+  } else {
+    $("#preview-title").text("동영상 미리보기");
   }
+
+  $("#preview-src").attr("src", "/videos/stream/" + id);
+  var v = document.getElementById("preview-video");
+  v.load();
   $("#previewModal").modal("show");
 }
 

@@ -232,3 +232,13 @@ func GetResult(rid string) (Result, error) {
 	err := db.Where("r_id=?", rid).First(&r).Error
 	return r, err
 }
+
+func GetResultByRID(rid string) (*Result, error) {
+    var res Result
+    err := db.Where("r_id = ?", rid).First(&res).Error
+    if err == gorm.ErrRecordNotFound {
+        return nil, nil
+    }
+    return &res, err
+}
+

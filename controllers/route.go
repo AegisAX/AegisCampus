@@ -532,5 +532,8 @@ func (as *AdminServer) StreamVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "video/mp4") // 필요시 확장자 기반으로 변경
+        w.Header().Set("Content-Disposition", "inline")
+        w.Header().Set("Cache-Control", "no-store")
+        w.Header().Set("X-Content-Type-Options", "nosniff")
 	http.ServeContent(w, r, filepath.Base(v.FilePath), fi.ModTime(), f)
 }
