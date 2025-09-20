@@ -4,6 +4,9 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/tls"
+	"os"
+	"path/filepath"
+	"strconv"
 	"html/template"
 	"net/http"
 	"net/url"
@@ -132,6 +135,9 @@ func (as *AdminServer) registerRoutes() {
 	router.HandleFunc("/templates", mid.Use(as.Templates, mid.RequireLogin))
 	router.HandleFunc("/groups", mid.Use(as.Groups, mid.RequireLogin))
 	router.HandleFunc("/landing_pages", mid.Use(as.LandingPages, mid.RequireLogin))
+        router.HandleFunc("/videos", mid.Use(as.Videos, mid.RequireLogin))
+        router.HandleFunc("/videos/stream/{id:[0-9]+}", mid.Use(as.StreamVideo, mid.RequireLogin))
+
 	router.HandleFunc("/sending_profiles", mid.Use(as.SendingProfiles, mid.RequireLogin))
 	router.HandleFunc("/settings", mid.Use(as.Settings, mid.RequireLogin))
 	router.HandleFunc("/users", mid.Use(as.UserManagement, mid.RequirePermission(models.PermissionModifySystem), mid.RequireLogin))
@@ -236,6 +242,13 @@ func (as *AdminServer) LandingPages(w http.ResponseWriter, r *http.Request) {
 	params := newTemplateParams(r)
 	params.Title = "Landing Pages"
 	getTemplate(w, "landing_pages").ExecuteTemplate(w, "base", params)
+}
+
+// Videos handles the Video Management admin page
+func (as *AdminServer) Videos(w http.ResponseWriter, r *http.Request) {
+	params := newTemplateParams(r)
+	params.Title = "Video Management"
+	getTemplate(w, "videos").ExecuteTemplate(w, "base", params)
 }
 
 // SendingProfiles handles the default path and template execution
@@ -492,4 +505,32 @@ func Flash(w http.ResponseWriter, r *http.Request, t string, m string) {
 		Type:    t,
 		Message: m,
 	})
+}
+
+// StreamVideo serves a video file with Range support for preview/streaming.
+// GET /videos/stream/{id}
+func (as *AdminServer) StreamVideo(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+	id, _ := strconv.ParseInt(idStr, 10, 64)
+
+	v, err := models.GetVideo(id)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	f, err := os.Open(v.FilePath)
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	defer f.Close()
+	fi, err := f.Stat()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "video/mp4") // 필요시 확장자 기반으로 변경
+	http.ServeContent(w, r, filepath.Base(v.FilePath), fi.ModTime(), f)
 }

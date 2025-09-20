@@ -1,0 +1,92 @@
+{{ define "body" }}
+<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+  <div class="row">
+    <h1 class="page-header">Video Management</h1>
+  </div>
+
+  <div class="row">
+    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#uploadModal">
+      <i class="fa fa-plus"></i> New Video
+    </button>
+  </div>
+  &nbsp;
+
+  <div id="loading"><i class="fa fa-spinner fa-spin"></i> Loading...</div>
+
+  <div id="emptyMessage" class="row" style="display:none;">
+    <div class="alert alert-info">No videos yet. Let's upload one!</div>
+  </div>
+
+  <div id="videos-table" style="display:none;">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Description</th>
+          <th>Uploaded</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="videos-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form id="video-upload-form" enctype="multipart/form-data">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">Upload Video</h4>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="video-name">Name</label>
+            <input type="text" class="form-control" id="video-name" name="name" required>
+          </div>
+          <div class="form-group">
+            <label for="video-description">Description</label>
+            <textarea class="form-control" id="video-description" name="description"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="video-file">Video file</label>
+            <input type="file" class="form-control" id="video-file" name="file" accept="video/*" required>
+          </div>
+          <div class="checkbox">
+            <label><input type="checkbox" id="video-public" name="is_public"> Public</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Upload</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header"><h4 class="modal-title">Preview</h4></div>
+      <div class="modal-body">
+        <video id="preview-video" controls style="width:100%; height:auto;">
+          <source id="preview-src" src="" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{ end }}
+
+{{ define "scripts" }}
+<script src="/js/dist/app/videos.min.js"></script>
+{{ end }}
+

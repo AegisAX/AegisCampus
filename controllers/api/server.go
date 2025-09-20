@@ -75,6 +75,11 @@ func (as *Server) registerRoutes() {
 	router.HandleFunc("/templates/{id:[0-9]+}", as.Template)
 	router.HandleFunc("/pages/", as.Pages)
 	router.HandleFunc("/pages/{id:[0-9]+}", as.Page)
+
+	// Video Management API
+	router.HandleFunc("/videos/", as.HandleVideos).Methods("GET", "POST")
+	router.HandleFunc("/videos/{id:[0-9]+}", as.HandleVideoByID).Methods("GET", "PUT", "DELETE")
+
 	router.HandleFunc("/smtp/", as.SendingProfiles)
 	router.HandleFunc("/smtp/{id:[0-9]+}", as.SendingProfile)
 	router.HandleFunc("/users/", mid.Use(as.Users, mid.RequirePermission(models.PermissionModifySystem)))

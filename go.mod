@@ -38,6 +38,7 @@ require (
 	github.com/emersion/go-sasl v0.0.0-20191210011802-430746ea8b9b // indirect
 	github.com/emersion/go-textwrapper v0.0.0-20160606182133-d0e65e56babe // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/justinas/nosurf v1.2.0 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.1 // indirect
 	github.com/kylelemons/go-gypsy v0.0.0-20160905020020-08cad365cd28 // indirect
 	github.com/lib/pq v1.1.1 // indirect
