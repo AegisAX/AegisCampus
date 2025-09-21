@@ -16,7 +16,7 @@ type Video struct {
     FileName        string    `json:"file_name" gorm:"column:file_name"`
     FilePath        string    `json:"file_path" gorm:"column:file_path"`
     ThumbnailPath   string    `json:"thumbnail_path" gorm:"column:thumbnail_path"`
-    DurationSeconds int       `json:"duration_seconds" gorm:"column:duration_seconds"`
+    DurationSeconds int64     `json:"duration_seconds" gorm:"column:duration_seconds"`
     IsPublic        bool      `json:"is_public" gorm:"column:is_public"`
     CreatedDate     time.Time `json:"created_date" gorm:"column:created_date"`
     ModifiedDate    time.Time `json:"modified_date" gorm:"column:modified_date"`
@@ -80,5 +80,14 @@ func DeleteVideo(id int64) error {
         return err
     }
     return nil
+}
+
+// 같은 실제 파일(= 동일 해시 파일명)을 참조하는 레코드 수를 센다.
+func CountVideosByFileName(fileName string) (int64, error) {
+    var cnt int64
+    if err := db.Model(&Video{}).Where("file_name = ?", fileName).Count(&cnt).Error; err != nil {
+        return 0, err
+    }
+    return cnt, nil
 }
 
