@@ -62,14 +62,15 @@ type CampaignSummary struct {
 
 // CampaignStats is a struct representing the statistics for a single campaign
 type CampaignStats struct {
-	Total         int64 `json:"total"`
-	EmailsSent    int64 `json:"sent"`
-	OpenedEmail   int64 `json:"opened"`
-	ClickedLink   int64 `json:"clicked"`
-	SubmittedData int64 `json:"submitted_data"`
-	EmailReported int64 `json:"email_reported"`
-	Error         int64 `json:"error"`
-        AttachmentExecuted int64 `json:"attachment_executed"`
+	Total     int64 `json:"total"`
+	Sent      int64 `json:"sent"`
+	Opened    int64 `json:"opened"`
+	Clicked   int64 `json:"clicked"`
+	Submitted int64 `json:"submitted"`
+	Reported  int64 `json:"reported"`
+	Error     int64 `json:"error"`
+        Executed  int64 `json:"executed"`
+        Trained   int64 `json:"trained"`
 }
 
 // Event contains the fields for an event
@@ -282,36 +283,47 @@ func getCampaignStats(cid int64) (CampaignStats, error) {
 	if err != nil {
 		return s, err
 	}
-	query.Where("status=?", EventDataSubmit).Count(&s.SubmittedData)
+	query.Where("status=?", EventDataSubmit).Count(&s.Submitted)
 	if err != nil {
 		return s, err
 	}
-	query.Where("status=?", EventClicked).Count(&s.ClickedLink)
+	query.Where("status=?", EventClicked).Count(&s.Clicked)
 	if err != nil {
 		return s, err
 	}
-	query.Where("reported=?", true).Count(&s.EmailReported)
+	query.Where("reported=?", true).Count(&s.Reported)
 	if err != nil {
 		return s, err
 	}
-        query.Where("executed = ?", true).Count(&s.AttachmentExecuted)
+        query.Where("executed = ?", true).Count(&s.Executed)
         if err != nil {
             return s, err
         }
+        // 추가: Trained 집계 (해당 이벤트가 존재하는 수신자 수)
+        subq := db.Table("events").
+            Select("email").
+            Where("campaign_id = ? AND message = ?", cid, EventTrainingCompleted).
+            SubQuery()
+        if err := db.Table("results").
+            Where("campaign_id = ?", cid).
+            Where("email IN (?)", subq).
+            Count(&s.Trained).Error; err != nil {
+            return s, err
+        }
 	// Every submitted data event implies they clicked the link
-	s.ClickedLink += s.SubmittedData
-	err = query.Where("status=?", EventOpened).Count(&s.OpenedEmail).Error
+	s.Clicked += s.Submitted
+	err = query.Where("status=?", EventOpened).Count(&s.Opened).Error
 	if err != nil {
 		return s, err
 	}
 	// Every clicked link event implies they opened the email
-        s.OpenedEmail += s.ClickedLink
-	err = query.Where("status=?", EventSent).Count(&s.EmailsSent).Error
+        s.Opened += s.Clicked
+	err = query.Where("status=?", EventSent).Count(&s.Sent).Error
 	if err != nil {
 		return s, err
 	}
 	// Every opened email event implies the email was sent
-	s.EmailsSent += s.OpenedEmail
+	s.Sent += s.Opened
 	err = query.Where("status=?", Error).Count(&s.Error).Error
 	return s, err
 }

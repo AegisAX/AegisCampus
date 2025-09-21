@@ -1,16 +1,10 @@
 var campaigns = []
 // statuses is a helper map to point result statuses to ui classes
 var statuses = {
-    "Email Sent": {
+    "Sent": {
         color: "#1abc9c",
         label: "label-success",
-        icon: "fa-envelope",
-        point: "ct-point-sent"
-    },
-    "Emails Sent": {
-        color: "#1abc9c",
-        label: "label-success",
-        icon: "fa-envelope",
+        icon:  "fa-envelope",
         point: "ct-point-sent"
     },
     "In progress": {
@@ -22,79 +16,86 @@ var statuses = {
     "Completed": {
         label: "label-success"
     },
-    "Email Opened": {
+    "Opened": {
         color: "#f9bf3b",
         label: "label-warning",
-        icon: "fa-envelope",
+        icon:  "fa-envelope",
         point: "ct-point-opened"
     },
-    "Email Reported": {
+    "Reported": {
         color: "#45d6ef",
         label: "label-warning",
-        icon: "fa-bullhorn", // fix: fa-bullhorne -> fa-bullhorn
+        icon:  "fa-bullhorn",
         point: "ct-point-reported"
     },
-    "Clicked Link": {
+    "Clicked": {
         color: "#F39C12",
         label: "label-clicked",
-        icon: "fa-mouse-pointer",
+        icon:  "fa-mouse-pointer",
         point: "ct-point-clicked"
     },
     "Success": {
         color: "#f05b4f",
         label: "label-danger",
-        icon: "fa-exclamation",
+        icon:  "fa-exclamation",
         point: "ct-point-clicked"
     },
     "Error": {
         color: "#6c7a89",
         label: "label-default",
-        icon: "fa-times",
+        icon:  "fa-times",
         point: "ct-point-error"
     },
     "Error Sending Email": {
         color: "#6c7a89",
         label: "label-default",
-        icon: "fa-times",
+        icon:  "fa-times",
         point: "ct-point-error"
     },
-    "Submitted Data": {
+    "Submitted": {
         color: "#f05b4f",
         label: "label-danger",
-        icon: "fa-exclamation",
+        icon:  "fa-exclamation",
         point: "ct-point-clicked"
     },
     "Unknown": {
         color: "#6c7a89",
         label: "label-default",
-        icon: "fa-question",
+        icon:  "fa-question",
         point: "ct-point-error"
     },
     "Sending": {
         color: "#428bca",
         label: "label-primary",
-        icon: "fa-spinner",
+        icon:  "fa-spinner",
         point: "ct-point-sending"
     },
     "Campaign Created": {
         label: "label-success",
-        icon: "fa-rocket"
+        icon:  "fa-rocket"
     },
-    "Attachment Executed": {
+    "Executed": {
         color: "#ff0000",
         label: "label-danger",
-        icon: "fa-exclamation-triangle",
+        icon:  "fa-exclamation-triangle",
         point: "ct-point-executed"
+    },
+    "Trained": {
+        color: "#2727dd",
+        label: "label-info",
+        icon:  "fa-graduation-cap",
+        point: "ct-point-trained"
     }
 }
 
 var statsMapping = {
-    "sent": "Email Sent",
-    "opened": "Email Opened",
-    "email_reported": "Email Reported",
-    "clicked": "Clicked Link",
-    "submitted_data": "Submitted Data",
-    "attachment_executed": "Attachment Executed",
+    "sent":      "Sent",
+    "opened":    "Opened",
+    "reported":  "Reported",
+    "clicked":   "Clicked",
+    "submitted": "Submitted",
+    "executed":  "Executed",
+    "trained":   "Trained"
 }
 
 function deleteCampaign(idx) {
@@ -109,6 +110,8 @@ function deleteCampaign(idx) {
 
 /* Renders a pie chart using the provided chartops */
 function renderPieChart(chartopts) {
+    // 컨테이너 없으면 렌더 스킵
+    if (!document.getElementById(chartopts['elemId'])) return null;
     return Highcharts.chart(chartopts['elemId'], {
         chart: {
             type: 'pie',
@@ -176,9 +179,10 @@ function generateStatsPieCharts(campaigns) {
         sent: 0,
         opened: 0,
         clicked: 0,
-        submitted_data: 0,
-        attachment_executed: 0,
-        email_reported: 0
+        submitted: 0,
+        executed: 0,
+        reported: 0,
+        trained: 0
     };
     var total = 0;
 
@@ -188,12 +192,13 @@ function generateStatsPieCharts(campaigns) {
         total += (typeof stats.total === 'number' && isFinite(stats.total)) ? stats.total : 0;
 
         // 존재/미존재와 상관없이 안전 합산
-        buckets.sent                += getStat(campaign, 'sent');
-        buckets.opened              += getStat(campaign, 'opened');
-        buckets.clicked             += getStat(campaign, 'clicked');
-        buckets.submitted_data      += getStat(campaign, 'submitted_data');
-        buckets.attachment_executed += getStat(campaign, 'attachment_executed');
-        buckets.email_reported      += getStat(campaign, 'email_reported');
+        buckets.sent      += getStat(campaign, 'sent');
+        buckets.opened    += getStat(campaign, 'opened');
+        buckets.clicked   += getStat(campaign, 'clicked');
+        buckets.submitted += getStat(campaign, 'submitted');
+        buckets.executed  += getStat(campaign, 'executed');
+        buckets.reported  += getStat(campaign, 'reported');
+        buckets.trained   += getStat(campaign, 'trained');
     });
 
     // 3) 항상 모든 키에 대해 차트 렌더 (0이어도)
@@ -209,7 +214,7 @@ function generateStatsPieCharts(campaigns) {
         ];
 
         renderPieChart({
-            elemId: statusKey + '_chart', // 예: attachment_executed_chart
+            elemId: statusKey + '_chart',
             title: status_label,
             name: statusKey,
             data: stats_data,
@@ -318,18 +323,20 @@ $(document).ready(function () {
                             orderable: false,
                             targets: "no-sort"
                         },
-                        { className: "color-sent",     targets: [2] },
-                        { className: "color-opened",   targets: [3] },
-                        { className: "color-clicked",  targets: [4] },
-                        { className: "color-success",  targets: [5] },
-                        { className: "color-executed", targets: [6] },
-                        { className: "color-reported", targets: [7] }
+                        { className: "color-sent",     targets: [1] },
+                        { className: "color-opened",   targets: [2] },
+                        { className: "color-clicked",  targets: [3] },
+                        { className: "color-success",  targets: [4] },
+                        { className: "color-executed", targets: [5] },
+                        { className: "color-reported", targets: [6] },
+                        { className: "color-trained",  targets: [7] }
                     ],
                     order: [[1, "desc"]]
                 });
                 campaignRows = []
                 $.each(campaigns, function (i, campaign) {
-                    var campaign_date = moment(campaign.created_date).format('MMMM Do YYYY, h:mm:ss a')
+                    //var campaign_date = moment(campaign.created_date).format('MMMM Do YYYY, h:mm:ss a')
+                    var campaign_date = moment(campaign.created_date).format('YYYY.MM.DD, HH:MM:SS')
                     var label = (statuses[campaign.status] && statuses[campaign.status].label) || "label-default";
 
                     //section for tooltips on the status of a campaign to show some quick stats
@@ -342,26 +349,26 @@ $(document).ready(function () {
                         launchDate = "Launch Date: " + moment(campaign.launch_date).format('MMMM Do YYYY, h:mm:ss a')
                         var quickStats = launchDate
                             + "<br><br>Number of recipients: " + ((campaign.stats && campaign.stats.total) || 0)
-                            + "<br><br>Emails opened: " + getStat(campaign,'opened')
-                            + "<br><br>Emails clicked: " + getStat(campaign,'clicked')
-                            + "<br><br>Submitted Credentials: " + getStat(campaign,'submitted_data')
-                            + "<br><br>Attachment Executed: " + getStat(campaign,'attachment_executed')
-                            + "<br><br>Errors : " + ((campaign.stats && campaign.stats.error) || 0)
-                            + "<br><br>Reported : " + getStat(campaign,'email_reported');
+                            + "<br><br>Opened: " + getStat(campaign,'opened')
+                            + "<br><br>Clicked: " + getStat(campaign,'clicked')
+                            + "<br><br>Submitted: " + getStat(campaign,'submitted')
+                            + "<br><br>Executed: " + getStat(campaign,'executed')
+                            + "<br><br>Errors: " + ((campaign.stats && campaign.stats.error) || 0)
+                            + "<br><br>Reported: " + getStat(campaign,'reported')
+                            + "<br><br>Trained: " + getStat(campaign,'trained')
                     }
 
-                    // Add it to the list (모든 숫자는 안전 게터로 0 보장)
                     campaignRows.push([
-                        escapeHtml(campaign.name),
-                        campaign_date,
+                        escapeHtml(campaign.name) + "<br>" + escapeHtml(campaign_date),
                         getStat(campaign,'sent'),
                         getStat(campaign,'opened'),
                         getStat(campaign,'clicked'),
-                        getStat(campaign,'submitted_data'),
-                        getStat(campaign,'attachment_executed'),
-                        getStat(campaign,'email_reported'),
+                        getStat(campaign,'submitted'),
+                        getStat(campaign,'executed'),
+                        getStat(campaign,'reported'),
+                        getStat(campaign,'trained'),
                         "<span class=\"label " + label + "\" data-toggle=\"tooltip\" data-placement=\"right\" data-html=\"true\" title=\"" + quickStats + "\">" + campaign.status + "</span>",
-                        "<div class='pull-right'><a class='btn btn-primary' href='/campaigns/" + campaign.id + "' data-toggle='tooltip' data-placement='left' title='View Results'>\
+                        "<div class='pull-left'><a class='btn btn-primary' href='/campaigns/" + campaign.id + "' data-toggle='tooltip' data-placement='left' title='View Results'>\
                     <i class='fa fa-bar-chart'></i>\
                     </a>\
                     <button class='btn btn-danger' onclick='deleteCampaign(" + i + ")' data-toggle='tooltip' data-placement='left' title='Delete Campaign'>\
@@ -372,7 +379,6 @@ $(document).ready(function () {
                 })
                 campaignTable.rows.add(campaignRows).draw()
 
-                // Build the charts (항상 attachment_executed 포함해서 렌더)
                 generateStatsPieCharts(campaigns)
                 generateTimelineChart(campaigns)
             } else {

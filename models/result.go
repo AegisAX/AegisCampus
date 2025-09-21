@@ -53,6 +53,16 @@ func (r *Result) HandleAttachmentExecuted(details EventDetails) error {
 	return db.Save(r).Error
 }
 
+// HandleTrainingCompleted 는 수강 완료 시 이벤트를 남깁니다.
+func (r *Result) HandleTrainingCompleted(details EventDetails) error {
+	event, err := r.createEvent(EventTrainingCompleted, details)
+	if err != nil {
+		return err
+	}
+	r.ModifiedDate = event.Time
+	return db.Save(r).Error
+}
+
 func (r *Result) createEvent(status string, details interface{}) (*Event, error) {
 	e := &Event{Email: r.Email, Message: status}
 	if details != nil {

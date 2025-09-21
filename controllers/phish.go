@@ -136,6 +136,8 @@ func (ps *PhishingServer) registerRoutes() {
 	router.HandleFunc("/media/{id:[0-9]+}", ps.Media).Methods("GET")
 	router.HandleFunc("/track/video", ps.TrackVideo).Methods("POST")
 	router.HandleFunc("/track/video/progress", ps.GetVideoProgress).Methods("GET")
+	router.HandleFunc("/api/training/complete", TrainingCompleteHandler).Methods("POST")
+
 
 	// 루트("/") 처리
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -840,7 +842,6 @@ func (ps *PhishingServer) TrackVideo(w http.ResponseWriter, r *http.Request) {
     w.WriteHeader(http.StatusNoContent)
 }
 
-// controllers/phish.go
 type videoProgressResponse struct {
 	SecondsWatched int64   `json:"seconds_watched"`
 	Duration       int64   `json:"duration"`
@@ -885,5 +886,98 @@ func (ps *PhishingServer) GetVideoProgress(w http.ResponseWriter, r *http.Reques
 		Percent:        vp.Percent,
 		Completed:      vp.Completed,
 	}, http.StatusOK)
+}
+
+// 1) video_id를 숫자/문자열 모두 수용하도록 변경
+type trainingCompleteRequest struct {
+    RID      string      `json:"rid"`
+    VideoID  interface{} `json:"video_id"` // ← string 대신 interface{}
+    Duration float64     `json:"duration"`
+    Watched  float64     `json:"watched"`
+    Percent  float64     `json:"percent"`
+}
+
+func TrainingCompleteHandler(w http.ResponseWriter, r *http.Request) {
+    var req trainingCompleteRequest
+
+    // JSON 파싱
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        api.JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
+        return
+    }
+    rid := strings.TrimSpace(req.RID)
+    if rid == "" {
+        api.JSONResponse(w, models.Response{Success: false, Message: "missing rid"}, http.StatusBadRequest)
+        return
+    }
+
+    // 최소 시청률 검증(90% 이상)
+    if req.Duration > 0 {
+        pct := req.Watched / req.Duration
+        if pct < 0.9 && req.Percent < 90 {
+            api.JSONResponse(w, models.Response{Success: false, Message: "insufficient watch time"}, http.StatusBadRequest)
+            return
+        }
+    }
+
+    // rid 투명성 접미사 제거 후 Result 조회
+    id := strings.TrimSuffix(rid, TransparencySuffix)
+    rs, err := models.GetResult(id)
+    if err != nil {
+        api.JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusNotFound)
+        return
+    }
+
+    // 원격 IP
+    ip, _, err := net.SplitHostPort(r.RemoteAddr)
+    if err != nil {
+        ip = r.RemoteAddr
+    }
+
+    // 2) video_id를 문자열로 정규화
+    var vidStr string
+    switch v := req.VideoID.(type) {
+    case string:
+        vidStr = v
+    case float64: // JSON 숫자는 기본적으로 float64로 들어옵니다.
+        // 정수처럼 보이면 정수로, 아니면 그대로
+        if v == float64(int64(v)) {
+            vidStr = strconv.FormatInt(int64(v), 10)
+        } else {
+            vidStr = strconv.FormatFloat(v, 'f', -1, 64)
+        }
+    case json.Number:
+        vidStr = v.String()
+    default:
+        vidStr = fmt.Sprint(v)
+    }
+
+    // EventDetails (Browser=map[string]string, Payload=url.Values)
+    payload := url.Values{}
+    payload.Set("video_id", vidStr)
+    if req.Duration > 0 {
+        payload.Set("duration", strconv.FormatFloat(req.Duration, 'f', -1, 64))
+    }
+    if req.Watched > 0 {
+        payload.Set("watched", strconv.FormatFloat(req.Watched, 'f', -1, 64))
+    }
+    if req.Percent > 0 {
+        payload.Set("percent", strconv.FormatFloat(req.Percent, 'f', -1, 64))
+    }
+    payload.Set("address", ip)
+
+    details := models.EventDetails{
+        Browser: map[string]string{
+            "user-agent": r.UserAgent(),
+            "address":    ip,
+        },
+        Payload: payload,
+    }
+
+    if err := rs.HandleTrainingCompleted(details); err != nil {
+        api.JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
+        return
+    }
+    api.JSONResponse(w, models.Response{Success: true}, http.StatusOK)
 }
 

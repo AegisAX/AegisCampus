@@ -280,6 +280,10 @@ p {
     fill: #ff0000 !important;
 }
 
+.ct-point-trained {
+    fill: #2727dd !important;
+}
+
 .chartist-tooltip {
     position: absolute;
     display: inline-block;
@@ -712,6 +716,11 @@ table.dataTable {
 .color-executed {
     font-weight: bold;
     color: #ff0000;
+}
+
+.color-trained {
+    font-weight: bold;
+    color: #2727dd;
 }
 
 .nav-sidebar>li.active>a:focus,

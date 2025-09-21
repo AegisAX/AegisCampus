@@ -104,7 +104,7 @@ function sendTestEmail() {
     api.send_test_email(test_email_request)
         .success(function (data) {
             $("#sendTestEmailModal\\.flashes").empty().append("<div style=\"text-align:center\" class=\"alert alert-success\">\
-            <i class=\"fa fa-check-circle\"></i> Email Sent!</div>")
+            <i class=\"fa fa-check-circle\"></i> Sent!</div>")
             $("#sendTestModalSubmit").html(btnHtml)
         })
         .error(function (data) {
@@ -375,10 +375,18 @@ $(document).ready(function () {
                     var launchDate;
                     if (moment(campaign.launch_date).isAfter(moment())) {
                         launchDate = "Scheduled to start: " + moment(campaign.launch_date).format('MMMM Do YYYY, h:mm:ss a')
-                        var quickStats = launchDate + "<br><br>" + "Number of recipients: " + campaign.stats.total
+                        var quickStats = launchDate + "<br><br>" + "Number of recipients: " + (campaign.stats && campaign.stats.total || 0)
                     } else {
                         launchDate = "Launch Date: " + moment(campaign.launch_date).format('MMMM Do YYYY, h:mm:ss a')
-                        var quickStats = launchDate + "<br><br>" + "Number of recipients: " + campaign.stats.total + "<br><br>" + "Emails opened: " + campaign.stats.opened + "<br><br>" + "Emails clicked: " + campaign.stats.clicked + "<br><br>" + "Submitted Credentials: " + campaign.stats.submitted_data + "<br><br>" + "Errors : " + campaign.stats.error + "<br><br>" + "Reported : " + campaign.stats.email_reported
+                        var quickStats = launchDate + "<br><br>"
+                            + "Number of recipients: " + (campaign.stats && campaign.stats.total || 0)
+                            + "<br><br>Opened: " + (campaign.stats && campaign.stats.opened || 0)
+                            + "<br><br>Clicked: " + (campaign.stats && campaign.stats.clicked || 0)
+                            + "<br><br>Submitted: " + (campaign.stats && campaign.stats.submitted || 0)
+                            + "<br><br>Executed: " + (campaign.stats && campaign.stats.executed || 0)
+                            + "<br><br>Errors : " + (campaign.stats && campaign.stats.error || 0)
+                            + "<br><br>Reported : " + (campaign.stats && campaign.stats.reported || 0)
+                            + "<br><br>Trained : " + (campaign.stats && campaign.stats.trained || 0)
                     }
 
                     var row = [
@@ -428,3 +436,4 @@ $(document).ready(function () {
         });
     })
 })
+
