@@ -6,6 +6,7 @@
 # Folders
 _obj
 _test
+static/videos/
 
 # Node Modules
 node_modules
@@ -30,3 +31,5 @@ gophish_admin.key
 gophish.db*
 gophish
 package-lock.json
+
+gophish.log
