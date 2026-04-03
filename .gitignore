@@ -28,8 +28,7 @@ gophish_admin.crt
 gophish_admin.key
 
 *.exe
+config.json
 gophish.db*
 gophish
-package-lock.json
-
 gophish.log
