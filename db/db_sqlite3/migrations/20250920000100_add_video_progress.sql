@@ -1,3 +1,4 @@
+-- +goose Up
 -- +migrate Up
 CREATE TABLE IF NOT EXISTS video_progresses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -16,6 +17,7 @@ CREATE TABLE IF NOT EXISTS video_progresses (
 CREATE INDEX IF NOT EXISTS idx_video_progresses_user_result_video
 ON video_progresses (user_id, result_id, video_id);
 
+-- +goose Down
 -- +migrate Down
 DROP INDEX IF EXISTS idx_video_progresses_user_result_video;
 DROP TABLE IF EXISTS video_progresses;
