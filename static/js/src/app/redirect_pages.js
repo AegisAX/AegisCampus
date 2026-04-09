@@ -9,8 +9,8 @@ var pages = []
 function save(idx) {
     var page = {}
     page.name = $("#name").val()
-    editor = CKEDITOR.instances["html_editor"]
-    page.html = editor.getData()
+    var editor = CKEDITOR.instances["html_editor"]
+    page.html = editor ? editor.getData() : ""   // null 방어
     page.redirect_url = $("#redirect_url_input").val()
     if (idx != -1) {
         page.id = pages[idx].id
@@ -39,7 +39,9 @@ function save(idx) {
 function dismiss() {
     $("#modal\\.flashes").empty()
     $("#name").val("")
-    $("#html_editor").val("")
+    if (CKEDITOR.instances["html_editor"]) {
+        CKEDITOR.instances["html_editor"].setData("")
+    }
     $("#url").val("")
     $("#redirect_url_input").val("")
     $("#modal").modal('hide')
@@ -82,7 +84,7 @@ var deletePage = function (idx) {
 }
 
 function importSite() {
-    url = $("#url").val()
+    var url = $("#url").val()
     if (!url) {
         modalError("No URL Specified!")
     } else {
@@ -91,8 +93,7 @@ function importSite() {
                 include_resources: false
             })
             .success(function (data) {
-                $("#html_editor").val(data.html)
-                CKEDITOR.instances["html_editor"].setMode('wysiwyg')
+                CKEDITOR.instances["html_editor"].setData(data.html)
                 $("#importSiteModal").modal("hide")
             })
             .error(function (data) {
@@ -105,35 +106,54 @@ function edit(idx) {
     $("#modalSubmit").unbind('click').click(function () {
         save(idx)
     })
-    $("#html_editor").ckeditor(null, {
-        allowedContent: true,
-        extraAllowedContent: 'script[*]{*}(*);video[*]{*}(*);source[*]{*}(*);style[*]{*}(*);iframe[*]{*}(*);div[*]{*}(*);span[*]{*}(*)'
-    })
-    setupAutocomplete(CKEDITOR.instances["html_editor"])
 
     var page = {}
     if (idx != -1) {
         $("#modalLabel").text("Edit Redirect Page")
         page = pages[idx]
         $("#name").val(page.name)
-        $("#html_editor").val(page.html)
         $("#redirect_url_input").val(page.redirect_url)
     } else {
         $("#modalLabel").text("New Redirect Page")
     }
+
+    var html = (idx != -1 && page.html) ? page.html : ''
+
+    if (CKEDITOR.instances["html_editor"]) {
+        CKEDITOR.instances["html_editor"].setData(html)
+    } else {
+        $("#html_editor").ckeditor(null, {
+            allowedContent: true,
+            extraAllowedContent: 'script[*]{*}(*);video[*]{*}(*);source[*]{*}(*);style[*]{*}(*);iframe[*]{*}(*);div[*]{*}(*);span[*]{*}(*)'
+        })
+        CKEDITOR.instances["html_editor"].on('instanceReady', function () {
+            this.setData(html)
+        })
+    }
+
+    setupAutocomplete(CKEDITOR.instances["html_editor"])
 }
 
 function copy(idx) {
     $("#modalSubmit").unbind('click').click(function () {
         save(-1)
     })
-    $("#html_editor").ckeditor(null, {
-        allowedContent: true,
-        extraAllowedContent: 'script[*]{*}(*);video[*]{*}(*);source[*]{*}(*);style[*]{*}(*);iframe[*]{*}(*);div[*]{*}(*);span[*]{*}(*)'
-    })
+
     var page = pages[idx]
     $("#name").val("Copy of " + page.name)
-    $("#html_editor").val(page.html)
+    var html = page.html || ''
+
+    if (CKEDITOR.instances["html_editor"]) {
+        CKEDITOR.instances["html_editor"].setData(html)
+    } else {
+        $("#html_editor").ckeditor(null, {
+            allowedContent: true,
+            extraAllowedContent: 'script[*]{*}(*);video[*]{*}(*);source[*]{*}(*);style[*]{*}(*);iframe[*]{*}(*);div[*]{*}(*);span[*]{*}(*)'
+        })
+        CKEDITOR.instances["html_editor"].on('instanceReady', function () {
+            this.setData(html)
+        })
+    }
 }
 
 function load() {
@@ -146,7 +166,7 @@ function load() {
             $("#loading").hide()
             if (pages.length > 0) {
                 $("#redirectPagesTable").show()
-                redirectPagesTable = $("#redirectPagesTable").DataTable({
+                var redirectPagesTable = $("#redirectPagesTable").DataTable({
                     destroy: true,
                     columnDefs: [{
                         orderable: false,
@@ -154,7 +174,7 @@ function load() {
                     }]
                 });
                 redirectPagesTable.clear()
-                pageRows = []
+                var pageRows = []
                 $.each(pages, function (i, page) {
                     pageRows.push([
                         escapeHtml(page.name),

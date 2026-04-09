@@ -10,8 +10,8 @@ var pages = []
 function save(idx) {
     var page = {}
     page.name = $("#name").val()
-    editor = CKEDITOR.instances["html_editor"]
-    page.html = editor.getData()
+    var editor = CKEDITOR.instances["html_editor"]
+    page.html = editor ? editor.getData() : ""   // null 방어
     page.capture_credentials = $("#capture_credentials_checkbox").prop("checked")
     page.capture_passwords = $("#capture_passwords_checkbox").prop("checked")
     page.redirect_url = $("#redirect_url_input").val()
@@ -22,6 +22,9 @@ function save(idx) {
                 successFlash("Page edited successfully!")
                 load()
                 dismiss()
+            })
+            .error(function (data) {
+                modalError(data.responseJSON.message)
             })
     } else {
         // Submit the page
@@ -40,7 +43,9 @@ function save(idx) {
 function dismiss() {
     $("#modal\\.flashes").empty()
     $("#name").val("")
-    $("#html_editor").val("")
+    if (CKEDITOR.instances["html_editor"]) {
+        CKEDITOR.instances["html_editor"].setData("")
+    }
     $("#url").val("")
     $("#redirect_url_input").val("")
     $("#modal").find("input[type='checkbox']").prop("checked", false)
@@ -86,7 +91,7 @@ var deletePage = function (idx) {
 }
 
 function importSite() {
-    url = $("#url").val()
+    var url = $("#url").val()
     if (!url) {
         modalError("No URL Specified!")
     } else {
@@ -95,8 +100,7 @@ function importSite() {
                 include_resources: false
             })
             .success(function (data) {
-                $("#html_editor").val(data.html)
-                CKEDITOR.instances["html_editor"].setMode('wysiwyg')
+                CKEDITOR.instances["html_editor"].setData(data.html)
                 $("#importSiteModal").modal("hide")
             })
             .error(function (data) {
@@ -109,18 +113,12 @@ function edit(idx) {
     $("#modalSubmit").unbind('click').click(function () {
         save(idx)
     })
-    $("#html_editor").ckeditor(null, {
-      allowedContent: true,
-      extraAllowedContent: 'script[*]{*}(*);video[*]{*}(*);source[*]{*}(*);style[*]{*}(*);iframe[*]{*}(*);div[*]{*}(*);span[*]{*}(*)'
-    })
-    setupAutocomplete(CKEDITOR.instances["html_editor"])
 
     var page = {}
     if (idx != -1) {
         $("#modalLabel").text("Edit Landing Page")
         page = pages[idx]
         $("#name").val(page.name)
-        $("#html_editor").val(page.html)
         $("#capture_credentials_checkbox").prop("checked", page.capture_credentials)
         $("#capture_passwords_checkbox").prop("checked", page.capture_passwords)
         $("#redirect_url_input").val(page.redirect_url)
@@ -131,19 +129,44 @@ function edit(idx) {
     } else {
         $("#modalLabel").text("New Landing Page")
     }
+
+    var html = (idx != -1 && page.html) ? page.html : ''
+
+    if (CKEDITOR.instances["html_editor"]) {
+        CKEDITOR.instances["html_editor"].setData(html)
+    } else {
+        $("#html_editor").ckeditor(null, {
+            allowedContent: true,
+            extraAllowedContent: 'script[*]{*}(*);video[*]{*}(*);source[*]{*}(*);style[*]{*}(*);iframe[*]{*}(*);div[*]{*}(*);span[*]{*}(*)'
+        })
+        CKEDITOR.instances["html_editor"].on('instanceReady', function () {
+            this.setData(html)
+        })
+    }
+
+    setupAutocomplete(CKEDITOR.instances["html_editor"])
 }
 
 function copy(idx) {
     $("#modalSubmit").unbind('click').click(function () {
         save(-1)
     })
-    $("#html_editor").ckeditor(null, {
-      allowedContent: true,
-      extraAllowedContent: 'script[*]{*}(*);video[*]{*}(*);source[*]{*}(*);style[*]{*}(*);iframe[*]{*}(*);div[*]{*}(*);span[*]{*}(*)'
-    })
+
     var page = pages[idx]
     $("#name").val("Copy of " + page.name)
-    $("#html_editor").val(page.html)
+    var html = page.html || ''
+
+    if (CKEDITOR.instances["html_editor"]) {
+        CKEDITOR.instances["html_editor"].setData(html)
+    } else {
+        $("#html_editor").ckeditor(null, {
+            allowedContent: true,
+            extraAllowedContent: 'script[*]{*}(*);video[*]{*}(*);source[*]{*}(*);style[*]{*}(*);iframe[*]{*}(*);div[*]{*}(*);span[*]{*}(*)'
+        })
+        CKEDITOR.instances["html_editor"].on('instanceReady', function () {
+            this.setData(html)
+        })
+    }
 }
 
 function load() {
@@ -159,7 +182,7 @@ function load() {
             $("#loading").hide()
             if (pages.length > 0) {
                 $("#pagesTable").show()
-                pagesTable = $("#pagesTable").DataTable({
+                var pagesTable = $("#pagesTable").DataTable({
                     destroy: true,
                     columnDefs: [{
                         orderable: false,
@@ -167,7 +190,7 @@ function load() {
                     }]
                 });
                 pagesTable.clear()
-                pageRows = []
+                var pageRows = []
                 $.each(pages, function (i, page) {
                     pageRows.push([
                         escapeHtml(page.name),
@@ -313,315 +336,158 @@ function loadVideoPicker() {
 
 // CKEditor에 "완성된 학습용 랜딩 페이지" 템플릿을 통으로 세팅 (이어보기 안정화 버전)
 function insertTrainingTemplate(videoId, videoName) {
-  var editor = CKEDITOR.instances["html_editor"];
-  var hasContent = false;
-  try {
-    if (editor) hasContent = (editor.getData() || "").trim().length > 0;
-    else {
-      var ta = document.getElementById("html_editor");
-      hasContent = ta && (ta.value || "").trim().length > 0;
+    var editor = CKEDITOR.instances["html_editor"];
+    var hasContent = false;
+    try {
+        if (editor) hasContent = (editor.getData() || "").trim().length > 0;
+        else {
+            var ta = document.getElementById("html_editor");
+            hasContent = ta && (ta.value || "").trim().length > 0;
+        }
+    } catch (_) {}
+
+    if (hasContent) {
+        if (!confirm("현재 내용을 모두 교체하고 학습용 템플릿을 삽입할까요?")) return;
     }
-  } catch (_) {}
 
-  if (hasContent) {
-    if (!confirm("현재 내용을 모두 교체하고 학습용 템플릿을 삽입할까요?")) return;
-  }
+    var safeTitle = (videoName || "사이버보안 인식 제고 교육").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    var html = [
+        '<!DOCTYPE html>',
+        '<html lang="ko">',
+        '<head>',
+        '  <meta charset="UTF-8">',
+        '  <title>' + safeTitle + '</title>',
+        '  <meta name="viewport" content="width=device-width, initial-scale=1">',
+        '  <link href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" rel="stylesheet">',
+        '  <style>',
+        '    body { background: #f7f9fc; }',
+        '    header { background:#0f2743; color:#fff; padding:15px; text-align:center; }',
+        '    .container-box { max-width:960px; margin:30px auto; background:#fff; padding:25px; border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,0.08);}',
+        '    #training-video { width:100%; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.2);}',
+        '    .btn-complete { margin-top:20px; }',
+        '    video::-internal-media-controls-download-button { display: none; }',
+        '    video::-webkit-media-controls-enclosure { overflow: hidden; }',
+        '    video::-webkit-media-controls-picture-in-picture-button { display: none; }',
+        '  </style>',
+        '</head>',
+        '<body>',
+        '  <header>',
+        '    <h2><i class="glyphicon glyphicon-education"></i> 사이버보안 인식 제고 교육</h2>',
+        '  </header>',
+        '  <div class="container-box">',
+        '    <video id="training-video" controls preload="metadata" playsinline disablePictureInPicture controlsList="nodownload noplaybackrate" oncontextmenu="return false">',
+        '      <source src="/media/' + (typeof videoId === "number" ? videoId : String(videoId)) + '" type="video/mp4">',
+        '      지원되지 않는 브라우저입니다.',
+        '    </video>',
+        '    <div id="resumeBadge" class="text-muted" style="display:none;margin-top:8px;font-size:12px;opacity:.8;"></div>',
+        '    <p style="font-size:18px;margin-top:10px;"><strong>' + safeTitle + '</strong></p>',
+        '    <p style="font-size:18px;">* 교육 수강 완료 후 반드시 아래 <strong style="color:red;">수강 완료 확인</strong> 버튼을 클릭하세요.</p>',
+        '    <button id="complete-btn" class="btn btn-success btn-lg btn-block btn-complete" disabled>수강 완료 확인</button>',
+        '    <div id="complete-status" class="text-success" style="margin-top:8px; display:none;"></div>',
+        '  </div>',
+        '',
+        '  <script>',
+        '  (function(){',
+        '    var v = document.getElementById("training-video");',
+        '    var badge = document.getElementById("resumeBadge");',
+        '    var completeBtn = document.getElementById("complete-btn");',
+        '    var params = new URLSearchParams(location.search);',
+        '    var rid = params.get("rid") || params.get("RID") || "";',
+        '    var videoId = ' + (typeof videoId === "number" ? videoId : JSON.stringify(String(videoId))) + ';',
+        '    var TRAINING_COMPLETE_URL = "/api/training/complete";',
+        '    var SAVE_INTERVAL_MS = 5000;',
+        '    var MIN_DELTA_SECONDS = 2;',
+        '    var WRITE_URL = "/track/video";',
+        '    var localKey = "vh_progress:" + videoId + ":" + rid;',
+        '    var lastSentSec = -1;',
+        '    var sendLock = false;',
+        '    var saveTimer = null;',
+        '    var allowMax = 0;',
+        '    var CLAMP_EPS = 0.25;',
+        '    var clampBusy = false;',
+        '    var resumeAt = null;',
+        '    var resumeApplied = false;',
+        '',
+        '    function fmt(sec){ sec=Math.max(0,Math.floor(sec||0)); var m=(sec/60|0).toString().padStart(2,"0"); var s=(sec%60).toString().padStart(2,"0"); return m+":"+s; }',
+        '    function readyForSeek(){ return v && v.readyState >= 1; }',
+        '',
+        '    function applyResumeIfReady(){',
+        '      if (resumeApplied) return;',
+        '      if (resumeAt == null) return;',
+        '      if (!readyForSeek()) return;',
+        '      if (!(resumeAt > 0) || resumeAt >= (v.duration || Infinity)) { resumeApplied = true; allowMax = Math.max(allowMax, v.currentTime||0); return; }',
+        '      clampBusy = true;',
+        '      allowMax = Math.max(allowMax, resumeAt);',
+        '      try { v.currentTime = resumeAt; badge.textContent = "마지막 시청 위치("+fmt(resumeAt)+")로 이동했습니다."; badge.style.display="block"; setTimeout(function(){ badge.style.display="none"; }, 4000); } catch(e) {}',
+        '      clampBusy = false;',
+        '      resumeApplied = true;',
+        '    }',
+        '',
+        '    function loadLocal(){ try { var raw=localStorage.getItem(localKey); if(!raw) return 0; var p=JSON.parse(raw); return (p&&Number.isFinite(p.seconds_watched))?p.seconds_watched:0; } catch(e){ return 0; } }',
+        '',
+        '    (function fetchServerProgress(){',
+        '      if (!rid || !videoId) { resumeAt = loadLocal(); applyResumeIfReady(); return; }',
+        '      fetch("/track/video/progress?rid="+encodeURIComponent(rid)+"&video_id="+encodeURIComponent(videoId), {method:"GET",credentials:"same-origin"})',
+        '        .then(function(res){ if(!res.ok) throw 0; return res.json(); })',
+        '        .then(function(data){ resumeAt=Math.max(0,(data&&typeof data.seconds_watched==="number"?data.seconds_watched:0),loadLocal()); applyResumeIfReady(); })',
+        '        .catch(function(){ resumeAt=Math.max(0,loadLocal()); applyResumeIfReady(); });',
+        '    })();',
+        '',
+        '    v.addEventListener("loadedmetadata", applyResumeIfReady);',
+        '    if (readyForSeek()) setTimeout(applyResumeIfReady, 0);',
+        '    v.addEventListener("play", applyResumeIfReady, { once: true });',
+        '',
+        '    function clampForward(){ if(clampBusy)return; var cur=v.currentTime||0; if(cur>allowMax+CLAMP_EPS){ clampBusy=true; v.currentTime=allowMax; if(!v.paused)v.play().catch(function(){}); clampBusy=false; } }',
+        '',
+        '    async function sendProgress(opts){',
+        '      opts=opts||{}; if(!rid||!videoId)return; if(sendLock)return;',
+        '      var cur=Math.floor(v.currentTime||0); var dur=Math.floor(v.duration||0);',
+        '      if(!opts.force && Math.abs(cur-lastSentSec)<MIN_DELTA_SECONDS) return;',
+        '      var payload={rid:rid,video_id:(typeof videoId==="string"?videoId:Number(videoId)),seconds_watched:cur,duration:dur||undefined,completed:!!opts.completed};',
+        '      try{ sendLock=true; var res=await fetch(WRITE_URL,{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify(payload)}); if(res.ok){lastSentSec=cur;localStorage.setItem(localKey,JSON.stringify({seconds_watched:cur,duration:dur}));} }catch(e){localStorage.setItem(localKey,JSON.stringify({seconds_watched:cur,duration:dur}));} finally{sendLock=false;}',
+        '    }',
+        '    function beaconFlush(done){ if(!rid||!videoId)return; var cur=Math.floor(v.currentTime||0); var dur=Math.floor(v.duration||0); var payload=JSON.stringify({rid:rid,video_id:(typeof videoId==="string"?videoId:Number(videoId)),seconds_watched:cur,duration:dur||undefined,completed:!!done}); try{var blob=new Blob([payload],{type:"application/json"}); if(!navigator.sendBeacon||!navigator.sendBeacon(WRITE_URL,blob)){fetch(WRITE_URL,{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:payload,keepalive:true}).catch(function(){});}}catch(e){} localStorage.setItem(localKey,JSON.stringify({seconds_watched:cur,duration:dur})); }',
+        '',
+        '    v.addEventListener("timeupdate", function(){ if(!v.seeking&&!clampBusy){if(v.currentTime>allowMax)allowMax=v.currentTime;} clampForward(); });',
+        '    v.addEventListener("seeking", clampForward);',
+        '    v.addEventListener("seeked", clampForward);',
+        '    v.addEventListener("play", function(){ sendProgress({force:true}); });',
+        '    v.addEventListener("pause", function(){ sendProgress({force:true}); });',
+        '    v.addEventListener("ended", function(){ sendProgress({force:true,completed:true}); beaconFlush(true); completeBtn.disabled=false; });',
+        '',
+        '    completeBtn.addEventListener("click", async function(){',
+        '      var params=new URLSearchParams(location.search); var rid=params.get("rid")||params.get("RID")||"";',
+        '      if(!rid){ alert("RID가 없어 수강 완료를 기록할 수 없습니다."); return; }',
+        '      var dur=Math.floor(v.duration||0); var watched=Math.floor(v.currentTime||0); var percent=dur?Math.round((watched/dur)*100):0;',
+        '      if(percent<90){ alert("영상 시청이 충분하지 않습니다. (90% 이상 시청 필요)"); return; }',
+        '      completeBtn.disabled=true;',
+        '      fetch(TRAINING_COMPLETE_URL,{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({rid:rid,video_id:(typeof videoId==="string"?videoId:Number(videoId)),duration:dur,watched:watched,percent:percent})})',
+        '      .then(function(res){ if(!res.ok) return res.text().then(function(t){throw new Error(t);}); return res.json(); })',
+        '      .then(function(){ alert("수강 완료 확인되었습니다. 감사합니다!"); window.close(); })',
+        '      .catch(function(err){ alert("수강 기록 실패: "+(err&&err.message?err.message:err)); completeBtn.disabled=false; });',
+        '    });',
+        '',
+        '    window.addEventListener("beforeunload", function(){ beaconFlush(false); });',
+        '    document.addEventListener("visibilitychange", function(){ if(document.visibilityState==="hidden") beaconFlush(false); });',
+        '    if(saveTimer)clearInterval(saveTimer); saveTimer=setInterval(function(){ if(!v.paused&&!v.seeking&&v.readyState>=1)sendProgress(); },SAVE_INTERVAL_MS);',
+        '  })();',
+        '  <\/script>',
+        '</body>',
+        '</html>'
+    ].join("\n");
 
-  var safeTitle = (videoName || "사이버보안 인식 제고 교육").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-  var html = [
-'<!DOCTYPE html>',
-'<html lang="ko">',
-'<head>',
-'  <meta charset="UTF-8">',
-'  <title>' + safeTitle + '</title>',
-'  <meta name="viewport" content="width=device-width, initial-scale=1">',
-'  <link href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" rel="stylesheet">',
-'  <style>',
-'    body { background: #f7f9fc; }',
-'    header { background:#0f2743; color:#fff; padding:15px; text-align:center; }',
-'    .container-box { max-width:960px; margin:30px auto; background:#fff; padding:25px; border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,0.08);}',
-'    #training-video { width:100%; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.2);}',
-'    #progress-bar { height:22px; line-height:22px; }',
-'    .btn-complete { margin-top:20px; }',
-'    video::-internal-media-controls-download-button { display: none; }',
-'    video::-webkit-media-controls-enclosure { overflow: hidden; }',
-'    video::-webkit-media-controls-picture-in-picture-button { display: none; }',
-'    video::-webkit-media-controls-playback-rate-button { display: none !important; }',
-'    @media (pointer: coarse) { #mobile-controls { display: flex; gap: 8px; align-items: center; margin-top: 10px; } }',
-'    @media (pointer: fine) { #mobile-controls { display: none; } }',
-'  </style>',
-'</head>',
-'<body>',
-'  <header>',
-'    <h2><i class="glyphicon glyphicon-education"></i> 사이버보안 인식 제고 교육</h2>',
-'  </header>',
-'  <div class="container-box">',
-'    <video id="training-video" controls preload="metadata" playsinline disablePictureInPicture controlsList="nodownload noplaybackrate" oncontextmenu="return false">',
-'      <source src="/media/' + (typeof videoId === "number" ? videoId : String(videoId)) + '" type="video/mp4">',
-'      지원되지 않는 브라우저입니다.',
-'    </video>',
-'    <div id="resumeBadge" class="text-muted" style="display:none;margin-top:8px;font-size:12px;opacity:.8;"></div>',
-'    <!-- div class="progress" style="margin-top:12px;">',
-'      <div id="progress-bar" class="progress-bar progress-bar-success" role="progressbar" style="width:0%">0%</div>',
-'    </div -->',
-'    <p style="font-size:18px;margin-top:10px;"><strong>' + safeTitle + '</strong></p>',
-'    <p style="font-size:18px;">* 교육 수강 완료 후 반드시 아래 <strong style="color:red;">수강 완료 확인</strong> 버튼을 클릭하세요.</p>',
-'    <button id="complete-btn" class="btn btn-success btn-lg btn-block btn-complete" disabled>수강 완료 확인</button>',
-'    <div id="complete-status" class="text-success" style="margin-top:8px; display:none;"></div>',
-'  </div>',
-'',
-'  <script>',
-'  (function(){',
-'    var v = document.getElementById("training-video");',
-'    var bar = document.getElementById("progress-bar");',
-'    var badge = document.getElementById("resumeBadge");',
-'    var completeBtn = document.getElementById("complete-btn");',
-'    var params = new URLSearchParams(location.search);',
-'    var rid = params.get("rid") || params.get("RID") || "";',
-'    var videoId = ' + (typeof videoId === "number" ? videoId : JSON.stringify(String(videoId))) + ';',
-'',
-'    // ---- 설정 ----',
-'    var TRAINING_COMPLETE_URL = "/api/training/complete";',
-'    var SAVE_INTERVAL_MS = 5000;',
-'    var MIN_DELTA_SECONDS = 2;',
-'    var READ_URLS = [',
-'      function(rid, vid){ return "/track/video/progress?rid=" + encodeURIComponent(rid) + "&video_id=" + encodeURIComponent(vid); },',
-'      function(rid, vid){ return "/track/video?op=progress&rid=" + encodeURIComponent(rid) + "&video_id=" + encodeURIComponent(vid); }',
-'    ];',
-'    var WRITE_URL = "/track/video";',
-'    var localKey = "vh_progress:" + videoId + ":" + rid;',
-'',
-'    function setStatus(msg, ok){',
-'      var el = document.getElementById("complete-status");',
-'      if (!el) return;',
-'      el.style.display = "block";',
-'      el.className = ok ? "text-success" : "text-danger";',
-'      el.textContent = msg;',
-'    }',
-'',
-'    // ---- 상태 ----',
-'    var lastSentSec = -1;',
-'    var sendLock = false;',
-'    var saveTimer = null;',
-'    var allowMax = 0;',
-'    var CLAMP_EPS = 0.25;',
-'    var clampBusy = false;',
-'    var resumeAt = null;             // 서버/로컬에서 받아올 목표 재개 지점',
-'    var resumeApplied = false;       // 실제 적용 완료 여부',
-'',
-'    function fmt(sec){ sec=Math.max(0,Math.floor(sec||0)); var m=(sec/60|0).toString().padStart(2,"0"); var s=(sec%60).toString().padStart(2,"0"); return m+":"+s; }',
-'    function readyForSeek(){ return v && v.readyState >= 1; } // HAVE_METADATA 이상',
-'',
-'    // --- (핵심) 재개 적용 ---',
-'    function applyResumeIfReady(){',
-'      if (resumeApplied) return;',
-'      if (resumeAt == null) return;',          // 아직 재개값 모름',
-'      if (!readyForSeek()) return;',           // 아직 메타데이터 미준비',
-'      if (!(resumeAt > 0) || resumeAt >= (v.duration || Infinity)) {',
-'        resumeApplied = true;',
-'        allowMax = Math.max(allowMax, v.currentTime||0);',
-'        return;',
-'      }',
-'      clampBusy = true;',
-'      allowMax = Math.max(allowMax, resumeAt);',
-'      try {',
-'        v.currentTime = resumeAt;',
-'        badge.textContent = "마지막 시청 위치(" + fmt(resumeAt) + ")로 이동했습니다.";',
-'        badge.style.display = "block";',
-'        setTimeout(function(){ badge.style.display = "none"; }, 4000);',
-'      } catch(e) {}',
-'      clampBusy = false;',
-'      resumeApplied = true;',
-'    }',
-'',
-'    // --- 진행률 조회 ---',
-'    (function fetchServerProgress(){',
-'      if (!rid || !videoId) { resumeAt = loadLocal(); applyResumeIfReady(); return; }',
-'      var tried = 0;',
-'      function next(){',
-'        if (tried >= READ_URLS.length) { resumeAt = Math.max(0, loadLocal()); applyResumeIfReady(); return; }',
-'        var url = READ_URLS[tried++](rid, videoId);',
-'        fetch(url, { method:"GET", credentials:"same-origin" })',
-'          .then(function(res){ if(!res.ok) throw 0; return res.json(); })',
-'          .then(function(data){',
-'            var sv = (data && typeof data.seconds_watched === "number") ? data.seconds_watched : 0;',
-'            resumeAt = Math.max(0, sv, loadLocal());',
-'            applyResumeIfReady();',
-'          })',
-'          .catch(function(){ next(); });',
-'      }',
-'      next();',
-'    })();',
-'',
-'    v.addEventListener("loadedmetadata", applyResumeIfReady);',
-'    if (readyForSeek()) setTimeout(applyResumeIfReady, 0);',
-'    v.addEventListener("play", applyResumeIfReady, { once: true });',
-'',
-'    // ---- 클램프 & UI ----',
-'    function clampForward(){',
-'      if (clampBusy) return;',
-'      var cur = v.currentTime || 0;',
-'      if (cur > allowMax + CLAMP_EPS) {',
-'        clampBusy = true;',
-'        v.currentTime = allowMax;',
-'        if (!v.paused) v.play().catch(function(){});',
-'        clampBusy = false;',
-'      }',
-'    }',
-'    function updateUI(){',
-'      if (!v.duration) return;',
-'      if (!bar) return;', // progress bar HTML이 비활성화되어 있을 수 있으므로 가드',
-'      var p = (v.currentTime / v.duration) * 100;',
-'      bar.style.width = p.toFixed(1) + "%";',
-'      bar.textContent = p.toFixed(0) + "%";',
-'    }',
-'',
-'    // ---- 저장 ----',
-'    function loadLocal(){',
-'      try { var raw = localStorage.getItem(localKey); if(!raw) return 0; var p=JSON.parse(raw); return (p && Number.isFinite(p.seconds_watched)) ? p.seconds_watched : 0; } catch(e){ return 0; }',
-'    }',
-'    async function sendProgress(opts){',
-'      opts = opts || {};',
-'      if (!rid || !videoId) return;',
-'      if (sendLock) return;',
-'      var cur = Math.floor(v.currentTime || 0);',
-'      var dur = Math.floor(v.duration || 0);',
-'      var must = !!opts.force;',
-'      var completed = !!opts.completed;',
-'      if (!must && Math.abs(cur - lastSentSec) < MIN_DELTA_SECONDS) return;',
-'      var payload = {',
-'        rid: rid,',
-'        video_id: (typeof videoId === "string" ? videoId : Number(videoId)),',
-'        seconds_watched: cur,',
-'        duration: dur || undefined,',
-'        completed: completed',
-'      };',
-'      try {',
-'        sendLock = true;',
-'        var res = await fetch(WRITE_URL, {',
-'          method:"POST", headers:{"Content-Type":"application/json"}, credentials:"same-origin", body: JSON.stringify(payload)',
-'        });',
-'        if (res.ok) {',
-'          lastSentSec = cur;',
-'          localStorage.setItem(localKey, JSON.stringify({ seconds_watched: cur, duration: dur }));',
-'        }',
-'      } catch(e){',
-'        localStorage.setItem(localKey, JSON.stringify({ seconds_watched: cur, duration: dur }));',
-'      } finally { sendLock = false; }',
-'    }',
-'    function beaconFlush(done){',
-'      if (!rid || !videoId) return;',
-'      var cur = Math.floor(v.currentTime || 0);',
-'      var dur = Math.floor(v.duration || 0);',
-'      var payload = JSON.stringify({',
-'        rid: rid,',
-'        video_id: (typeof videoId === "string" ? videoId : Number(videoId)),',
-'        seconds_watched: cur,',
-'        duration: dur || undefined,',
-'        completed: !!done',
-'      });',
-'      try {',
-'        var blob = new Blob([payload], { type:"application/json" });',
-'        if (!navigator.sendBeacon || !navigator.sendBeacon(WRITE_URL, blob)) {',
-'          fetch(WRITE_URL, { method:"POST", headers:{"Content-Type":"application/json"}, credentials:"same-origin", body: payload, keepalive:true }).catch(function(){});',
-'        }',
-'      } catch(e){}',
-'      localStorage.setItem(localKey, JSON.stringify({ seconds_watched: cur, duration: dur }));',
-'    }',
-'    function startAutoSave(){',
-'      if (saveTimer) clearInterval(saveTimer);',
-'      saveTimer = setInterval(function(){',
-'        if (!v.paused && !v.seeking && v.readyState >= 1) sendProgress();',
-'      }, SAVE_INTERVAL_MS);',
-'    }',
-'',
-'    // ---- 이벤트 ----',
-'    v.addEventListener("timeupdate", function(){',
-'      if (!v.seeking && !clampBusy) { if (v.currentTime > allowMax) allowMax = v.currentTime; }',
-'      clampForward();',
-'      updateUI();',
-'    });',
-'    v.addEventListener("seeking", clampForward);',
-'    v.addEventListener("seeked",  clampForward);',
-'',
-'    v.addEventListener("play",  function(){ sendProgress({force:true}); });',
-'    v.addEventListener("pause", function(){ sendProgress({force:true}); });',
-'    v.addEventListener("ended", function(){',
-'      sendProgress({force:true, completed:true});',
-'      beaconFlush(true);',
-'      completeBtn.disabled = false;',
-'    });',
-'',
-'    completeBtn.addEventListener("click", async function () {',
-'      var params = new URLSearchParams(location.search);',
-'      var rid = params.get("rid") || params.get("RID") || "";',
-'      if (!rid) {',
-'        alert("RID가 없어 수강 완료를 기록할 수 없습니다. 안내된 교육 링크로 다시 접속해주세요.", false);',
-'        return;',
-'      }',
-'',
-'      var dur = Math.floor(v.duration || 0);',
-'      var watched = Math.floor(v.currentTime || 0);',
-'      var percent = dur ? Math.round((watched / dur) * 100) : 0;',
-'',
-'      if (percent < 90) {',
-'        alert("영상 시청이 충분하지 않습니다. (90% 이상 시청 필요)", false);',
-'        return;',
-'      }',
-'',
-'      completeBtn.disabled = true;',
-'',
-'      fetch(TRAINING_COMPLETE_URL, {',
-'        method: "POST",',
-'        headers: {"Content-Type":"application/json"},',
-'        credentials: "same-origin",',
-'        body: JSON.stringify({',
-'          rid: rid,',
-'          video_id: (typeof videoId === "string" ? videoId : Number(videoId)),',
-'          duration: dur,',
-'          watched: watched,',
-'          percent: percent',
-'        })',
-'      })',
-'      .then(function(res){',
-'        if (!res.ok) return res.text().then(function(t){ throw new Error(t); });',
-'        return res.json();',
-'      })',
-'      .then(function(){',
-'        alert("수강 완료 확인되었습니다. 감사합니다!", true);',
-'        window.close();',
-'      })',
-'      .catch(function(err){',
-'        alert("수강 기록 실패: " + (err && err.message ? err.message : err), false);',
-'        completeBtn.disabled = false;',
-'      });',
-'    });',
-'',
-'    window.addEventListener("beforeunload", function(){ beaconFlush(false); });',
-'    document.addEventListener("visibilitychange", function(){ if (document.visibilityState === "hidden") beaconFlush(false); });',
-'    window.addEventListener("online", function(){ sendProgress({force:true}); });',
-'',
-'    // ---- 실행 ----',
-'    startAutoSave();',
-'  })();',
-'  </script>',
-'</body>',
-'</html>'
-  ].join("\n");
-
-  try {
-    if (editor) {
-      editor.setData(html);
-      editor.setMode('wysiwyg');
-      editor.focus();
-    } else {
-      var ta2 = document.getElementById("html_editor");
-      if (ta2) ta2.value = html;
+    try {
+        if (editor) {
+            editor.setData(html);
+            editor.setMode('wysiwyg');
+            editor.focus();
+        } else {
+            var ta2 = document.getElementById("html_editor");
+            if (ta2) ta2.value = html;
+        }
+        successFlash("학습용 템플릿을 삽입했습니다.");
+    } catch (e) {
+        console.error(e);
+        modalError("템플릿 삽입에 실패했습니다.");
     }
-    successFlash("학습용 랜딩 페이지 템플릿(이어보기 안정화)을 삽입했습니다.");
-  } catch (e) {
-    console.error(e);
-    modalError("템플릿 삽입에 실패했습니다.");
-  }
 }
-
