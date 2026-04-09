@@ -1,39 +1,37 @@
 package controllers
 
 import (
-	"compress/gzip"
-	"context"
-        "crypto/sha256"
-	"crypto/tls"
-        "encoding/hex"
-        "fmt"
-        "io"
-	"os"
-        "os/exec"
-	"path/filepath"
-	"strconv"
-	"html/template"
-	"net/http"
-	"net/url"
-	"strings"
-	"time"
+    "compress/gzip"
+    "context"
+    "crypto/sha256"
+    "crypto/tls"
+    "encoding/hex"
+    "io"
+    "os"
+    "path/filepath"
+    "strconv"
+    "html/template"
+    "net/http"
+    "net/url"
+    "strings"
+    "time"
 
-	"github.com/NYTimes/gziphandler"
-	"github.com/gophish/gophish/auth"
-	"github.com/gophish/gophish/config"
-	ctx "github.com/gophish/gophish/context"
-	"github.com/gophish/gophish/controllers/api"
-	log "github.com/gophish/gophish/logger"
-	mid "github.com/gophish/gophish/middleware"
-	"github.com/gophish/gophish/middleware/ratelimit"
-	"github.com/gophish/gophish/models"
-	"github.com/gophish/gophish/util"
-	"github.com/gophish/gophish/worker"
-	"github.com/gorilla/csrf"
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
-	"github.com/jordan-wright/unindexed"
+    "github.com/NYTimes/gziphandler"
+    "github.com/gophish/gophish/auth"
+    "github.com/gophish/gophish/config"
+    ctx "github.com/gophish/gophish/context"
+    "github.com/gophish/gophish/controllers/api"
+    log "github.com/gophish/gophish/logger"
+    mid "github.com/gophish/gophish/middleware"
+    "github.com/gophish/gophish/middleware/ratelimit"
+    "github.com/gophish/gophish/models"
+    "github.com/gophish/gophish/util"
+    "github.com/gophish/gophish/worker"
+    "github.com/gorilla/csrf"
+    "github.com/gorilla/handlers"
+    "github.com/gorilla/mux"
+    "github.com/gorilla/sessions"
+    "github.com/jordan-wright/unindexed"
 )
 
 // AdminServerOption is a functional option that is used to configure the
@@ -552,20 +550,6 @@ func (as *AdminServer) StreamVideo(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, filepath.Base(v.FilePath), fi.ModTime(), f)
 }
 
-// 안전 경로 확인 (api 쪽과 동일 로직)
-func isUnderBaseDir(base, target string) bool {
-	base = filepath.Clean(base)
-	target = filepath.Clean(target)
-	if base == target {
-		return true
-	}
-	rel, err := filepath.Rel(base, target)
-	if err != nil {
-		return false
-	}
-	return rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator))
-}
-
 // GET /videos/thumb/{id} : 썸네일 이미지 서빙 (로그인 없이 접근 가능)
 func (as *AdminServer) HandleVideoThumb(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -588,7 +572,7 @@ func (as *AdminServer) HandleVideoThumb(w http.ResponseWriter, r *http.Request) 
 
 	// 썸네일 경로가 정해둔 베이스 하위인지 검증
 	baseAbs, _ := filepath.Abs(filepath.Join("static", "videos"))
-	if !isUnderBaseDir(baseAbs, v.ThumbnailPath) {
+	if !util.IsUnderBaseDir(baseAbs, v.ThumbnailPath) {
 		http.NotFound(w, r)
 		return
 	}
@@ -601,68 +585,6 @@ func (as *AdminServer) HandleVideoThumb(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Content-Type", "image/jpeg")           // 생성은 jpg
 	w.Header().Set("Cache-Control", "public, max-age=86400")
 	http.ServeFile(w, r, v.ThumbnailPath)
-}
-
-// ===== 업로드 저장에 필요한 상수/유틸 =====
-var videoStorageDir = "static/videos"
-var videoStorageDirAbs = func() string {
-    if p, err := filepath.Abs(videoStorageDir); err == nil { return p }
-    return filepath.Clean(videoStorageDir)
-}()
-
-func envDefault(k, def string) string {
-    if v := os.Getenv(k); v != "" { return v }
-    return def
-}
-var ffmpegBin  = envDefault("GOPHISH_FFMPEG", "ffmpeg")
-var ffprobeBin = envDefault("GOPHISH_FFPROBE", "ffprobe")
-
-func probeDurationSeconds(path string) (int64, error) {
-    cctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
-    if _, err := exec.LookPath(ffprobeBin); err != nil {
-        return 0, fmt.Errorf("ffprobe not found: %w", err)
-    }
-    cmd := exec.CommandContext(cctx, ffprobeBin, "-v", "error",
-        "-show_entries", "format=duration",
-        "-of", "default=noprint_wrappers=1:nokey=1",
-        path,
-    )
-    out, err := cmd.CombinedOutput()
-    if cctx.Err() == context.DeadlineExceeded { return 0, fmt.Errorf("ffprobe timeout") }
-    if err != nil { return 0, err }
-    s := strings.TrimSpace(string(out))
-    if s == "" { return 0, fmt.Errorf("empty duration") }
-    f, err := strconv.ParseFloat(s, 64)
-    if err != nil { return 0, err }
-    if f < 0 { return 0, fmt.Errorf("negative") }
-    return int64(f + 0.5), nil
-}
-
-func generateThumbnail(inputPath, outputPath string, atSecond int, widthPx int) error {
-    if _, err := exec.LookPath(ffmpegBin); err != nil {
-        return fmt.Errorf("ffmpeg not found: %w", err)
-    }
-    if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
-        return err
-    }
-    cctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
-    defer cancel()
-    ss := strconv.Itoa(atSecond)
-    scale := fmt.Sprintf("scale=%d:-1:force_original_aspect_ratio=decrease", widthPx)
-    cmd := exec.CommandContext(cctx, ffmpegBin, "-v", "error",
-        "-ss", ss, "-i", inputPath,
-        "-frames:v", "1",
-        "-vf", scale,
-        "-y", outputPath,
-    )
-    if out, err := cmd.CombinedOutput(); err != nil {
-        if cctx.Err() == context.DeadlineExceeded {
-            return fmt.Errorf("ffmpeg timeout")
-        }
-        return fmt.Errorf("ffmpeg error: %v (%s)", err, string(out))
-    }
-    return nil
 }
 
 // ===== UI 업로드 핸들러 (세션 + CSRF) =====
@@ -696,14 +618,14 @@ func (as *AdminServer) UploadVideo(w http.ResponseWriter, r *http.Request) {
     }
     description := r.FormValue("description")
 
-    if err := os.MkdirAll(videoStorageDirAbs, 0755); err != nil {
+    if err := os.MkdirAll(util.VideoStorageDirAbs, 0755); err != nil {
         log.Error(err)
         api.JSONResponse(w, models.Response{Success:false, Message:"Storage error"}, http.StatusInternalServerError)
         return
     }
 
     // 임시 저장 + 해시
-    tmpFile, err := os.CreateTemp(videoStorageDirAbs, "upload-*")
+    tmpFile, err := os.CreateTemp(util.VideoStorageDirAbs, "upload-*")
     if err != nil {
         log.Error(err)
         api.JSONResponse(w, models.Response{Success:false, Message:"Create temp file error"}, http.StatusInternalServerError)
@@ -720,7 +642,7 @@ func (as *AdminServer) UploadVideo(w http.ResponseWriter, r *http.Request) {
     sumHex := hex.EncodeToString(hasher.Sum(nil))
     ext := strings.ToLower(filepath.Ext(handler.Filename))
     finalName := sumHex + ext
-    finalPath := filepath.Join(videoStorageDirAbs, finalName)
+    finalPath := filepath.Join(util.VideoStorageDirAbs, finalName)
 
     // 중복 처리
     if _, err := os.Stat(finalPath); err == nil {
@@ -758,16 +680,16 @@ func (as *AdminServer) UploadVideo(w http.ResponseWriter, r *http.Request) {
         }
     }
     if durationSeconds == 0 {
-        if d, err := probeDurationSeconds(finalPath); err == nil && d > 0 {
+        if d, err := util.ProbeDurationSeconds(finalPath); err == nil && d > 0 {
             durationSeconds = d
         }
     }
 
     // 썸네일
-    thumbDir := filepath.Join(videoStorageDirAbs, "thumbs")
+    thumbDir := filepath.Join(util.VideoStorageDirAbs, "thumbs")
     thumbName := sumHex + ".jpg"
     thumbPath := filepath.Join(thumbDir, thumbName)
-    if err := generateThumbnail(finalPath, thumbPath, 1, 480); err != nil {
+    if err := util.GenerateThumbnail(finalPath, thumbPath, 1, 480); err != nil {
         log.Errorf("thumbnail generation failed: %v", err)
         thumbPath = "" // 실패해도 업로드는 성공시킴
     }

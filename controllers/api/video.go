@@ -1,7 +1,6 @@
 package api
 
 import (
-    "context"
     "crypto/sha256"
     "encoding/hex"
     "encoding/json"
@@ -9,27 +8,16 @@ import (
     "io"
     "net/http"
     "os"
-    "os/exec"
     "path/filepath"
     "strconv"
     "strings"
-    "time"
 
     ctx "github.com/gophish/gophish/context"
     log "github.com/gophish/gophish/logger"
     "github.com/gophish/gophish/models"
     "github.com/gorilla/mux"
+	"github.com/gophish/gophish/util"
 )
-
-var videoStorageDir = "static/videos"
-var videoStorageDirAbs = func() string {
-    if p, err := filepath.Abs(videoStorageDir); err == nil {
-        return p
-    }
-    return filepath.Clean(videoStorageDir)
-}()
-
-var videoThumbDirAbs = filepath.Join(videoStorageDirAbs, "thumbs")
 
 // 현재 사용자 ID 추출 (없으면 0)
 func getCurrentUserID(r *http.Request) int64 {
@@ -147,19 +135,19 @@ func (as *Server) handleVideoUpload(w http.ResponseWriter, r *http.Request) {
     isPublicStr := r.FormValue("is_public")
     isPublic := isPublicStr == "1" || isPublicStr == "true"
 
-    if err := os.MkdirAll(videoStorageDirAbs, 0755); err != nil {
+    if err := os.MkdirAll(util.VideoStorageDirAbs, 0755); err != nil {
         log.Error(err)
         JSONResponse(w, models.Response{Success: false, Message: "Storage error"}, http.StatusInternalServerError)
         return
     }
-    if err := os.MkdirAll(videoThumbDirAbs, 0755); err != nil {
+    if err := os.MkdirAll(util.VideoThumbDirAbs, 0755); err != nil {
         log.Error(err)
         JSONResponse(w, models.Response{Success: false, Message: "Thumb storage error"}, http.StatusInternalServerError)
         return
     }
 
     // 1) 임시 파일에 쓰면서 sha256 해시 동시 계산
-    tmpFile, err := os.CreateTemp(videoStorageDirAbs, "upload-*")
+    tmpFile, err := os.CreateTemp(util.VideoStorageDirAbs, "upload-*")
     if err != nil {
         log.Error(err)
         JSONResponse(w, models.Response{Success: false, Message: "Create temp file error"}, http.StatusInternalServerError)
@@ -191,7 +179,7 @@ func (as *Server) handleVideoUpload(w http.ResponseWriter, r *http.Request) {
         ext = strings.ToLower(filepath.Ext(handler.Filename)) // 없으면 "" 유지
     }
     finalName := sumHex + ext
-    finalPath := filepath.Join(videoStorageDirAbs, finalName)
+    finalPath := filepath.Join(util.VideoStorageDirAbs, finalName)
 
     // 3) 중복 파일 처리: 이미 있으면 임시파일 삭제, 없으면 rename
     if _, err := os.Stat(finalPath); err == nil {
@@ -233,14 +221,14 @@ func (as *Server) handleVideoUpload(w http.ResponseWriter, r *http.Request) {
         }
     }
     if durationSeconds == 0 {
-        if d, err := probeDurationSeconds(finalPath); err == nil && d > 0 {
+        if d, err := util.ProbeDurationSeconds(finalPath); err == nil && d > 0 {
             durationSeconds = d
         }
     }
 
     // 5) 썸네일 생성 (ffmpeg)
     thumbName := sumHex + ".jpg"
-    thumbPath := filepath.Join(videoThumbDirAbs, thumbName)
+    thumbPath := filepath.Join(util.VideoThumbDirAbs, thumbName)
     // 썸네일 시점: 1초(또는 총 길이-1 중 더 작은 값)
     at := 1
     if durationSeconds > 2 {
@@ -250,7 +238,7 @@ func (as *Server) handleVideoUpload(w http.ResponseWriter, r *http.Request) {
             at = 3
         }
     }
-    if err := generateThumbnail(finalPath, thumbPath, at, 320); err != nil {
+    if err := util.GenerateThumbnail(finalPath, thumbPath, at, 320); err != nil {
         // 썸네일 실패는 치명적이지 않음 → 로그만 남김
         log.Errorf("thumbnail generation failed: %v", err)
         thumbPath = "" // 빈 값 저장
@@ -286,7 +274,7 @@ func (as *Server) HandleVideoThumb(w http.ResponseWriter, r *http.Request) {
         http.NotFound(w, r)
         return
     }
-    if v.ThumbnailPath == "" || !isUnderBaseDir(videoStorageDirAbs, v.ThumbnailPath) {
+    if v.ThumbnailPath == "" || !util.IsUnderBaseDir(util.VideoStorageDirAbs, v.ThumbnailPath) {
         http.NotFound(w, r)
         return
     }
@@ -297,74 +285,6 @@ func (as *Server) HandleVideoThumb(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "image/jpeg")
     w.Header().Set("Cache-Control", "public, max-age=86400")
     http.ServeFile(w, r, v.ThumbnailPath)
-}
-
-func probeDurationSeconds(path string) (int64, error) {
-    cctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
-    cmd := exec.CommandContext(cctx, "ffprobe", "-v", "error",
-        "-show_entries", "format=duration",
-        "-of", "default=noprint_wrappers=1:nokey=1",
-        path,
-    )
-    out, err := cmd.CombinedOutput()
-    if cctx.Err() == context.DeadlineExceeded {
-        return 0, fmt.Errorf("ffprobe timeout")
-    }
-    if err != nil {
-        return 0, err
-    }
-    s := strings.TrimSpace(string(out))
-    if s == "" {
-        return 0, fmt.Errorf("empty duration")
-    }
-    f, err := strconv.ParseFloat(s, 64)
-    if err != nil {
-        return 0, err
-    }
-    if f < 0 {
-        return 0, fmt.Errorf("negative")
-    }
-    return int64(f + 0.5), nil
-}
-
-// ffmpeg로 썸네일 1장 생성
-// widthPx: 가로 최대폭 (세로는 종횡비 유지)
-func generateThumbnail(inputPath, outputPath string, atSecond int, widthPx int) error {
-    if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
-        return err
-    }
-    // -ss {at} -i input -frames:v 1 -vf "scale=WIDTH:-1:force_original_aspect_ratio=decrease" -y output
-    cctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
-    defer cancel()
-    ss := strconv.Itoa(atSecond)
-    scale := fmt.Sprintf("scale=%d:-1:force_original_aspect_ratio=decrease", widthPx)
-    cmd := exec.CommandContext(cctx, "ffmpeg", "-v", "error",
-        "-ss", ss, "-i", inputPath,
-        "-frames:v", "1",
-        "-vf", scale,
-        "-y", outputPath,
-    )
-    if out, err := cmd.CombinedOutput(); err != nil {
-        if cctx.Err() == context.DeadlineExceeded {
-            return fmt.Errorf("ffmpeg timeout")
-        }
-        return fmt.Errorf("ffmpeg error: %v (%s)", err, string(out))
-    }
-    return nil
-}
-
-func isUnderBaseDir(base, target string) bool {
-    base = filepath.Clean(base)
-    target = filepath.Clean(target)
-    if base == target {
-        return true
-    }
-    rel, err := filepath.Rel(base, target)
-    if err != nil {
-        return false
-    }
-    return rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator))
 }
 
 func deleteVideoAndFiles(id int64, currentUserID int64) (fileDeleted, thumbDeleted bool, refCount int64, err error) {
@@ -385,14 +305,14 @@ func deleteVideoAndFiles(id int64, currentUserID int64) (fileDeleted, thumbDelet
 
     // 3) 실제 파일/썸네일 삭제 (참조 1개일 때만)
     if refCount <= 1 {
-        if v.FilePath != "" && isUnderBaseDir(videoStorageDirAbs, v.FilePath) {
+        if v.FilePath != "" && util.IsUnderBaseDir(util.VideoStorageDirAbs, v.FilePath) {
             if err := os.Remove(v.FilePath); err == nil {
                 fileDeleted = true
             } else if !os.IsNotExist(err) {
                 log.Errorf("remove video file failed: %v", err)
             }
         }
-        if v.ThumbnailPath != "" && isUnderBaseDir(videoStorageDirAbs, v.ThumbnailPath) {
+        if v.ThumbnailPath != "" && util.IsUnderBaseDir(util.VideoStorageDirAbs, v.ThumbnailPath) {
             if err := os.Remove(v.ThumbnailPath); err == nil {
                 thumbDeleted = true
             } else if !os.IsNotExist(err) {
@@ -413,4 +333,3 @@ func deleteVideoAndFiles(id int64, currentUserID int64) (fileDeleted, thumbDelet
 
     return fileDeleted, thumbDeleted, refCount, nil
 }
-
