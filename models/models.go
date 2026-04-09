@@ -199,12 +199,6 @@ func Setup(c *config.Config) error {
 		log.Error(err)
 		return err
 	}
-	// >>> 누락된 GORM 모델이 있는 경우 안전하게 AutoMigrate로 채워줌
-	//    (운영환경에서 자동생성 정책을 사용하지 않으려면 이 블록을 제거 가능)
-	if err := db.AutoMigrate(&VideoProgress{}).Error; err != nil {
-		log.Error("AutoMigrate VideoProgress failed:", err)
-		return err
-	}
 	// Create the admin user if it doesn't exist
 	var userCount int64
 	var adminUser User
