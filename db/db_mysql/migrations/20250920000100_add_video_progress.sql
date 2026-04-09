@@ -1,17 +1,17 @@
+-- db/db_mysql/migrations/20250920000100_add_video_progress.sql
 -- +goose Up
--- 동영상 시청 진행률 추적 테이블 생성
-CREATE TABLE IF NOT EXISTS `video_progress` (
-    `id`                BIGINT AUTO_INCREMENT PRIMARY KEY,
-    `user_id`           BIGINT,
-    `video_id`          BIGINT NOT NULL,
-    `campaign_id`       BIGINT DEFAULT NULL,
-    `email`             VARCHAR(255),
-    `progress`          FLOAT DEFAULT 0,
-    `complete`          BOOLEAN DEFAULT FALSE,
-    `last_watched_date` DATETIME DEFAULT CURRENT_TIMESTAMP,
-    `created_date`      DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (`video_id`) REFERENCES `videos`(`id`) ON DELETE CASCADE
-);
+CREATE TABLE IF NOT EXISTS `video_progresses` (
+    `id`              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `user_id`         BIGINT,
+    `result_id`       BIGINT,
+    `video_id`        BIGINT NOT NULL,
+    `seconds_watched` BIGINT DEFAULT 0,
+    `duration`        BIGINT DEFAULT 0,
+    `percent`         DOUBLE DEFAULT 0.0,
+    `completed`       TINYINT(1) DEFAULT 0,
+    `modified_date`   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_video_progresses_user_result_video (user_id, result_id, video_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- +goose Down
-DROP TABLE IF EXISTS `video_progress`;
+DROP TABLE IF EXISTS `video_progresses`;
