@@ -77,6 +77,12 @@ func (as *Server) RedirectPage(w http.ResponseWriter, r *http.Request) {
 			JSONResponse(w, models.Response{Success: false, Message: "/:id and body id mismatch"}, http.StatusBadRequest)
 			return
 		}
+		// 이름 중복 검사: 동일 사용자의 다른 페이지와 이름이 겹치는지 확인
+		existing, err := models.GetRedirectPageByName(newRP.Name, uid)
+		if err == nil && existing.Id != newRP.Id {
+			JSONResponse(w, models.Response{Success: false, Message: models.ErrRedirectPageNameInUse.Error()}, http.StatusConflict)
+			return
+		}
 		newRP.ModifiedDate = time.Now().UTC()
 		newRP.UserId = uid
 		if err := models.PutRedirectPage(&newRP); err != nil {
