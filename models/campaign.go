@@ -276,6 +276,7 @@ func (c *Campaign) generateSendDate(idx int, totalRecipients int) time.Time {
 
 // getCampaignStats returns a CampaignStats object for the campaign with the given campaign ID.
 // It also backfills numbers as appropriate with a running total, so that the values are aggregated.
+// err 재사용 버그 해결
 func getCampaignStats(cid int64) (CampaignStats, error) {
 	s := CampaignStats{}
 	query := db.Table("results").Where("campaign_id = ?", cid)
@@ -283,33 +284,29 @@ func getCampaignStats(cid int64) (CampaignStats, error) {
 	if err != nil {
 		return s, err
 	}
-	query.Where("status=?", EventDataSubmit).Count(&s.Submitted)
-	if err != nil {
+	if err = query.Where("status=?", EventDataSubmit).Count(&s.Submitted).Error; err != nil {
 		return s, err
 	}
-	query.Where("status=?", EventClicked).Count(&s.Clicked)
-	if err != nil {
+	if err = query.Where("status=?", EventClicked).Count(&s.Clicked).Error; err != nil {
 		return s, err
 	}
-	query.Where("reported=?", true).Count(&s.Reported)
-	if err != nil {
+	if err = query.Where("reported=?", true).Count(&s.Reported).Error; err != nil {
 		return s, err
 	}
-        query.Where("executed = ?", true).Count(&s.Executed)
-        if err != nil {
-            return s, err
-        }
-        // 추가: Trained 집계 (해당 이벤트가 존재하는 수신자 수)
-        subq := db.Table("events").
-            Select("email").
-            Where("campaign_id = ? AND message = ?", cid, EventTrainingCompleted).
-            SubQuery()
-        if err := db.Table("results").
-            Where("campaign_id = ?", cid).
-            Where("email IN (?)", subq).
-            Count(&s.Trained).Error; err != nil {
-            return s, err
-        }
+	if err = query.Where("executed = ?", true).Count(&s.Executed).Error; err != nil {
+		return s, err
+	}
+	// 추가: Trained 집계 (해당 이벤트가 존재하는 수신자 수)
+	subq := db.Table("events").
+		Select("email").
+		Where("campaign_id = ? AND message = ?", cid, EventTrainingCompleted).
+		SubQuery()
+	if err := db.Table("results").
+		Where("campaign_id = ?", cid).
+		Where("email IN (?)", subq).
+		Count(&s.Trained).Error; err != nil {
+		return s, err
+	}
 	// Every submitted data event implies they clicked the link
 	s.Clicked += s.Submitted
 	err = query.Where("status=?", EventOpened).Count(&s.Opened).Error
@@ -317,7 +314,7 @@ func getCampaignStats(cid int64) (CampaignStats, error) {
 		return s, err
 	}
 	// Every clicked link event implies they opened the email
-        s.Opened += s.Clicked
+	s.Opened += s.Clicked
 	err = query.Where("status=?", EventSent).Count(&s.Sent).Error
 	if err != nil {
 		return s, err
@@ -579,10 +576,10 @@ func PostCampaign(c *Campaign, uid int64) error {
 			sendDate := c.generateSendDate(recipientIndex, totalRecipients)
 			r := &Result{
 				BaseRecipient: BaseRecipient{
-					Email:     t.Email,
-					Position:  t.Position,
-					Name: t.Name,
-					Department:  t.Department,
+					Email:      t.Email,
+					Position:   t.Position,
+					Name:       t.Name,
+					Department: t.Department,
 				},
 				Status:       StatusScheduled,
 				CampaignId:   c.Id,
