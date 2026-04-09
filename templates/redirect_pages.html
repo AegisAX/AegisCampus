@@ -1,0 +1,155 @@
+{{define "body"}}
+<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+    <h1 class="page-header">
+        Redirect Pages
+    </h1>
+    <div id="flashes" class="row"></div>
+    <div class="row">
+        <button type="button" class="btn btn-primary" onclick="edit(-1)" data-toggle="modal" data-backdrop="static"
+            data-target="#modal"><i class="fa fa-plus"></i> New Page</button>
+    </div>
+    &nbsp;
+    <div id="loading">
+        <i class="fa fa-spinner fa-spin fa-4x"></i>
+    </div>
+    <div id="emptyMessage" class="row" style="display:none;">
+        <div class="alert alert-info">
+            No redirect pages created yet. Let's create one!
+        </div>
+    </div>
+    <div class="row">
+        <table id="redirectPagesTable" class="table" style="display:none;">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Last Modified Date</th>
+                    <th class="col-md-2 no-sort"></th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 생성/수정 모달 -->
+<div class="modal fade" id="modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="dismiss()">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="modalLabel">New Redirect Page</h4>
+            </div>
+            <div class="modal-body">
+                <div class="row" id="modal.flashes"></div>
+                <label class="control-label" for="name">Name:</label>
+                <div class="form-group">
+                    <input type="text" class="form-control" placeholder="Page name" id="name" autofocus />
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-danger" data-toggle="modal" data-backdrop="static"
+                        data-target="#importSiteModal">
+                        <i class="fa fa-globe"></i> Import Site
+                    </button>
+                    <button class="btn btn-info" type="button" onclick="showVideoPicker()">
+                        <i class="fa fa-film"></i> Insert Video
+                    </button>
+                </div>
+                <!-- Nav tabs -->
+                <ul class="nav nav-tabs" role="tablist">
+                    <li class="active" role="presentation">
+                        <a href="#html" aria-controls="html" role="tab" data-toggle="tab">HTML</a>
+                    </li>
+                </ul>
+                <!-- Tab panes -->
+                <div class="tab-content">
+                    <div role="tabpanel" class="tab-pane active" id="html">
+                        <textarea id="html_editor"></textarea>
+                    </div>
+                </div>
+                <div id="redirect_url" style="margin-top:10px;">
+                    <label class="control-label" for="redirect_url_input">
+                        Redirect to:
+                        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                            title="This option lets you redirect the user to a URL after the page is shown."></i>
+                    </label>
+                    <div class="form-group">
+                        <input id="redirect_url_input" class="form-control" placeholder="http://example.com" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" data-dismiss="modal" class="btn btn-default" onclick="dismiss()">Cancel</button>
+                <button type="button" class="btn btn-primary" id="modalSubmit">Save Page</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Site 모달 -->
+<div class="modal fade" id="importSiteModal" tabindex="-1" role="dialog" aria-labelledby="importSiteModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="importSiteModalLabel">Import Site</h4>
+            </div>
+            <div class="modal-body">
+                <div class="row" id="modal.flashes"></div>
+                <label class="control-label" for="url">URL:</label>
+                <div class="form-group">
+                    <input type="text" class="form-control" placeholder="http://google.com" id="url" autofocus />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" data-dismiss="modal" class="btn btn-default">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="importSite()">Import</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Video Picker 모달 -->
+<div class="modal fade" id="videoPickerModal" tabindex="-1" role="dialog" aria-labelledby="videoPickerLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="videoPickerLabel">Insert Video</h4>
+            </div>
+            <div class="modal-body">
+                <div id="videoPickerLoading"><i class="fa fa-spinner fa-spin"></i> Loading videos...</div>
+                <div id="videoPickerEmpty" style="display:none;">
+                    <div class="alert alert-info">No videos available. Upload a video first in Video Management.</div>
+                </div>
+                <table id="videoPickerTable" class="table" style="display:none;">
+                    <thead>
+                        <tr>
+                            <th>Video Title</th>
+                            <th>Upload Date</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}
+
+{{define "scripts"}}
+<script src="/js/src/vendor/ckeditor/ckeditor.js"></script>
+<script src="/js/src/vendor/ckeditor/adapters/jquery.js"></script>
+<script src="/js/dist/app/autocomplete.min.js"></script>
+<script src="/js/dist/app/redirect_pages.min.js"></script>
+{{end}}

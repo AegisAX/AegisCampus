@@ -278,6 +278,28 @@ var api = {
         }
     },
 
+    // ======= [START] Redirect Pages API =======
+    redirectPages: {
+        get: function () {
+            return query('/redirect_pages/', 'GET', {}, false)
+        },
+        post: function (page) {
+            return query('/redirect_pages/', 'POST', page, false)
+        }
+    },
+    redirectPageId: {
+        get: function (id) {
+            return query('/redirect_pages/' + id, 'GET', {}, false)
+        },
+        put: function (page) {
+            return query('/redirect_pages/' + page.id, 'PUT', page, false)
+        },
+        delete: function (id) {
+            return query('/redirect_pages/' + id, 'DELETE', {}, false)
+        }
+    },
+    // ======= [END] Redirect Pages API =======
+
     // ======= [ADD] Videos API =======
     videos: {
         // GET /videos/

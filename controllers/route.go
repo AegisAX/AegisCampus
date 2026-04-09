@@ -140,10 +140,11 @@ func (as *AdminServer) registerRoutes() {
 	router.HandleFunc("/templates", mid.Use(as.Templates, mid.RequireLogin))
 	router.HandleFunc("/groups", mid.Use(as.Groups, mid.RequireLogin))
 	router.HandleFunc("/landing_pages", mid.Use(as.LandingPages, mid.RequireLogin))
-        router.HandleFunc("/videos", mid.Use(as.Videos, mid.RequireLogin))
-        router.HandleFunc("/videos/stream/{id:[0-9]+}", mid.Use(as.StreamVideo, mid.RequireLogin))
-        router.HandleFunc("/videos/upload", mid.Use(as.UploadVideo, mid.RequireLogin)).Methods("POST")
-        router.HandleFunc("/videos/thumb/{id:[0-9]+}", as.HandleVideoThumb).Methods("GET")
+	router.HandleFunc("/redirect_pages", mid.Use(as.RedirectPages, mid.RequireLogin))
+	router.HandleFunc("/videos", mid.Use(as.Videos, mid.RequireLogin))
+	router.HandleFunc("/videos/stream/{id:[0-9]+}", mid.Use(as.StreamVideo, mid.RequireLogin))
+	router.HandleFunc("/videos/upload", mid.Use(as.UploadVideo, mid.RequireLogin)).Methods("POST")
+	router.HandleFunc("/videos/thumb/{id:[0-9]+}", as.HandleVideoThumb).Methods("GET")
 	router.HandleFunc("/sending_profiles", mid.Use(as.SendingProfiles, mid.RequireLogin))
 	router.HandleFunc("/settings", mid.Use(as.Settings, mid.RequireLogin))
 	router.HandleFunc("/users", mid.Use(as.UserManagement, mid.RequirePermission(models.PermissionModifySystem), mid.RequireLogin))
@@ -248,6 +249,13 @@ func (as *AdminServer) LandingPages(w http.ResponseWriter, r *http.Request) {
 	params := newTemplateParams(r)
 	params.Title = "Landing Pages"
 	getTemplate(w, "landing_pages").ExecuteTemplate(w, "base", params)
+}
+
+// RedirectPages handles the Redirect Page management admin page
+func (as *AdminServer) RedirectPages(w http.ResponseWriter, r *http.Request) {
+	params := newTemplateParams(r)
+	params.Title = "Redirect Pages"
+	getTemplate(w, "redirect_pages").ExecuteTemplate(w, "base", params)
 }
 
 // Videos handles the Video Management admin page
