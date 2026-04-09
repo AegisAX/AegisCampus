@@ -739,12 +739,16 @@ func (ps *PhishingServer) Media(w http.ResponseWriter, r *http.Request) {
 
     path := v.FilePath
 
-    // --- 보정 추가 ---
-    // 상대경로(static/videos/...)면 절대경로로 바꿔줌
+    // 상대경로면 절대경로로 변환 (util.VideoStorageDirAbs 기준)
     if !filepath.IsAbs(path) {
-        path = filepath.Join("static", "videos", filepath.Base(path))
+        path = filepath.Join(util.VideoStorageDirAbs, filepath.Base(path))
     }
-    // ----------------
+
+    // path traversal 방어 (이제 base/target 모두 절대경로)
+    if !util.IsUnderBaseDir(util.VideoStorageDirAbs, path) {
+        http.Error(w, "forbidden", http.StatusForbidden)
+        return
+    }
 
     f, err := os.Open(path)
     if err != nil {
@@ -754,7 +758,13 @@ func (ps *PhishingServer) Media(w http.ResponseWriter, r *http.Request) {
     }
     defer f.Close()
 
-    fi, _ := f.Stat()
+    fi, err := f.Stat()
+    if err != nil {
+        log.Errorf("media: stat failed: %v", err)
+        w.WriteHeader(http.StatusInternalServerError)
+        return
+    }
+
     w.Header().Set("Content-Type", "video/mp4")
     w.Header().Set("Content-Disposition", "inline")
     w.Header().Set("Cache-Control", "no-store")
