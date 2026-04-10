@@ -60,6 +60,35 @@ func (as *Server) HandleVideoByID(w http.ResponseWriter, r *http.Request) {
         JSONResponse(w, v, http.StatusOK)
 
     case http.MethodPut:
+        currentUserID := getCurrentUserID(r)
+
+        // 1) 소유권 확인
+        existing, err := models.GetVideo(id)
+        if err != nil {
+            if err == models.ErrVideoNotFound {
+                JSONResponse(w, models.Response{Success: false, Message: "video not found"}, http.StatusNotFound)
+            } else {
+                JSONResponse(w, models.Response{Success: false, Message: "lookup error"}, http.StatusInternalServerError)
+            }
+            return
+        }
+        if existing.UserId != currentUserID {
+            JSONResponse(w, models.Response{Success: false, Message: "forbidden"}, http.StatusForbidden)
+            return
+        }
+
+        // 2) 다른 사용자 사용 중 확인
+        inUse, err := models.IsVideoUsedByOthers(id, currentUserID)
+        if err != nil {
+            JSONResponse(w, models.Response{Success: false, Message: "lookup error"}, http.StatusInternalServerError)
+            return
+        }
+        if inUse {
+            JSONResponse(w, models.Response{Success: false, Message: "다른 사용자가 사용 중인 동영상은 수정할 수 없습니다"}, http.StatusConflict)
+            return
+        }
+
+        // 3) 업데이트
         var v models.Video
         if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
             JSONResponse(w, models.Response{Success: false, Message: "Invalid request"}, http.StatusBadRequest)
@@ -74,6 +103,18 @@ func (as *Server) HandleVideoByID(w http.ResponseWriter, r *http.Request) {
 
     case http.MethodDelete:
         currentUserID := getCurrentUserID(r)
+
+        // 다른 사용자 사용 중 확인 (소유권은 deleteVideoAndFiles 내부에서 처리)
+        inUse, err := models.IsVideoUsedByOthers(id, currentUserID)
+        if err != nil {
+            JSONResponse(w, models.Response{Success: false, Message: "lookup error"}, http.StatusInternalServerError)
+            return
+        }
+        if inUse {
+            JSONResponse(w, models.Response{Success: false, Message: "다른 사용자가 사용 중인 동영상은 삭제할 수 없습니다"}, http.StatusConflict)
+            return
+        }
+
         fileDeleted, thumbDeleted, refCount, derr := deleteVideoAndFiles(id, currentUserID)
         if derr != nil {
             if derr == models.ErrVideoNotFound {
@@ -104,7 +145,16 @@ func (as *Server) handleVideosList(w http.ResponseWriter, r *http.Request) {
         JSONResponse(w, models.Response{Success: false, Message: "Error fetching videos"}, http.StatusInternalServerError)
         return
     }
-    JSONResponse(w, videos, http.StatusOK)
+    // is_owner 필드를 포함한 응답 구조체
+    type VideoItem struct {
+        models.Video
+        IsOwner bool `json:"is_owner"`
+    }
+    items := make([]VideoItem, len(videos))
+    for i, v := range videos {
+        items[i] = VideoItem{Video: v, IsOwner: v.UserId == userId}
+    }
+    JSONResponse(w, items, http.StatusOK)
 }
 
 func (as *Server) handleVideoUpload(w http.ResponseWriter, r *http.Request) {

@@ -626,6 +626,8 @@ func (as *AdminServer) UploadVideo(w http.ResponseWriter, r *http.Request) {
         name = strings.TrimSpace(strings.ReplaceAll(strings.ReplaceAll(base, "_", " "), "-", " "))
     }
     description := r.FormValue("description")
+	isPublicStr := r.FormValue("is_public")
+	isPublic    := isPublicStr == "1" || isPublicStr == "true"
 
     // duration_seconds 힌트
     durationHint := int64(0)
@@ -641,7 +643,7 @@ func (as *AdminServer) UploadVideo(w http.ResponseWriter, r *http.Request) {
     }
 
     result, err := util.ProcessVideoUpload(file, originalFilename, durationHint, util.VideoUploadOptions{
-        IsPublic: false, // UI 업로드는 공개 여부 입력 없으므로 기본 false
+        IsPublic: isPublic,    // 폼 체크박스 값 반영
     })
     if err != nil {
         log.Error(err)

@@ -46,6 +46,16 @@
             <label for="video-file">Video File</label>
             <input type="file" class="form-control" id="video-file" name="file" accept="video/*" required>
           </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="video-is-public" name="is_public" value="1">
+              &nbsp;공개 동영상
+            </label>
+            <p class="help-block" style="margin-top:4px; color:#888; font-size:12px;">
+              공개로 설정하면 다른 사용자도 이 동영상을 사용할 수 있습니다.
+              수정·삭제는 소유자만 가능하며, 다른 사용자가 사용 중일 때는 수정·삭제가 제한됩니다.
+            </p>
+          </div>
 
           <!-- 업로드 진행 UI -->
           <div id="upload-status" class="text-muted small" style="display:none;">Uploading…</div>
@@ -94,6 +104,12 @@
   .kebab .dropdown-menu li > a{ cursor:pointer; }
   .video-sub{ color:#6c757d; margin-top:4px; font-size:12px; }
   .video-desc{ margin-top:6px; color:#333; font-size:13px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+
+  /* 공개/비공개 배지 */
+  .badge-public  { background:#17a2b8; color:#fff; border-radius:4px; padding:1px 6px; font-size:11px; }
+  .badge-private { background:#868e96; color:#fff; border-radius:4px; padding:1px 6px; font-size:11px; }
+  /* 소유자 아님 표시 */
+  .video-shared  { color:#17a2b8; font-size:11px; margin-top:2px; }
 </style>
 <script src="/js/dist/app/videos.min.js"></script>
 {{ end }}

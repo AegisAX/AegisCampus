@@ -52,6 +52,32 @@ function renderVideos(){
     var uploadedAbs = v.modified_date ? moment(v.modified_date).format('YYYY-MM-DD HH:mm:ss') : '';
     var uploadedRel = v.modified_date ? moment(v.modified_date).fromNow() : '';
 
+    // ── 공개 배지 ──────────────────────────────────────────
+    var publicBadge = v.is_public
+        ? ' <span class="badge-public">공개</span>'
+        : ' <span class="badge-private">비공개</span>';
+
+    // ── 소유자 아닌 경우 출처 표시 ─────────────────────────
+    var sharedNote = (!v.is_owner)
+        ? '<div class="video-shared"><i class="fa fa-share-alt"></i> 공유된 영상</div>'
+        : '';
+
+    // ── 케밥 메뉴: 소유자만 표시 ──────────────────────────
+    var kebab = '';
+    if (v.is_owner) {
+        kebab =
+          '<div class="kebab dropdown">' +
+            '<button class="btn btn-default btn-xs dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="More">' +
+              '<i class="fa fa-ellipsis-h"></i>' +
+            '</button>' +
+            '<ul class="dropdown-menu dropdown-menu-right">' +
+              '<li><a onclick="editVideo('+v.id+'); return false;"><i class="fa fa-pencil"></i> 편집</a></li>' +
+              '<li role="separator" class="divider"></li>' +
+              '<li><a class="text-danger" onclick="deleteVideo('+v.id+'); return false;"><i class="fa fa-trash"></i> 삭제</a></li>' +
+            '</ul>' +
+          '</div>';
+    }
+
     var thumb = (currentPlayingId === v.id)
       ? (
         '<div class="video-thumb playing" onclick="toggleInlinePlay('+v.id+')">' +
@@ -71,17 +97,8 @@ function renderVideos(){
 
     var metaHead =
       '<div class="meta-head">' +
-        '<div class="video-title" title="'+escapeHtml(v.name)+'">'+escapeHtml(v.name)+'</div>' +
-        '<div class="kebab dropdown">' +
-          '<button class="btn btn-default btn-xs dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="More">' +
-            '<i class="fa fa-ellipsis-h"></i>' +
-          '</button>' +
-          '<ul class="dropdown-menu dropdown-menu-right">' +
-            '<li><a onclick="editVideo('+v.id+'); return false;"><i class="fa fa-pencil"></i> Edit</a></li>' +
-            '<li role="separator" class="divider"></li>' +
-            '<li><a class="text-danger" onclick="deleteVideo('+v.id+'); return false;"><i class="fa fa-trash"></i> Delete</a></li>' +
-          '</ul>' +
-        '</div>' +
+        '<div class="video-title" title="'+escapeHtml(v.name)+'">'+escapeHtml(v.name)+publicBadge+'</div>' +
+        kebab +
       '</div>';
 
     var sub = uploadedRel ? '<div class="video-sub" title="'+uploadedAbs+'">'+uploadedRel+'</div>' : '';
@@ -91,7 +108,7 @@ function renderVideos(){
       '<div class="video-card">' +
         thumb +
         '<div class="video-meta">' +
-          metaHead + sub + desc +
+          metaHead + sharedNote + sub + desc +   // ← sharedNote 추가
         '</div>' +
       '</div>';
 
@@ -119,29 +136,37 @@ function editVideo(id){
   var v = found.v;
   if(!v){ errorFlash && errorFlash("대상 영상을 찾을 수 없습니다."); return; }
 
-  var newTitle = window.prompt("Title", v.name || "");
+  var newTitle = window.prompt("제목", v.name || "");
   if(newTitle === null) return;
   newTitle = newTitle.trim();
 
-  var newDesc = window.prompt("Description", v.description || "");
+  var newDesc = window.prompt("설명", v.description || "");
   if(newDesc === null) return;
+
+  // 공개 여부
+  var currentPublic = v.is_public ? "공개" : "비공개";
+  var newPublicStr = window.prompt("공개 여부를 입력하세요 (공개 / 비공개)", currentPublic);
+  if(newPublicStr === null) return;
+  var newIsPublic = newPublicStr.trim() === "공개";
 
   var payload = {
     id: v.id, user_id: v.user_id,
     name: newTitle, description: newDesc,
     file_name: v.file_name, file_path: v.file_path,
     thumbnail_path: v.thumbnail_path, duration_seconds: v.duration_seconds,
-    is_public: v.is_public
+    is_public: newIsPublic
   };
 
   api.videoId.put(payload)
     .success(function(){
-      v.name = newTitle; v.description = newDesc;
+      v.name = newTitle;
+      v.description = newDesc;
+      v.is_public = newIsPublic;
       renderVideos();
-      successFlash && successFlash("Updated.");
+      successFlash && successFlash("수정되었습니다.");
     })
     .error(function(xhr){
-      var msg = (xhr.responseJSON && xhr.responseJSON.message) || "Update failed";
+      var msg = (xhr.responseJSON && xhr.responseJSON.message) || "수정 실패";
       errorFlash && errorFlash(msg);
     });
 }
@@ -207,8 +232,6 @@ function wireUploadForm(){
     e.preventDefault();
 
     var fd = new FormData(this);
-    // is_public 필드 사용 중이면 여기서 설정 (현재 UI엔 체크박스 제거되어 생략 가능)
-    // fd.set("is_public", ...);
 
     startUploadUI();
 
@@ -241,6 +264,7 @@ function wireUploadForm(){
 
         // 성공 즉시 최상단에 아이템 추가 → 깜빡임 없이 보여줌
         if (v && v.id) {
+          v.is_owner = true;  // 업로드한 사람이 소유자
           videos.unshift(v);
           renderVideos();
         } else {

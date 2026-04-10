@@ -61,11 +61,16 @@ func GetVideo(id int64) (*Video, error) {
 // GetVideosForUser returns videos for a specific user (or all if user_id==0)
 func GetVideosForUser(userId int64) ([]Video, error) {
     var videos []Video
-    q := db
+    var err error
     if userId != 0 {
-        q = q.Where("user_id = ?", userId)
+        // 자신의 영상(공개/비공개 무관) + 다른 사용자의 공개 영상
+        err = db.Where("user_id = ? OR is_public = ?", userId, true).
+            Order("modified_date desc").Find(&videos).Error
+    } else {
+        err = db.Where("is_public = ?", true).
+            Order("modified_date desc").Find(&videos).Error
     }
-    if err := q.Order("modified_date desc").Find(&videos).Error; err != nil {
+    if err != nil {
         log.Error(err)
         return nil, err
     }
@@ -91,3 +96,15 @@ func CountVideosByFileName(fileName string) (int64, error) {
     return cnt, nil
 }
 
+// IsVideoUsedByOthers returns true if any other user's RedirectPage references this video.
+// ownerUserId is excluded from the check (owner can always modify their own references).
+func IsVideoUsedByOthers(videoId int64, ownerUserId int64) (bool, error) {
+    var count int64
+    err := db.Model(&RedirectPage{}).
+        Where("video_id = ? AND user_id != ?", videoId, ownerUserId).
+        Count(&count).Error
+    if err != nil {
+        return false, err
+    }
+    return count > 0, nil
+}

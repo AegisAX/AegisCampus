@@ -321,11 +321,12 @@ var api = {
         }
     },
     videoId: {
-        // GET /videos/:id
         get: function (id) {
             return query("/videos/" + id, "GET", {}, false)
         },
-        // DELETE /videos/:id
+        put: function (payload) {
+            return query("/videos/" + payload.id, "PUT", payload, false)
+        },
         delete: function (id) {
             return query("/videos/" + id, "DELETE", {}, false)
         }
