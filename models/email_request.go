@@ -170,7 +170,7 @@ func (s *EmailRequest) Generate(msg *gomail.Message) error {
 	}
 
 	// Attach the files
-	for _, a := range s.Template.Attachments {
+	for i := range s.Template.Attachments {
 		addAttachment(msg, &s.Template.Attachments[i], ptx)   // 원본 포인터 전달
 	}
 
