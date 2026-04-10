@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/mail"
 	"net/url"
-        "html"
+	"html"
 	"strings"
 	"time"
 	"encoding/json"
@@ -182,8 +183,7 @@ func (ps *PhishingServer) FileOpenHandler(w http.ResponseWriter, r *http.Request
     id := strings.TrimSuffix(rid, TransparencySuffix)
 
     target := ""
-    //if rawURL != "" && isSafeInternalPath(rawURL) {
-    if rawURL != "" {
+    if rawURL != "" && isSafeInternalPath(rawURL) {
         target = rawURL
     } else {
         target = "/static/warning.html?rid=" + url.QueryEscape(id)
@@ -211,24 +211,33 @@ func (ps *PhishingServer) FileOpenHandler(w http.ResponseWriter, r *http.Request
     http.Redirect(w, r, target, http.StatusFound)
 }
 
-// 내부 경로만 허용하는 간단한 필터
+// 내부 경로만 허용하도록 필터 기능 강화
 func isSafeInternalPath(u string) bool {
     lu := strings.ToLower(u)
-    if strings.HasPrefix(lu, "http://") || strings.HasPrefix(lu, "https://") {
-        return false
+    // 1) 외부 스킴 명시적 차단
+    for _, scheme := range []string{"http://", "https://", "data:", "javascript:", "vbscript:", "file://"} {
+        if strings.HasPrefix(lu, scheme) {
+            return false
+        }
     }
-    // 데이터/자바스크립트 스킴 방지
-    if strings.HasPrefix(lu, "data:") || strings.HasPrefix(lu, "javascript:") {
-        return false
-    }
-    // 공백/제어문자 제거
+    // 2) 앞뒤 공백 제거
     u = strings.TrimSpace(u)
-    // 상대/루트 경로 허용
-    if strings.HasPrefix(u, "/") || strings.HasPrefix(u, "./") || strings.HasPrefix(u, "../") {
+    // 3) 프로토콜 상대 URL 차단 — "/" 검사보다 반드시 먼저 실행
+    if strings.HasPrefix(u, "//") {
+        return false
+    }
+    // 4) 절대/상대 경로 허용, 단 ".." 컴포넌트 포함 시 차단
+    if strings.HasPrefix(u, "/") || strings.HasPrefix(u, "./") {
+        if strings.Contains(u, "..") {
+            return false
+        }
         return true
     }
-    // warning.html 처럼 단순 파일명도 허용 (static 하위 등)
+    // 5) 단순 파일명 허용 (":// "나 "//" 미포함), ".." 제외
     if !strings.Contains(u, "://") && !strings.HasPrefix(u, "//") {
+        if strings.Contains(u, "..") {
+            return false
+        }
         return true
     }
     return false
@@ -418,16 +427,19 @@ func (ps *PhishingServer) ReportFormPost(w http.ResponseWriter, r *http.Request)
 	downloaded := yn("downloaded")
 	executed   := yn("executed")
 
-	// --- 서버측 검증 ---
+	// --- 이메일 형식 서버측 검증 개선 ---
 	if len(reporterName) < 2 || len(mailSubject) < 2 {
-		http.Error(w, "invalid input", http.StatusBadRequest); return
+		http.Error(w, "invalid input", http.StatusBadRequest)
+		return
 	}
-	if !strings.Contains(reporterEmail, "@") || !strings.Contains(mailFrom, "@") {
-		http.Error(w, "invalid email", http.StatusBadRequest); return
+	if _, err := mail.ParseAddress(reporterEmail); err != nil {
+		http.Error(w, "invalid reporter email", http.StatusBadRequest)
+		return
 	}
-	//if clicked=="No" && submitted=="No" && downloaded=="No" && executed=="No" {
-		//http.Error(w, "at least one behavior must be selected", http.StatusBadRequest); return
-	//}
+	if _, err := mail.ParseAddress(mailFrom); err != nil {
+		http.Error(w, "invalid from email", http.StatusBadRequest)
+		return
+	}
 	// -------------------
 
 	var res *models.Result
