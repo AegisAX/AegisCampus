@@ -21,10 +21,10 @@ type VideoProgress struct {
 
 func (vp *VideoProgress) Save() error {
     vp.ModifiedDate = time.Now().UTC()
-    // upsert-ish: if Id==0 try to find existing record
     if vp.Id == 0 {
         var existing VideoProgress
-        err := db.Where("user_id = ? AND result_id = ? AND video_id = ?", vp.UserId, vp.ResultId, vp.VideoId).First(&existing).Error
+        err := db.Where("user_id = ? AND result_id = ? AND video_id = ?",
+            vp.UserId, vp.ResultId, vp.VideoId).First(&existing).Error
         if err != nil && err != gorm.ErrRecordNotFound {
             return err
         }
@@ -32,7 +32,7 @@ func (vp *VideoProgress) Save() error {
             vp.Id = existing.Id
         }
     }
-    return db.Save(vp).Error
+    return db.Save(vp).Error  // FirstOrCreate 제거, 원래대로
 }
 
 func GetVideoProgress(userId, resultId, videoId int64) (*VideoProgress, error) {

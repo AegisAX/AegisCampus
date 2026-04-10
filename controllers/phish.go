@@ -933,14 +933,14 @@ func TrainingCompleteHandler(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    // 최소 시청률 검증(90% 이상)
-    if req.Duration > 0 {
-        pct := req.Watched / req.Duration
-        if pct < 0.9 && req.Percent < 90 {
-            api.JSONResponse(w, models.Response{Success: false, Message: "insufficient watch time"}, http.StatusBadRequest)
-            return
-        }
-    }
+    // 최소 시청률 검증(90% 이상), 서버가 직접 계산한 pct만 신뢰
+	if req.Duration > 0 {
+		pct := req.Watched / req.Duration
+		if pct < 0.9 {   // 단일 조건
+			api.JSONResponse(w, models.Response{Success:false, Message:"insufficient watch time"}, http.StatusBadRequest)
+			return
+		}
+	}
 
     // rid 투명성 접미사 제거 후 Result 조회
     id := strings.TrimSuffix(rid, TransparencySuffix)

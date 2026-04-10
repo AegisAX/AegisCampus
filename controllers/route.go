@@ -531,7 +531,16 @@ func (as *AdminServer) StreamVideo(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	f, err := os.Open(v.FilePath)
+	path := v.FilePath
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(util.VideoStorageDirAbs, filepath.Base(path))
+	}
+	// IsUnderBaseDir로 경로 순회 방어 (HandleVideoThumb과 동일 패턴)
+	if !util.IsUnderBaseDir(util.VideoStorageDirAbs, path) {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+	f, err := os.Open(path)
 	if err != nil {
 		log.Error(err)
 		w.WriteHeader(http.StatusNotFound)
@@ -625,19 +634,22 @@ func (as *AdminServer) UploadVideo(w http.ResponseWriter, r *http.Request) {
     }
 
     // 임시 저장 + 해시
-    tmpFile, err := os.CreateTemp(util.VideoStorageDirAbs, "upload-*")
-    if err != nil {
-        log.Error(err)
-        api.JSONResponse(w, models.Response{Success:false, Message:"Create temp file error"}, http.StatusInternalServerError)
-        return
-    }
-    hasher := sha256.New()
-    if _, err := io.Copy(io.MultiWriter(tmpFile, hasher), file); err != nil {
-        tmpFile.Close(); _ = os.Remove(tmpFile.Name())
-        api.JSONResponse(w, models.Response{Success:false, Message:"Write file error"}, http.StatusInternalServerError)
-        return
-    }
-    tmpFile.Close()
+	tmpFile, err := os.CreateTemp(util.VideoStorageDirAbs, "upload-*")
+	if err != nil {
+		log.Error(err)
+		api.JSONResponse(w, models.Response{Success:false, Message:"Create temp file error"}, http.StatusInternalServerError)
+		return
+	}
+	tmpName := tmpFile.Name()
+	cleanupTmp := true
+	defer func() { if cleanupTmp {_ = os.Remove(tmpName)} }()
+	hasher := sha256.New()
+	if _, err := io.Copy(io.MultiWriter(tmpFile, hasher), file); err != nil {
+		tmpFile.Close()
+		api.JSONResponse(w, models.Response{Success:false, Message:"Write file error"}, http.StatusInternalServerError)
+		return
+	}
+	tmpFile.Close()
 
     sumHex := hex.EncodeToString(hasher.Sum(nil))
     ext := strings.ToLower(filepath.Ext(handler.Filename))
@@ -645,32 +657,31 @@ func (as *AdminServer) UploadVideo(w http.ResponseWriter, r *http.Request) {
     finalPath := filepath.Join(util.VideoStorageDirAbs, finalName)
 
     // 중복 처리
-    if _, err := os.Stat(finalPath); err == nil {
-        _ = os.Remove(tmpFile.Name())
-    } else {
-        if err := os.Rename(tmpFile.Name(), finalPath); err != nil {
-            in, err1 := os.Open(tmpFile.Name())
-            if err1 != nil {
-                _ = os.Remove(tmpFile.Name())
-                api.JSONResponse(w, models.Response{Success:false, Message:"Finalize file error"}, http.StatusInternalServerError)
-                return
-            }
-            out, err2 := os.Create(finalPath)
-            if err2 != nil {
-                in.Close(); _ = os.Remove(tmpFile.Name())
-                api.JSONResponse(w, models.Response{Success:false, Message:"Finalize file error"}, http.StatusInternalServerError)
-                return
-            }
-            if _, err := io.Copy(out, in); err != nil {
-                out.Close(); in.Close()
-                _ = os.Remove(tmpFile.Name()); _ = os.Remove(finalPath)
-                api.JSONResponse(w, models.Response{Success:false, Message:"Finalize file error"}, http.StatusInternalServerError)
-                return
-            }
-            out.Close(); in.Close()
-            _ = os.Remove(tmpFile.Name())
-        }
-    }
+	if _, err := os.Stat(finalPath); err == nil {
+	} else {
+		if err := os.Rename(tmpFile.Name(), finalPath); err != nil {
+			in, err1 := os.Open(tmpName)
+			if err1 != nil {
+				api.JSONResponse(w, models.Response{Success:false, Message:"Finalize file error"}, http.StatusInternalServerError)
+				return
+			}
+			out, err2 := os.Create(finalPath)
+			if err2 != nil {
+				in.Close()
+				api.JSONResponse(w, models.Response{Success:false, Message:"Finalize file error"}, http.StatusInternalServerError)
+				return
+			}
+			if _, err := io.Copy(out, in); err != nil {
+				out.Close(); in.Close()
+				_ = os.Remove(finalPath)
+				api.JSONResponse(w, models.Response{Success:false, Message:"Finalize file error"}, http.StatusInternalServerError)
+				return
+			}
+			out.Close(); in.Close()
+		} else {
+			cleanupTmp = false
+		}
+	}
 
     // 길이
     durationSeconds := int64(0)
