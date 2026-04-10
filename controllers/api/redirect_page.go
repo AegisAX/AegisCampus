@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	"time"
 
 	ctx "github.com/gophish/gophish/context"
 	log "github.com/gophish/gophish/logger"
@@ -32,13 +31,14 @@ func (as *Server) RedirectPages(w http.ResponseWriter, r *http.Request) {
 			JSONResponse(w, models.Response{Success: false, Message: "Invalid request"}, http.StatusBadRequest)
 			return
 		}
-		// 이름 중복 검사
 		_, err := models.GetRedirectPageByName(rp.Name, uid)
-		if err != gorm.ErrRecordNotFound {
-			JSONResponse(w, models.Response{Success: false, Message: models.ErrRedirectPageNameInUse.Error()}, http.StatusConflict)
+		if err == nil {		// 이름 중복
+			JSONResponse(w, models.Response{Success:false, Message: models.ErrRedirectPageNameInUse.Error()}, http.StatusConflict)
+			return
+		} else if err != gorm.ErrRecordNotFound {	// DB 오류
+			JSONResponse(w, models.Response{Success:false, Message: err.Error()}, http.StatusInternalServerError)
 			return
 		}
-		rp.ModifiedDate = time.Now().UTC()
 		rp.UserId = uid
 		if err := models.PostRedirectPage(&rp); err != nil {
 			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
@@ -54,7 +54,11 @@ func (as *Server) RedirectPages(w http.ResponseWriter, r *http.Request) {
 // RedirectPage handles GET/PUT/DELETE /api/redirect_pages/{id}
 func (as *Server) RedirectPage(w http.ResponseWriter, r *http.Request) {
 	uid := ctx.Get(r, "user_id").(int64)
-	id, _ := strconv.ParseInt(mux.Vars(r)["id"], 0, 64)
+	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
+	if err != nil || id <= 0 {
+		JSONResponse(w, models.Response{Success:false, Message:"invalid id"}, http.StatusBadRequest)
+		return
+	}
 
 	rp, err := models.GetRedirectPage(id, uid)
 	if err != nil {
@@ -73,17 +77,13 @@ func (as *Server) RedirectPage(w http.ResponseWriter, r *http.Request) {
 			JSONResponse(w, models.Response{Success: false, Message: "Invalid request"}, http.StatusBadRequest)
 			return
 		}
-		if newRP.Id != id {
-			JSONResponse(w, models.Response{Success: false, Message: "/:id and body id mismatch"}, http.StatusBadRequest)
-			return
-		}
+		newRP.Id = id
 		// 이름 중복 검사: 동일 사용자의 다른 페이지와 이름이 겹치는지 확인
 		existing, err := models.GetRedirectPageByName(newRP.Name, uid)
 		if err == nil && existing.Id != newRP.Id {
 			JSONResponse(w, models.Response{Success: false, Message: models.ErrRedirectPageNameInUse.Error()}, http.StatusConflict)
 			return
 		}
-		newRP.ModifiedDate = time.Now().UTC()
 		newRP.UserId = uid
 		if err := models.PutRedirectPage(&newRP); err != nil {
 			JSONResponse(w, models.Response{Success: false, Message: "Error updating redirect page: " + err.Error()}, http.StatusInternalServerError)
