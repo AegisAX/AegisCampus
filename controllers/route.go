@@ -1,34 +1,34 @@
 package controllers
 
 import (
-    "compress/gzip"
-    "context"
-    "crypto/tls"
-    "os"
-    "path/filepath"
-    "strconv"
-    "html/template"
-    "net/http"
-    "net/url"
-    "strings"
-    "time"
+	"compress/gzip"
+	"context"
+	"crypto/tls"
+	"html/template"
+	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
 
-    "github.com/NYTimes/gziphandler"
-    "github.com/gophish/gophish/auth"
-    "github.com/gophish/gophish/config"
-    ctx "github.com/gophish/gophish/context"
-    "github.com/gophish/gophish/controllers/api"
-    log "github.com/gophish/gophish/logger"
-    mid "github.com/gophish/gophish/middleware"
-    "github.com/gophish/gophish/middleware/ratelimit"
-    "github.com/gophish/gophish/models"
-    "github.com/gophish/gophish/util"
-    "github.com/gophish/gophish/worker"
-    "github.com/gorilla/csrf"
-    "github.com/gorilla/handlers"
-    "github.com/gorilla/mux"
-    "github.com/gorilla/sessions"
-    "github.com/jordan-wright/unindexed"
+	"github.com/NYTimes/gziphandler"
+	"github.com/gophish/gophish/auth"
+	"github.com/gophish/gophish/config"
+	ctx "github.com/gophish/gophish/context"
+	"github.com/gophish/gophish/controllers/api"
+	log "github.com/gophish/gophish/logger"
+	mid "github.com/gophish/gophish/middleware"
+	"github.com/gophish/gophish/middleware/ratelimit"
+	"github.com/gophish/gophish/models"
+	"github.com/gophish/gophish/util"
+	"github.com/gophish/gophish/worker"
+	"github.com/gorilla/csrf"
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
+	"github.com/gorilla/sessions"
+	"github.com/jordan-wright/unindexed"
 )
 
 // AdminServerOption is a functional option that is used to configure the
@@ -550,9 +550,9 @@ func (as *AdminServer) StreamVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "video/mp4") // 필요시 확장자 기반으로 변경
-        w.Header().Set("Content-Disposition", "inline")
-        w.Header().Set("Cache-Control", "no-store")
-        w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Content-Disposition", "inline")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 	http.ServeContent(w, r, filepath.Base(v.FilePath), fi.ModTime(), f)
 }
 
@@ -565,7 +565,6 @@ func (as *AdminServer) HandleVideoThumb(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "invalid id", http.StatusBadRequest)
 		return
 	}
-
 	v, err := models.GetVideo(id)
 	if err != nil {
 		http.NotFound(w, r)
@@ -575,95 +574,101 @@ func (as *AdminServer) HandleVideoThumb(w http.ResponseWriter, r *http.Request) 
 		http.NotFound(w, r)
 		return
 	}
-
-	// 썸네일 경로가 정해둔 베이스 하위인지 검증
-	baseAbs, _ := filepath.Abs(filepath.Join("static", "videos"))
-	if !util.IsUnderBaseDir(baseAbs, v.ThumbnailPath) {
+	// 절대/상대 경로 모두 처리 → 절대경로로 정규화
+	thumbPath := v.ThumbnailPath
+	if !filepath.IsAbs(thumbPath) {
+		thumbPath = filepath.Join(util.VideoStorageDirAbs, thumbPath)
+	}
+	// 경로 순회 방어
+	if !util.IsUnderBaseDir(util.VideoStorageDirAbs, thumbPath) {
 		http.NotFound(w, r)
 		return
 	}
-
-	// 파일 존재 확인 후 서빙
-	if _, err := os.Stat(v.ThumbnailPath); err != nil {
+	if _, err := os.Stat(thumbPath); err != nil {
 		http.NotFound(w, r)
 		return
 	}
-	w.Header().Set("Content-Type", "image/jpeg")           // 생성은 jpg
+	w.Header().Set("Content-Type", "image/jpeg")
 	w.Header().Set("Cache-Control", "public, max-age=86400")
-	http.ServeFile(w, r, v.ThumbnailPath)
+	http.ServeFile(w, r, thumbPath)
 }
 
 // ===== UI 업로드 핸들러 (세션 + CSRF) =====
 func (as *AdminServer) UploadVideo(w http.ResponseWriter, r *http.Request) {
-    // 세션 기반 userId 추출 (Admin 라우트 전용 방식 유지)
-    userId := int64(0)
-    if u, ok := ctx.Get(r, "user").(models.User); ok && u.Id != 0 {
-        userId = u.Id
-    } else if v := ctx.Get(r, "user_id"); v != nil {
-        if vv, ok := v.(int64); ok {
-            userId = vv
-        }
-    }
-    if userId == 0 {
-        api.JSONResponse(w, models.Response{Success: false, Message: "unauthorized"}, http.StatusUnauthorized)
-        return
-    }
+	// 세션 기반 userId 추출 (Admin 라우트 전용 방식 유지)
+	userId := int64(0)
+	if u, ok := ctx.Get(r, "user").(models.User); ok && u.Id != 0 {
+		userId = u.Id
+	} else if v := ctx.Get(r, "user_id"); v != nil {
+		if vv, ok := v.(int64); ok {
+			userId = vv
+		}
+	}
+	if userId == 0 {
+		api.JSONResponse(w, models.Response{Success: false, Message: "unauthorized"}, http.StatusUnauthorized)
+		return
+	}
 
-    if err := r.ParseMultipartForm(32 << 20); err != nil {
-        api.JSONResponse(w, models.Response{Success: false, Message: "Parse error"}, http.StatusBadRequest)
-        return
-    }
-    file, handler, err := r.FormFile("file")
-    if err != nil {
-        api.JSONResponse(w, models.Response{Success: false, Message: "File required"}, http.StatusBadRequest)
-        return
-    }
-    defer file.Close()
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		api.JSONResponse(w, models.Response{Success: false, Message: "Parse error"}, http.StatusBadRequest)
+		return
+	}
+	file, handler, err := r.FormFile("file")
+	if err != nil {
+		api.JSONResponse(w, models.Response{Success: false, Message: "File required"}, http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
 
-    name := strings.TrimSpace(r.FormValue("name"))
-    if name == "" && handler != nil {
-        base := strings.TrimSuffix(filepath.Base(handler.Filename), filepath.Ext(handler.Filename))
-        name = strings.TrimSpace(strings.ReplaceAll(strings.ReplaceAll(base, "_", " "), "-", " "))
-    }
-    description := r.FormValue("description")
+	name := strings.TrimSpace(r.FormValue("name"))
+	if name == "" && handler != nil {
+		base := strings.TrimSuffix(filepath.Base(handler.Filename), filepath.Ext(handler.Filename))
+		name = strings.TrimSpace(strings.ReplaceAll(strings.ReplaceAll(base, "_", " "), "-", " "))
+	}
+	description := r.FormValue("description")
 	isPublicStr := r.FormValue("is_public")
-	isPublic    := isPublicStr == "1" || isPublicStr == "true"
+	isPublic := isPublicStr == "1" || isPublicStr == "true"
 
-    // duration_seconds 힌트
-    durationHint := int64(0)
-    if ds := r.FormValue("duration_seconds"); ds != "" {
-        if fv, err := strconv.ParseFloat(ds, 64); err == nil && fv >= 0 {
-            durationHint = int64(fv + 0.5)
-        }
-    }
+	durationHint := int64(0)
+	if ds := r.FormValue("duration_seconds"); ds != "" {
+		if fv, err := strconv.ParseFloat(ds, 64); err == nil && fv >= 0 {
+			durationHint = int64(fv + 0.5)
+		}
+	}
 
-    originalFilename := ""
-    if handler != nil {
-        originalFilename = handler.Filename
-    }
+	originalFilename := ""
+	if handler != nil {
+		originalFilename = handler.Filename
+	}
 
-    result, err := util.ProcessVideoUpload(file, originalFilename, durationHint, util.VideoUploadOptions{
-        IsPublic: isPublic,    // 폼 체크박스 값 반영
-    })
-    if err != nil {
-        log.Error(err)
-        api.JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
-        return
-    }
+	result, err := util.ProcessVideoUpload(file, originalFilename, durationHint, util.VideoUploadOptions{
+		IsPublic: isPublic,
+	})
+	if err != nil {
+		log.Error(err)
+		api.JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
+		return
+	}
 
-    v := &models.Video{
-        UserId:          userId,
-        Name:            name,
-        Description:     description,
-        FileName:        result.FinalName,
-        FilePath:        result.FinalPath,
-        ThumbnailPath:   result.ThumbnailPath,
-        DurationSeconds: result.DurationSeconds,
+	// 상대경로로 저장 (이식성 확보)
+	thumbRel := ""
+	if result.ThumbnailPath != "" {
+		thumbRel = filepath.Join("thumbs", filepath.Base(result.ThumbnailPath))
+	}
+
+	v := &models.Video{
+		UserId:          userId,
+		Name:            name,
+		Description:     description,
+		FileName:        result.FinalName,
+		FilePath:        result.FinalName, // 파일명만 (상대경로)
+		ThumbnailPath:   thumbRel,         // thumbs/xxxx.jpg (상대경로)
+		DurationSeconds: result.DurationSeconds,
 		IsPublic:        result.IsPublic,
-    }
-    if err := models.CreateVideo(v); err != nil {
-        api.JSONResponse(w, models.Response{Success: false, Message: "DB save error"}, http.StatusInternalServerError)
-        return
-    }
-    api.JSONResponse(w, v, http.StatusCreated)
+	}
+	if err := models.CreateVideo(v); err != nil {
+		api.JSONResponse(w, models.Response{Success: false, Message: "DB save error"}, http.StatusInternalServerError)
+		return
+	}
+	api.JSONResponse(w, v, http.StatusCreated)
 }

@@ -95,13 +95,22 @@ function renderVideos(){
         '</div>'
       );
 
+    // ── 배지를 날짜와 같은 줄로, 날짜는 YYYY-MM-DD ──────────
+    var uploadedDate = v.modified_date
+      ? moment(v.modified_date).format('YYYY-MM-DD')
+      : '';
+
     var metaHead =
       '<div class="meta-head">' +
-        '<div class="video-title" title="'+escapeHtml(v.name)+'">'+escapeHtml(v.name)+publicBadge+'</div>' +
-        kebab +
+        '<div class="video-title" title="'+escapeHtml(v.name)+'">'+escapeHtml(v.name)+'</div>' +
+        kebab +                           // ← 배지 제거
       '</div>';
 
-    var sub = uploadedRel ? '<div class="video-sub" title="'+uploadedAbs+'">'+uploadedRel+'</div>' : '';
+    // 배지와 날짜 같은 줄
+    var sub = '<div class="video-sub">' + publicBadge +
+              (uploadedDate ? '&nbsp;&nbsp;' + uploadedDate : '') +
+              '</div>';
+
     var desc = v.description ? '<div class="video-desc">'+escapeHtml(v.description)+'</div>' : '';
 
     var card =
