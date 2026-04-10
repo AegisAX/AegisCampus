@@ -89,9 +89,9 @@ func (a *Attachment) ApplyTemplate(ptx PhishingTemplateContext) (io.Reader, erro
 			if err != nil {
 				return nil, err
 			}
-			defer ff.Close()
 			contents, err := ioutil.ReadAll(ff)
 			if err != nil {
+				ff.Close()
 				return nil, err
 			}
 			subFileExtension := filepath.Ext(zipFile.Name)
@@ -111,6 +111,7 @@ func (a *Attachment) ApplyTemplate(ptx PhishingTemplateContext) (io.Reader, erro
 				// For each file apply the template.
 				tFile, err = ExecuteTemplate(string(contents), ptx)
 				if err != nil {
+					ff.Close()
 					zipWriter.Close() // Don't use defer when writing files https://www.joeshaw.org/dont-defer-close-on-writable-files/
 					return nil, err
 				}
@@ -124,14 +125,17 @@ func (a *Attachment) ApplyTemplate(ptx PhishingTemplateContext) (io.Reader, erro
 			// Write new Word archive
 			newZipFile, err := zipWriter.Create(zipFile.Name)
 			if err != nil {
+				ff.Close()
 				zipWriter.Close() // Don't use defer when writing files https://www.joeshaw.org/dont-defer-close-on-writable-files/
 				return nil, err
 			}
 			_, err = newZipFile.Write([]byte(tFile))
 			if err != nil {
+				ff.Close()
 				zipWriter.Close()
 				return nil, err
 			}
+			ff.Close()
 		}
 		zipWriter.Close()
 		return bytes.NewReader(newZipArchive.Bytes()), err

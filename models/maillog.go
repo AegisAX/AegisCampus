@@ -281,8 +281,8 @@ func (m *MailLog) Generate(msg *gomail.Message) error {
 		}
 	}
 	// Attach the files
-	for _, a := range c.Template.Attachments {
-		addAttachment(msg, a, ptx)
+	for i := range c.Template.Attachments {
+		addAttachment(msg, &c.Template.Attachments[i], ptx)  // 원본 포인터 전달
 	}
 
 	return nil
@@ -402,17 +402,13 @@ func shouldEmbedAttachment(name string) bool {
 // Add an attachment to a gomail message.
 // 첨부 파트의 헤더에 RFC2231 filename* / name*을 추가하여
 // 헤더에 비-ASCII가 남지 않도록 처리한다.
-func addAttachment(msg *gomail.Message, a Attachment, ptx PhishingTemplateContext) {
-	copyFunc := gomail.SetCopyFunc(func(c Attachment) func(w io.Writer) error {
-		return func(w io.Writer) error {
-			reader, err := a.ApplyTemplate(ptx)
-			if err != nil {
-				return err
-			}
-			_, err = io.Copy(w, reader)
-			return err
-		}
-	}(a))
+func addAttachment(msg *gomail.Message, a *Attachment, ptx PhishingTemplateContext) {
+	copyFunc := gomail.SetCopyFunc(func(w io.Writer) error {
+		reader, err := a.ApplyTemplate(ptx)  // a는 원본 포인터 → vanillaFile 반영
+		if err != nil { return err }
+		_, err = io.Copy(w, reader)
+		return err
+	})
 
 	inline := shouldEmbedAttachment(a.Name)
 	// gomail 내부 기본 처리에서 비-ASCII를 건드리지 않도록, 라이브러리 인자도 ASCII로 전달
