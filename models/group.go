@@ -64,21 +64,8 @@ func (r *BaseRecipient) FormatAddress() string {
 	addr := r.Email
 	if r.Name != "" { 
 		a := &mail.Address{
-			Name:    fmt.Sprintf("%s", r.Name),
+			Name:    r.Name,   // fmt.Sprintf("%s", r.Name) → r.Name
 			Address: r.Email,
-		}
-		addr = a.String()
-	}
-	return addr
-}
-
-// FormatAddress returns the email address to use in the "To" header of the email
-func (t *Target) FormatAddress() string {
-	addr := t.Email
-	if t.Name != "" {
-		a := &mail.Address{
-			Name:    fmt.Sprintf("%s", t.Name),
-			Address: t.Email,
 		}
 		addr = a.String()
 	}
@@ -258,6 +245,7 @@ func PutGroup(g *Group) error {
 			log.WithFields(logrus.Fields{
 				"email": t.Email,
 			}).Error("Error deleting email")
+			return err	// 추가
 		}
 	}
 	// Add any targets that are not in the database yet.
@@ -285,6 +273,7 @@ func PutGroup(g *Group) error {
 	err = tx.Save(g).Error
 	if err != nil {
 		log.Error(err)
+		tx.Rollback()	// tx.Rollback() 호출 추가
 		return err
 	}
 	err = tx.Commit().Error
@@ -328,13 +317,7 @@ func insertTargetIntoGroup(tx *gorm.DB, t Target, gid int64) error {
 	}
 	err = tx.Save(&GroupTarget{GroupId: gid, TargetId: t.Id}).Error
 	if err != nil {
-		log.Error(err)
-		return err
-	}
-	if err != nil {
-		log.WithFields(logrus.Fields{
-			"email": t.Email,
-		}).Error("Error adding many-many mapping")
+		log.WithFields(logrus.Fields{"email": t.Email}).Error("Error adding many-many mapping")
 		return err
 	}
 	return nil
