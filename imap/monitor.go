@@ -35,28 +35,32 @@ type Monitor struct {
 // As each account can have its own polling frequency set we need to run one Go routine for
 // each, as well as keeping an eye on newly created user accounts.
 func (im *Monitor) start(ctx context.Context) {
-	usermap := make(map[int64]int) // Keep track of running go routines, one per user. We assume incrementing non-repeating UIDs (for the case where users are deleted and re-added).
+    usermap := make(map[int64]int)
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			dbusers, err := models.GetUsers() //Slice of all user ids. Each user gets their own IMAP monitor routine.
-			if err != nil {
-				log.Error(err)
-				break
-			}
-			for _, dbuser := range dbusers {
-				if _, ok := usermap[dbuser.Id]; !ok { // If we don't currently have a running Go routine for this user, start one.
-					log.Info("Starting new IMAP monitor for user ", dbuser.Username)
-					usermap[dbuser.Id] = 1
-					go monitor(dbuser.Id, ctx)
-				}
-			}
-			time.Sleep(10 * time.Second) // Every ten seconds we check if a new user has been created
-		}
-	}
+    for {
+        select {
+        case <-ctx.Done():
+            return
+        default:
+            dbusers, err := models.GetUsers()
+            if err != nil { log.Error(err); break }
+
+            // ↓ 정리 로직은 dbusers 조회 직후, 루프 안으로 이동
+            currentUIDs := map[int64]bool{}
+            for _, u := range dbusers { currentUIDs[u.Id] = true }
+            for uid := range usermap {
+                if !currentUIDs[uid] { delete(usermap, uid) }
+            }
+
+            for _, dbuser := range dbusers {
+                if _, ok := usermap[dbuser.Id]; !ok {
+                    usermap[dbuser.Id] = 1
+                    go monitor(dbuser.Id, ctx)
+                }
+            }
+            time.Sleep(10 * time.Second)
+        }
+    }
 }
 
 // monitor will continuously login to the IMAP settings associated to the supplied user id (if the user account has IMAP settings, and they're enabled.)
@@ -161,50 +165,43 @@ func checkForNewEmails(im models.IMAP) {
 				// In the future this should be an alert in Gophish
 				log.Infof("User '%s' reported email with subject '%s'. This is not a GoPhish campaign; you should investigate it.", m.Email.From, m.Email.Subject)
 			}
+			// rid별 성공/실패 집계 후 SeqNum은 한 번만 결정:
+			successCount, failCount := 0, 0
 			for rid := range rids {
 				log.Infof("User '%s' reported email with rid %s", m.Email.From, rid)
 				result, err := models.GetResult(rid)
 				if err != nil {
-					log.Error("Error reporting GoPhish email with rid ", rid, ": ", err.Error())
-					reportingFailed = append(reportingFailed, m.SeqNum)
+					log.Error("Error getting result for rid ", rid, ": ", err.Error())
+					failCount++
 					continue
 				}
-				// err = result.HandleEmailReport(models.EventDetails{})
-                                // Build "report" details for the Email Reported event
-                                rd := models.ReportDetails{
-                                        Method:   "imap",
-                                        Reporter: im.Username, // 이 IMAP 모니터 계정
-                                        Subject:  m.Email.Subject,
-                                }
-                                // 안전하게 몇 개의 대표 헤더만 저장 (PII/용량 고려)
-                                hdrs := map[string]string{}
-                                if m.Email.Headers != nil {
-                                        if v := m.Email.Headers.Get("Message-ID"); v != "" {
-                                                rd.MessageID = v
-                                        }
-                                        if v := m.Email.Headers.Get("Date"); v != "" {
-                                                hdrs["Date"] = v
-                                        }
-                                }
-                                if m.Email.From != "" {
-                                        hdrs["From"] = m.Email.From
-                                }
-                                if len(m.Email.To) > 0 {
-                                        hdrs["To"] = strings.Join(m.Email.To, ", ")
-                                }
-                                if len(hdrs) > 0 {
-                                        rd.Headers = hdrs
-                                }
-                                err = result.HandleEmailReport(models.EventDetails{Report: &rd})
-				if err != nil {
-					log.Error("Error updating GoPhish email with rid ", rid, ": ", err.Error())
-					continue
+				rd := models.ReportDetails{
+					Method:   "imap",
+					Reporter: im.Username,
+					Subject:  m.Email.Subject,
 				}
-				if im.DeleteReportedCampaignEmail {
-					deleteEmails = append(deleteEmails, m.SeqNum)
+				hdrs := map[string]string{}
+				if m.Email.Headers != nil {
+					if v := m.Email.Headers.Get("Message-ID"); v != "" { rd.MessageID = v }
+					if v := m.Email.Headers.Get("Date"); v != "" { hdrs["Date"] = v }
+				}
+				if m.Email.From != "" { hdrs["From"] = m.Email.From }
+				if len(m.Email.To) > 0 { hdrs["To"] = strings.Join(m.Email.To, ", ") }
+				if len(hdrs) > 0 { rd.Headers = hdrs }
+
+				if err = result.HandleEmailReport(models.EventDetails{Report: &rd}); err != nil {
+					log.Error("Error reporting rid ", rid, ": ", err.Error())
+					failCount++
+				} else {
+					successCount++
 				}
 			}
-
+			// SeqNum은 루프 밖에서 한 번만 결정
+			if failCount > 0 {
+				reportingFailed = append(reportingFailed, m.SeqNum)
+			} else if successCount > 0 && im.DeleteReportedCampaignEmail {
+				deleteEmails = append(deleteEmails, m.SeqNum)
+			}
 		}
 		// Check if any emails were unable to be reported, so we can mark them as unread
 		if len(reportingFailed) > 0 {

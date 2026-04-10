@@ -145,10 +145,10 @@ func (mbox *Mailbox) GetUnread(markAsRead, delete bool) ([]Email, error) {
 	items := []imap.FetchItem{imap.FetchEnvelope, imap.FetchFlags, imap.FetchInternalDate, section.FetchItem()}
 	messages := make(chan *imap.Message)
 
+	// 에러 채널로 전파
+	errCh := make(chan error, 1)
 	go func() {
-		if err := imapClient.Fetch(seqset, items, messages); err != nil {
-			log.Error("Error fetching emails: ", err.Error()) // TODO: How to handle this, need to propogate error out
-		}
+		errCh <- imapClient.Fetch(seqset, items, messages)
 	}()
 
 	// Step through each email
@@ -178,6 +178,11 @@ func (mbox *Mailbox) GetUnread(markAsRead, delete bool) ([]Email, error) {
 		emails = append(emails, emtmp)
 
 	}
+
+	if err := <-errCh; err != nil {
+		return emails, fmt.Errorf("IMAP fetch failed: %w", err)
+	}
+
 	return emails, nil
 }
 
