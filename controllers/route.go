@@ -3,10 +3,7 @@ package controllers
 import (
     "compress/gzip"
     "context"
-    "crypto/sha256"
     "crypto/tls"
-    "encoding/hex"
-    "io"
     "os"
     "path/filepath"
     "strconv"
@@ -598,127 +595,73 @@ func (as *AdminServer) HandleVideoThumb(w http.ResponseWriter, r *http.Request) 
 
 // ===== UI 업로드 핸들러 (세션 + CSRF) =====
 func (as *AdminServer) UploadVideo(w http.ResponseWriter, r *http.Request) {
-    // 로그인 사용자 (Admin 라우트는 user가 항상 세팅됨)
+    // 세션 기반 userId 추출 (Admin 라우트 전용 방식 유지)
     userId := int64(0)
     if u, ok := ctx.Get(r, "user").(models.User); ok && u.Id != 0 {
         userId = u.Id
-    } else if v := ctx.Get(r, "user_id"); v != nil { // 혹시 모를 보조 경로
-        if vv, ok := v.(int64); ok { userId = vv }
+    } else if v := ctx.Get(r, "user_id"); v != nil {
+        if vv, ok := v.(int64); ok {
+            userId = vv
+        }
     }
     if userId == 0 {
-        api.JSONResponse(w, models.Response{Success:false, Message:"unauthorized"}, http.StatusUnauthorized)
+        api.JSONResponse(w, models.Response{Success: false, Message: "unauthorized"}, http.StatusUnauthorized)
         return
     }
-    if err := r.ParseMultipartForm(1 << 30); err != nil {
-        api.JSONResponse(w, models.Response{Success:false, Message:"Parse error"}, http.StatusBadRequest)
+
+    if err := r.ParseMultipartForm(32 << 20); err != nil {
+        api.JSONResponse(w, models.Response{Success: false, Message: "Parse error"}, http.StatusBadRequest)
         return
     }
     file, handler, err := r.FormFile("file")
     if err != nil {
-        api.JSONResponse(w, models.Response{Success:false, Message:"File required"}, http.StatusBadRequest)
+        api.JSONResponse(w, models.Response{Success: false, Message: "File required"}, http.StatusBadRequest)
         return
     }
     defer file.Close()
 
     name := strings.TrimSpace(r.FormValue("name"))
-    if name == "" {
+    if name == "" && handler != nil {
         base := strings.TrimSuffix(filepath.Base(handler.Filename), filepath.Ext(handler.Filename))
         name = strings.TrimSpace(strings.ReplaceAll(strings.ReplaceAll(base, "_", " "), "-", " "))
     }
     description := r.FormValue("description")
 
-    if err := os.MkdirAll(util.VideoStorageDirAbs, 0755); err != nil {
-        log.Error(err)
-        api.JSONResponse(w, models.Response{Success:false, Message:"Storage error"}, http.StatusInternalServerError)
-        return
-    }
-
-    // 임시 저장 + 해시
-	tmpFile, err := os.CreateTemp(util.VideoStorageDirAbs, "upload-*")
-	if err != nil {
-		log.Error(err)
-		api.JSONResponse(w, models.Response{Success:false, Message:"Create temp file error"}, http.StatusInternalServerError)
-		return
-	}
-	tmpName := tmpFile.Name()
-	cleanupTmp := true
-	defer func() { if cleanupTmp {_ = os.Remove(tmpName)} }()
-	hasher := sha256.New()
-	if _, err := io.Copy(io.MultiWriter(tmpFile, hasher), file); err != nil {
-		tmpFile.Close()
-		api.JSONResponse(w, models.Response{Success:false, Message:"Write file error"}, http.StatusInternalServerError)
-		return
-	}
-	tmpFile.Close()
-
-    sumHex := hex.EncodeToString(hasher.Sum(nil))
-    ext := strings.ToLower(filepath.Ext(handler.Filename))
-    finalName := sumHex + ext
-    finalPath := filepath.Join(util.VideoStorageDirAbs, finalName)
-
-    // 중복 처리
-	if _, err := os.Stat(finalPath); err == nil {
-	} else {
-		if err := os.Rename(tmpFile.Name(), finalPath); err != nil {
-			in, err1 := os.Open(tmpName)
-			if err1 != nil {
-				api.JSONResponse(w, models.Response{Success:false, Message:"Finalize file error"}, http.StatusInternalServerError)
-				return
-			}
-			out, err2 := os.Create(finalPath)
-			if err2 != nil {
-				in.Close()
-				api.JSONResponse(w, models.Response{Success:false, Message:"Finalize file error"}, http.StatusInternalServerError)
-				return
-			}
-			if _, err := io.Copy(out, in); err != nil {
-				out.Close(); in.Close()
-				_ = os.Remove(finalPath)
-				api.JSONResponse(w, models.Response{Success:false, Message:"Finalize file error"}, http.StatusInternalServerError)
-				return
-			}
-			out.Close(); in.Close()
-		} else {
-			cleanupTmp = false
-		}
-	}
-
-    // 길이
-    durationSeconds := int64(0)
+    // duration_seconds 힌트
+    durationHint := int64(0)
     if ds := r.FormValue("duration_seconds"); ds != "" {
-        if v, err := strconv.ParseFloat(ds, 64); err == nil && v >= 0 {
-            durationSeconds = int64(v + 0.5)
-        }
-    }
-    if durationSeconds == 0 {
-        if d, err := util.ProbeDurationSeconds(finalPath); err == nil && d > 0 {
-            durationSeconds = d
+        if fv, err := strconv.ParseFloat(ds, 64); err == nil && fv >= 0 {
+            durationHint = int64(fv + 0.5)
         }
     }
 
-    // 썸네일
-    thumbDir := filepath.Join(util.VideoStorageDirAbs, "thumbs")
-    thumbName := sumHex + ".jpg"
-    thumbPath := filepath.Join(thumbDir, thumbName)
-    if err := util.GenerateThumbnail(finalPath, thumbPath, 1, 480); err != nil {
-        log.Errorf("thumbnail generation failed: %v", err)
-        thumbPath = "" // 실패해도 업로드는 성공시킴
+    originalFilename := ""
+    if handler != nil {
+        originalFilename = handler.Filename
+    }
+
+    result, err := util.ProcessVideoUpload(file, originalFilename, durationHint, util.VideoUploadOptions{
+        IsPublic: false, // UI 업로드는 공개 여부 입력 없으므로 기본 false
+    })
+    if err != nil {
+        log.Error(err)
+        api.JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
+        return
     }
 
     v := &models.Video{
         UserId:          userId,
         Name:            name,
         Description:     description,
-        FileName:        finalName,
-        FilePath:        finalPath,
-        ThumbnailPath:   thumbPath,
-        DurationSeconds: durationSeconds,
-        IsPublic:        false, // UI 업로드는 공개 여부 입력이 없으니 기본 false
+        FileName:        result.FinalName,
+        FilePath:        result.FinalPath,
+        ThumbnailPath:   result.ThumbnailPath,
+        DurationSeconds: result.DurationSeconds,
+		IsPublic:        result.IsPublic,
     }
     if err := models.CreateVideo(v); err != nil {
-        api.JSONResponse(w, models.Response{Success:false, Message:"DB save error"}, http.StatusInternalServerError)
+        api.JSONResponse(w, models.Response{Success: false, Message: "DB save error"}, http.StatusInternalServerError)
         return
     }
     api.JSONResponse(w, v, http.StatusCreated)
 }
-

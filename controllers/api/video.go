@@ -1,11 +1,8 @@
 package api
 
 import (
-    "crypto/sha256"
-    "encoding/hex"
     "encoding/json"
     "fmt"
-    "io"
     "net/http"
     "os"
     "path/filepath"
@@ -113,8 +110,7 @@ func (as *Server) handleVideosList(w http.ResponseWriter, r *http.Request) {
 func (as *Server) handleVideoUpload(w http.ResponseWriter, r *http.Request) {
     userId := getCurrentUserID(r)
 
-    // 디스크 스필 기준 메모리 한도
-    const maxMultipartMem = 32 << 20 // 32MB
+    const maxMultipartMem = 32 << 20
     if err := r.ParseMultipartForm(maxMultipartMem); err != nil {
         JSONResponse(w, models.Response{Success: false, Message: "Parse error"}, http.StatusBadRequest)
         return
@@ -135,124 +131,36 @@ func (as *Server) handleVideoUpload(w http.ResponseWriter, r *http.Request) {
     isPublicStr := r.FormValue("is_public")
     isPublic := isPublicStr == "1" || isPublicStr == "true"
 
-    if err := os.MkdirAll(util.VideoStorageDirAbs, 0755); err != nil {
-        log.Error(err)
-        JSONResponse(w, models.Response{Success: false, Message: "Storage error"}, http.StatusInternalServerError)
-        return
-    }
-    if err := os.MkdirAll(util.VideoThumbDirAbs, 0755); err != nil {
-        log.Error(err)
-        JSONResponse(w, models.Response{Success: false, Message: "Thumb storage error"}, http.StatusInternalServerError)
-        return
+    durationHint := int64(0)
+    if ds := r.FormValue("duration_seconds"); ds != "" {
+        if fv, err := strconv.ParseFloat(ds, 64); err == nil && fv >= 0 {
+            durationHint = int64(fv + 0.5)
+        }
     }
 
-    // 1) 임시 파일에 쓰면서 sha256 해시 동시 계산
-    tmpFile, err := os.CreateTemp(util.VideoStorageDirAbs, "upload-*")
+    originalFilename := ""
+    if handler != nil {
+        originalFilename = handler.Filename
+    }
+
+    result, err := util.ProcessVideoUpload(file, originalFilename, durationHint, util.VideoUploadOptions{
+        IsPublic: isPublic,
+    })
     if err != nil {
         log.Error(err)
-        JSONResponse(w, models.Response{Success: false, Message: "Create temp file error"}, http.StatusInternalServerError)
+        JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
         return
-    }
-    tmpName := tmpFile.Name()
-    cleanupTmp := true
-    defer func() {
-        if cleanupTmp {
-            _ = os.Remove(tmpName)
-        }
-    }()
-
-    hasher := sha256.New()
-    if _, err := io.Copy(io.MultiWriter(tmpFile, hasher), file); err != nil {
-        _ = tmpFile.Close()
-        JSONResponse(w, models.Response{Success: false, Message: "Write file error"}, http.StatusInternalServerError)
-        return
-    }
-    if err := tmpFile.Close(); err != nil {
-        JSONResponse(w, models.Response{Success: false, Message: "Temp file close error"}, http.StatusInternalServerError)
-        return
-    }
-
-    // 2) 최종 파일명 = <sha256hex><원본 확장자>
-    sumHex := hex.EncodeToString(hasher.Sum(nil))
-    ext := ""
-    if handler != nil {
-        ext = strings.ToLower(filepath.Ext(handler.Filename)) // 없으면 "" 유지
-    }
-    finalName := sumHex + ext
-    finalPath := filepath.Join(util.VideoStorageDirAbs, finalName)
-
-    // 3) 중복 파일 처리: 이미 있으면 임시파일 삭제, 없으면 rename
-    if _, err := os.Stat(finalPath); err == nil {
-        // 동일 해시 파일 존재 → 임시파일 제거 후 재사용
-        cleanupTmp = true
-    } else {
-        if err := os.Rename(tmpName, finalPath); err != nil {
-            // 같은 디렉터리라면 일반적으로 성공. 혹시 실패 시 복사 fallback
-            in, err1 := os.Open(tmpName)
-            if err1 != nil {
-                JSONResponse(w, models.Response{Success: false, Message: "Finalize file error"}, http.StatusInternalServerError)
-                return
-            }
-            out, err2 := os.Create(finalPath)
-            if err2 != nil {
-                in.Close()
-                JSONResponse(w, models.Response{Success: false, Message: "Finalize file error"}, http.StatusInternalServerError)
-                return
-            }
-            if _, err := io.Copy(out, in); err != nil {
-                out.Close()
-                in.Close()
-                _ = os.Remove(finalPath)
-                JSONResponse(w, models.Response{Success: false, Message: "Finalize file error"}, http.StatusInternalServerError)
-                return
-            }
-            out.Close()
-            in.Close()
-        } else {
-            cleanupTmp = false // rename 성공 → tmp 없음
-        }
-    }
-
-    // 4) 길이 계산
-    durationSeconds := int64(0)
-    if ds := r.FormValue("duration_seconds"); ds != "" {
-        if v, err := strconv.ParseFloat(ds, 64); err == nil && v >= 0 {
-            durationSeconds = int64(v + 0.5)
-        }
-    }
-    if durationSeconds == 0 {
-        if d, err := util.ProbeDurationSeconds(finalPath); err == nil && d > 0 {
-            durationSeconds = d
-        }
-    }
-
-    // 5) 썸네일 생성 (ffmpeg)
-    thumbName := sumHex + ".jpg"
-    thumbPath := filepath.Join(util.VideoThumbDirAbs, thumbName)
-    // 썸네일 시점: 1초(또는 총 길이-1 중 더 작은 값)
-    at := 1
-    if durationSeconds > 2 {
-        if durationSeconds-1 < 3 {
-            at = int(durationSeconds - 1)
-        } else {
-            at = 3
-        }
-    }
-    if err := util.GenerateThumbnail(finalPath, thumbPath, at, 320); err != nil {
-        // 썸네일 실패는 치명적이지 않음 → 로그만 남김
-        log.Errorf("thumbnail generation failed: %v", err)
-        thumbPath = "" // 빈 값 저장
     }
 
     v := &models.Video{
         UserId:          userId,
         Name:            name,
         Description:     description,
-        FileName:        finalName,
-        FilePath:        finalPath,
-        ThumbnailPath:   thumbPath,
-        DurationSeconds: durationSeconds,
-        IsPublic:        isPublic,
+        FileName:        result.FinalName,
+        FilePath:        result.FinalPath,
+        ThumbnailPath:   result.ThumbnailPath,
+        DurationSeconds: result.DurationSeconds,
+        IsPublic:        result.IsPublic,
     }
     if err := models.CreateVideo(v); err != nil {
         JSONResponse(w, models.Response{Success: false, Message: "DB save error"}, http.StatusInternalServerError)

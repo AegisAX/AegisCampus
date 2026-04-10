@@ -2,7 +2,10 @@ package util
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -112,4 +115,130 @@ func GenerateThumbnail(inputPath, outputPath string, atSecond int, widthPx int) 
 		return fmt.Errorf("ffmpeg error: %v (%s)", err, string(out))
 	}
 	return nil
+}
+
+// VideoUploadOptions holds configuration for ProcessVideoUpload.
+type VideoUploadOptions struct {
+    IsPublic bool
+}
+
+// VideoUploadResult holds the result of a successful upload.
+type VideoUploadResult struct {
+    FinalName       string
+    FinalPath       string
+    ThumbnailPath   string
+    DurationSeconds int64
+	IsPublic        bool
+}
+
+// ProcessVideoUpload handles the common file-processing logic shared between
+// the admin UI upload handler and the REST API upload handler.
+// It reads from file (multipart.File), writes to disk with SHA-256 dedup,
+// generates a thumbnail, and returns metadata ready for models.CreateVideo.
+func ProcessVideoUpload(
+    file io.Reader,
+    originalFilename string,
+    durationHint int64,    // 클라이언트가 제공한 길이(초). 0이면 ffprobe로 탐지
+    opts VideoUploadOptions,
+) (*VideoUploadResult, error) {
+
+    // 1) 디렉터리 준비
+    if err := os.MkdirAll(VideoStorageDirAbs, 0755); err != nil {
+        return nil, fmt.Errorf("storage dir: %w", err)
+    }
+    if err := os.MkdirAll(VideoThumbDirAbs, 0755); err != nil {
+        return nil, fmt.Errorf("thumb dir: %w", err)
+    }
+
+    // 2) 임시 파일에 쓰면서 SHA-256 계산
+    tmpFile, err := os.CreateTemp(VideoStorageDirAbs, "upload-*")
+    if err != nil {
+        return nil, fmt.Errorf("create temp: %w", err)
+    }
+    tmpName := tmpFile.Name()
+    cleanupTmp := true
+    defer func() {
+        if cleanupTmp {
+            _ = os.Remove(tmpName)
+        }
+    }()
+
+    hasher := sha256.New()
+    if _, err := io.Copy(io.MultiWriter(tmpFile, hasher), file); err != nil {
+        _ = tmpFile.Close()
+        return nil, fmt.Errorf("write temp: %w", err)
+    }
+    if err := tmpFile.Close(); err != nil {
+        return nil, fmt.Errorf("close temp: %w", err)
+    }
+
+    // 3) 최종 파일명 = <sha256hex><원본 확장자>
+    sumHex := hex.EncodeToString(hasher.Sum(nil))
+    ext := ""
+    if originalFilename != "" {
+        ext = strings.ToLower(filepath.Ext(originalFilename))
+    }
+    finalName := sumHex + ext
+    finalPath := filepath.Join(VideoStorageDirAbs, finalName)
+
+    // 4) 중복 파일 처리
+    if _, err := os.Stat(finalPath); err == nil {
+        // 동일 해시 이미 존재 → defer가 tmpName 정리
+    } else {
+        if err := os.Rename(tmpName, finalPath); err != nil {
+            // rename 실패 → 복사 fallback
+            in, err1 := os.Open(tmpName)
+            if err1 != nil {
+                return nil, fmt.Errorf("open temp for copy: %w", err1)
+            }
+            out, err2 := os.Create(finalPath)
+            if err2 != nil {
+                in.Close()
+                return nil, fmt.Errorf("create final: %w", err2)
+            }
+            if _, err := io.Copy(out, in); err != nil {
+                out.Close()
+                in.Close()
+                _ = os.Remove(finalPath)
+                return nil, fmt.Errorf("copy to final: %w", err)
+            }
+            out.Close()
+            in.Close()
+            // 복사 완료 → defer가 tmpName 정리
+        } else {
+            cleanupTmp = false // rename 성공 → tmpName은 finalPath로 이동
+        }
+    }
+
+    // 5) 영상 길이
+    durationSeconds := durationHint
+    if durationSeconds == 0 {
+        if d, err := ProbeDurationSeconds(finalPath); err == nil && d > 0 {
+            durationSeconds = d
+        }
+    }
+
+    // 6) 썸네일 (영상 길이 기반 동적 시점, 최대 3초)
+    at := 1
+    if durationSeconds > 2 {
+        if durationSeconds-1 < 3 {
+            at = int(durationSeconds - 1)
+        } else {
+            at = 3
+        }
+    }
+    thumbName := sumHex + ".jpg"
+    thumbPath := filepath.Join(VideoThumbDirAbs, thumbName)
+    if err := GenerateThumbnail(finalPath, thumbPath, at, 320); err != nil {
+        // 썸네일 실패는 치명적이지 않음
+        thumbPath = ""
+    }
+
+    return &VideoUploadResult{
+        FinalName:       finalName,
+        FinalPath:       finalPath,
+        ThumbnailPath:   thumbPath,
+        DurationSeconds: durationSeconds,
+		IsPublic:        opts.IsPublic,
+    }, nil
 }
