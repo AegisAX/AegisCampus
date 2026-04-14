@@ -140,6 +140,7 @@ func (as *AdminServer) registerRoutes() {
 	router.HandleFunc("/videos/stream/{id:[0-9]+}", mid.Use(as.StreamVideo, mid.RequireLogin))
 	router.HandleFunc("/videos/upload", mid.Use(as.UploadVideo, mid.RequireLogin)).Methods("POST")
 	router.HandleFunc("/videos/thumb/{id:[0-9]+}", as.HandleVideoThumb).Methods("GET")
+	router.HandleFunc("/media/{id:[0-9]+}", mid.Use(as.StreamVideo, mid.RequireLogin)).Methods("GET")
 	router.HandleFunc("/sending_profiles", mid.Use(as.SendingProfiles, mid.RequireLogin))
 	router.HandleFunc("/settings", mid.Use(as.Settings, mid.RequireLogin))
 	router.HandleFunc("/users", mid.Use(as.UserManagement, mid.RequirePermission(models.PermissionModifySystem), mid.RequireLogin))
