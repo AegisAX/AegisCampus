@@ -77,45 +77,127 @@ func (as *Server) HandleVideoByID(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// 2) 다른 사용자 사용 중 확인
-		inUse, err := models.IsVideoUsedByOthers(id, currentUserID)
+		// 2) Redirect Page 사용 중 확인 (소유자 포함 전체)
+		//    IsVideoUsedByOthers → IsVideoInUse 로 교체
+		inUse, err := models.IsVideoInUse(id)
 		if err != nil {
 			JSONResponse(w, models.Response{Success: false, Message: "lookup error"}, http.StatusInternalServerError)
 			return
 		}
 		if inUse {
-			JSONResponse(w, models.Response{Success: false, Message: "다른 사용자가 사용 중인 동영상은 수정할 수 없습니다"}, http.StatusConflict)
+			JSONResponse(w, models.Response{Success: false, Message: "Redirect Page에서 사용 중인 동영상은 수정할 수 없습니다"}, http.StatusConflict)
 			return
 		}
 
-		// 3) 업데이트
-		var v models.Video
-		if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
-			JSONResponse(w, models.Response{Success: false, Message: "Invalid request"}, http.StatusBadRequest)
-			return
+		// 3) Content-Type에 따라 분기
+		ct := r.Header.Get("Content-Type")
+		if strings.Contains(ct, "multipart/form-data") {
+			if err := r.ParseMultipartForm(32 << 20); err != nil {
+				JSONResponse(w, models.Response{Success: false, Message: "Parse error"}, http.StatusBadRequest)
+				return
+			}
+			name := strings.TrimSpace(r.FormValue("name"))
+			description := r.FormValue("description")
+			isPublicStr := r.FormValue("is_public")
+			isPublic := isPublicStr == "1" || isPublicStr == "true"
+
+			file, handler, fileErr := r.FormFile("file")
+			if fileErr == nil {
+				// IsVideoInUse 체크는 위(2번)에서 이미 완료 → 중복 제거
+				defer file.Close()
+				durationHint := int64(0)
+				if ds := r.FormValue("duration_seconds"); ds != "" {
+					if fv, err := strconv.ParseFloat(ds, 64); err == nil && fv >= 0 {
+						durationHint = int64(fv + 0.5)
+					}
+				}
+				result, err := util.ProcessVideoUpload(file, handler.Filename, durationHint, util.VideoUploadOptions{
+					IsPublic: isPublic,
+				})
+				if err != nil {
+					log.Error(err)
+					JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
+					return
+				}
+				thumbRel := ""
+				if result.ThumbnailPath != "" {
+					thumbRel = filepath.Join("thumbs", filepath.Base(result.ThumbnailPath))
+				}
+				if existing.FileName != result.FinalName {
+					refCount, _ := models.CountVideosByFileName(existing.FileName)
+					if refCount <= 1 {
+						oldAbs := existing.FilePath
+						if !filepath.IsAbs(oldAbs) {
+							oldAbs = filepath.Join(util.VideoStorageDirAbs, oldAbs)
+						}
+						_ = os.Remove(oldAbs)
+						oldThumb := existing.ThumbnailPath
+						if !filepath.IsAbs(oldThumb) {
+							oldThumb = filepath.Join(util.VideoStorageDirAbs, oldThumb)
+						}
+						_ = os.Remove(oldThumb)
+					}
+				}
+				existing.Name = name
+				existing.Description = description
+				existing.IsPublic = isPublic
+				existing.FileName = result.FinalName
+				existing.FilePath = result.FinalName
+				existing.ThumbnailPath = thumbRel
+				existing.DurationSeconds = result.DurationSeconds
+			} else {
+				existing.Name = name
+				existing.Description = description
+				existing.IsPublic = isPublic
+			}
+			if err := models.UpdateVideo(existing); err != nil {
+				JSONResponse(w, models.Response{Success: false, Message: "Update failed"}, http.StatusInternalServerError)
+				return
+			}
+			JSONResponse(w, existing, http.StatusOK)
+
+		} else {
+			// JSON 분기 — IsVideoInUse 체크는 위(2번)에서 완료
+			var v models.Video
+			if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
+				JSONResponse(w, models.Response{Success: false, Message: "Invalid request"}, http.StatusBadRequest)
+				return
+			}
+			v.Id = id
+			if err := models.UpdateVideo(&v); err != nil {
+				JSONResponse(w, models.Response{Success: false, Message: "Update failed"}, http.StatusInternalServerError)
+				return
+			}
+			JSONResponse(w, models.Response{Success: true}, http.StatusOK)
 		}
-		v.Id = id
-		if err := models.UpdateVideo(&v); err != nil {
-			JSONResponse(w, models.Response{Success: false, Message: "Update failed"}, http.StatusInternalServerError)
-			return
-		}
-		JSONResponse(w, models.Response{Success: true}, http.StatusOK)
 
 	case http.MethodDelete:
 		currentUserID := getCurrentUserID(r)
 
-		// 다른 사용자 사용 중 확인 (소유권은 deleteVideoAndFiles 내부에서 처리)
-		inUse, err := models.IsVideoUsedByOthers(id, currentUserID)
+		// Redirect Page 사용 중 확인
+		inUse, err := models.IsVideoInUse(id)
 		if err != nil {
 			JSONResponse(w, models.Response{Success: false, Message: "lookup error"}, http.StatusInternalServerError)
 			return
 		}
 		if inUse {
+			JSONResponse(w, models.Response{Success: false, Message: "Redirect Page에서 사용 중인 동영상은 삭제할 수 없습니다"}, http.StatusConflict)
+			return
+		}
+
+		// 다른 사용자 사용 중 확인 (소유권은 deleteVideoAndFiles 내부에서 처리)
+		inUseByOthers, err := models.IsVideoUsedByOthers(id, currentUserID)
+		if err != nil {
+			JSONResponse(w, models.Response{Success: false, Message: "lookup error"}, http.StatusInternalServerError)
+			return
+		}
+		if inUseByOthers {
 			JSONResponse(w, models.Response{Success: false, Message: "다른 사용자가 사용 중인 동영상은 삭제할 수 없습니다"}, http.StatusConflict)
 			return
 		}
 
 		fileDeleted, thumbDeleted, refCount, derr := deleteVideoAndFiles(id, currentUserID)
+
 		if derr != nil {
 			if derr == models.ErrVideoNotFound {
 				JSONResponse(w, models.Response{Success: false, Message: "video not found"}, http.StatusNotFound)

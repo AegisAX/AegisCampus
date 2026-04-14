@@ -10,6 +10,8 @@
     </button>
   </div>
   &nbsp;
+  
+  <div id="flashes" class="row"></div>
 
   <div id="loading"><i class="fa fa-spinner fa-spin"></i> Loading...</div>
 
@@ -51,8 +53,8 @@
               <input type="checkbox" id="video-is-public" name="is_public" value="1">
               &nbsp;공개 동영상
             </label>
-            <p class="help-block" style="margin-top:4px; color:#888; font-size:12px;">
-              공개로 설정하면 다른 사용자도 이 동영상을 사용할 수 있습니다.
+            <p class="help-block" style="margin-top:4px; color:#888; font-size:14px;">
+              공개로 설정하면 다른 사용자도 이 동영상을 사용할 수 있습니다.<br>
               수정·삭제는 소유자만 가능하며, 다른 사용자가 사용 중일 때는 수정·삭제가 제한됩니다.
             </p>
           </div>
@@ -71,6 +73,57 @@
         </div>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+        <h4 class="modal-title">동영상 편집</h4>
+      </div>
+      <div class="modal-body">
+        <div id="edit-modal-flashes"></div>
+        <div class="form-group">
+          <label for="edit-video-name">제목</label>
+          <input type="text" id="edit-video-name" class="form-control" placeholder="제목">
+        </div>
+        <div class="form-group">
+          <label for="edit-video-description">설명</label>
+          <textarea class="form-control" id="edit-video-description" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="edit-video-is-public">
+            &nbsp;공개 동영상
+          </label>
+          <p class="help-block" style="margin-top:4px; color:#888; font-size:14px;">
+              공개로 설정하면 다른 사용자도 이 동영상을 사용할 수 있습니다.<br>
+              수정·삭제는 소유자만 가능하며, 다른 사용자가 사용 중일 때는 수정·삭제가 제한됩니다.
+            </p>
+        </div>
+        <div class="form-group">
+          <label for="edit-video-file">동영상 파일 교체</label>
+          <input type="file" class="form-control" id="edit-video-file" accept="video/*">
+          <p class="help-block" style="margin-top:4px; color:#888; font-size:12px;">
+            선택하지 않으면 기존 파일을 유지합니다.
+          </p>
+        </div>
+        <div id="edit-upload-status" class="text-muted small" style="display:none;">업로드 중…</div>
+        <div id="edit-upload-progress" class="progress" style="display:none; margin-top:6px;">
+          <div id="edit-upload-progress-bar" class="progress-bar" role="progressbar"
+              aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width:0%">0%</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">취소</button>
+        <button type="button" id="btn-save-edit" class="btn btn-primary">저장</button>
+      </div>
+    </div>
   </div>
 </div>
 {{ end }}

@@ -4,6 +4,7 @@
     Based on landing_pages.js
 */
 var pages = []
+var selectedVideoId = null;
 
 // Save attempts to POST/PUT to /redirect_pages/
 function save(idx) {
@@ -12,6 +13,10 @@ function save(idx) {
     var editor = CKEDITOR.instances["html_editor"]
     page.html = editor ? editor.getData() : ""   // null 방어
     page.redirect_url = $("#redirect_url_input").val()
+    // 수정 — HTML에서 직접 추출 (selectedVideoId보다 우선)
+    page.video_id = extractVideoIdFromHtml(
+        editor ? editor.getData() : ""
+    );
     if (idx != -1) {
         page.id = pages[idx].id
         api.redirectPageId.put(page)
@@ -113,8 +118,11 @@ function edit(idx) {
         page = pages[idx]
         $("#name").val(page.name)
         $("#redirect_url_input").val(page.redirect_url)
+        selectedVideoId = (page.video_id !== undefined && page.video_id !== null)
+            ? page.video_id : null;   // ← 추가: 기존 video_id 복원
     } else {
         $("#modalLabel").text("New Redirect Page")
+        selectedVideoId = null;       // ← 추가: 신규 생성 시 초기화
     }
 
     var html = (idx != -1 && page.html) ? page.html : ''
@@ -303,7 +311,16 @@ function loadVideoPicker() {
         });
 }
 
+/* === video_id 추출 유틸 === */
+function extractVideoIdFromHtml(html) {
+    if (!html) return null;
+    var match = html.match(/\/media\/(\d+)/);
+    if (match) return parseInt(match[1], 10);
+    return null;
+}
+
 function insertTrainingTemplate(videoId, videoName) {
+    selectedVideoId = videoId;
     var editor = CKEDITOR.instances["html_editor"];
     var hasContent = false;
     try {

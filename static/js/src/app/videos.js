@@ -95,9 +95,9 @@ function renderVideos(){
         '</div>'
       );
 
-    // ── 배지를 날짜와 같은 줄로, 날짜는 YYYY-MM-DD ──────────
+    // ── 배지를 날짜와 같은 줄로, 날짜는 YYYY-MM-DD HH:mm ──────────
     var uploadedDate = v.modified_date
-      ? moment(v.modified_date).format('YYYY-MM-DD')
+      ? moment(v.modified_date).format('YYYY-MM-DD HH:mm')
       : '';
 
     var metaHead =
@@ -139,44 +139,147 @@ function toggleInlinePlay(id){
   renderVideos();
 }
 
-/* === Edit === */
+/* === Edit (모달 방식) === */
+var editingVideoId = null;
+
 function editVideo(id){
   var found = getVideoAndIndexById(id);
   var v = found.v;
   if(!v){ errorFlash && errorFlash("대상 영상을 찾을 수 없습니다."); return; }
 
-  var newTitle = window.prompt("제목", v.name || "");
-  if(newTitle === null) return;
-  newTitle = newTitle.trim();
+  // 현재 값을 모달에 채움
+  editingVideoId = v.id;
+  $("#edit-video-name").val(v.name || "");
+  $("#edit-video-description").val(v.description || "");
+  $("#edit-video-is-public").prop("checked", !!v.is_public);
+  $("#edit-modal-flashes").empty();
+  $("#edit-video-file").val("");
+  $("#edit-upload-progress").hide();
+  $("#edit-upload-status").hide();
+  $("#editModal").modal("show");
+}
 
-  var newDesc = window.prompt("설명", v.description || "");
-  if(newDesc === null) return;
+// 저장 버튼
+$(document).on("click", "#btn-save-edit", function(){
+  var id = editingVideoId;
+  if(!id){ return; }
 
-  // 공개 여부
-  var currentPublic = v.is_public ? "공개" : "비공개";
-  var newPublicStr = window.prompt("공개 여부를 입력하세요 (공개 / 비공개)", currentPublic);
-  if(newPublicStr === null) return;
-  var newIsPublic = newPublicStr.trim() === "공개";
+  var found = getVideoAndIndexById(id);
+  var v = found.v;
+  if(!v){ return; }
 
-  var payload = {
-    id: v.id, user_id: v.user_id,
-    name: newTitle, description: newDesc,
-    file_name: v.file_name, file_path: v.file_path,
-    thumbnail_path: v.thumbnail_path, duration_seconds: v.duration_seconds,
-    is_public: newIsPublic
-  };
+  var newTitle = $("#edit-video-name").val().trim();
+  if(!newTitle){
+    $("#edit-modal-flashes").html(
+      '<div class="alert alert-danger"><i class="fa fa-exclamation-circle"></i> 제목을 입력해 주세요.</div>'
+    );
+    return;
+  }
 
-  api.videoId.put(payload)
-    .success(function(){
-      v.name = newTitle;
+  var newDesc     = $("#edit-video-description").val();
+  var newIsPublic = $("#edit-video-is-public").prop("checked");
+  var fileInput   = $("#edit-video-file")[0];
+  var hasFile     = fileInput && fileInput.files && fileInput.files.length > 0;
+
+  $("#btn-save-edit").prop("disabled", true).text("저장 중…");
+  $("#edit-modal-flashes").empty();
+
+  if(hasFile){
+    // ── 파일 있음: multipart 전송 ─────────────────────────
+    var fd = new FormData();
+    fd.append("name",        newTitle);
+    fd.append("description", newDesc);
+    fd.append("is_public",   newIsPublic ? "1" : "0");
+    fd.append("file",        fileInput.files[0]);
+
+    // 파일 길이 추출 후 전송
+    var file = fileInput.files[0];
+    var vidEl = document.createElement("video");
+    vidEl.preload = "metadata"; vidEl.muted = true;
+    vidEl.src = URL.createObjectURL(file);
+    vidEl.onloadedmetadata = function(){
+      var dur = Math.max(0, Math.round(vidEl.duration || 0));
+      fd.append("duration_seconds", String(dur));
+      URL.revokeObjectURL(vidEl.src);
+      vidEl.removeAttribute("src");
+      sendEditRequest(fd, v, newTitle, newDesc, newIsPublic, true);
+    };
+    vidEl.onerror = function(){
+      URL.revokeObjectURL(vidEl.src);
+      sendEditRequest(fd, v, newTitle, newDesc, newIsPublic, true);
+    };
+  } else {
+    // ── 파일 없음: JSON 전송 ─────────────────────────────
+    var payload = {
+      id: v.id, user_id: v.user_id,
+      name: newTitle, description: newDesc,
+      file_name: v.file_name, file_path: v.file_path,
+      thumbnail_path: v.thumbnail_path, duration_seconds: v.duration_seconds,
+      is_public: newIsPublic
+    };
+    sendEditRequest(payload, v, newTitle, newDesc, newIsPublic, false);
+  }
+});
+
+function sendEditRequest(data, v, newTitle, newDesc, newIsPublic, isMultipart){
+  var id = editingVideoId;
+  var req;
+
+  if(isMultipart){
+    req = $.ajax({
+      url: "/api/videos/" + id,
+      method: "PUT",
+      data: data,
+      contentType: false,
+      processData: false,
+      beforeSend: function(xhr){
+        xhr.setRequestHeader("Authorization", "Bearer " + user.api_key);
+      },
+      xhr: function(){
+        var xhr = $.ajaxSettings.xhr();
+        if(xhr.upload){
+          xhr.upload.addEventListener("progress", function(evt){
+            if(evt.lengthComputable){
+              var pct = Math.round((evt.loaded / evt.total) * 100);
+              $("#edit-upload-progress").show();
+              $("#edit-upload-status").show().text("업로드 중… " + pct + "%");
+              $("#edit-upload-progress-bar").css("width", pct+"%").text(pct+"%");
+            }
+          }, false);
+        }
+        return xhr;
+      }
+    });
+  } else {
+    req = api.videoId.put(data);
+  }
+
+  req.success(function(res){
+      v.name        = newTitle;
       v.description = newDesc;
-      v.is_public = newIsPublic;
+      v.is_public   = newIsPublic;
+      // 파일 교체 시 서버 응답으로 갱신
+      if(isMultipart && res && res.id){
+        v.file_name      = res.file_name;
+        v.file_path      = res.file_path;
+        v.thumbnail_path = res.thumbnail_path;
+        v.duration_seconds = res.duration_seconds;
+      }
+      $("#editModal").modal("hide");
       renderVideos();
       successFlash && successFlash("수정되었습니다.");
     })
     .error(function(xhr){
       var msg = (xhr.responseJSON && xhr.responseJSON.message) || "수정 실패";
-      errorFlash && errorFlash(msg);
+      $("#edit-modal-flashes").html(
+        '<div class="alert alert-danger"><i class="fa fa-exclamation-circle"></i> ' + msg + '</div>'
+      );
+    })
+    .always(function(){
+      $("#btn-save-edit").prop("disabled", false).text("저장");
+      $("#edit-upload-progress").hide();
+      $("#edit-upload-status").hide().text("");
+      $("#edit-upload-progress-bar").css("width","0%").text("0%");
     });
 }
 

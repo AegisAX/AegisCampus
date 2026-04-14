@@ -4,7 +4,7 @@
 	Author: Jordan Wright <github.com/jordan-wright>
 */
 var pages = []
-
+var selectedVideoId = null;
 
 // Save attempts to POST to /templates/
 function save(idx) {
@@ -15,6 +15,10 @@ function save(idx) {
     page.capture_credentials = $("#capture_credentials_checkbox").prop("checked")
     page.capture_passwords = $("#capture_passwords_checkbox").prop("checked")
     page.redirect_url = $("#redirect_url_input").val()
+    // 수정 — HTML에서 직접 추출 (selectedVideoId보다 우선)
+    page.video_id = extractVideoIdFromHtml(
+        editor ? editor.getData() : ""
+    );
     if (idx != -1) {
         page.id = pages[idx].id
         api.pageId.put(page)
@@ -126,8 +130,11 @@ function edit(idx) {
             $("#capture_passwords").show()
             $("#redirect_url").show()
         }
+        selectedVideoId = (page.video_id !== undefined && page.video_id !== null)
+            ? page.video_id : null;
     } else {
         $("#modalLabel").text("New Landing Page")
+        selectedVideoId = null;
     }
 
     var html = (idx != -1 && page.html) ? page.html : ''
@@ -334,8 +341,18 @@ function loadVideoPicker() {
         });
 }
 
+/* === video_id 추출 유틸 === */
+function extractVideoIdFromHtml(html) {
+    if (!html) return null;
+    // <source src="/media/22" ...> 패턴에서 숫자 추출
+    var match = html.match(/\/media\/(\d+)/);
+    if (match) return parseInt(match[1], 10);
+    return null;
+}
+
 // CKEditor에 "완성된 학습용 랜딩 페이지" 템플릿을 통으로 세팅 (이어보기 안정화 버전)
 function insertTrainingTemplate(videoId, videoName) {
+    selectedVideoId = videoId;
     var editor = CKEDITOR.instances["html_editor"];
     var hasContent = false;
     try {
