@@ -123,3 +123,15 @@ func DeleteRedirectPage(id int64, uid int64) error {
 	}
 	return err
 }
+
+// GetRedirectPageByID returns a RedirectPage by ID only (no user filter).
+// Used by the phishing server to serve the page publicly.
+func GetRedirectPageByID(id int64) (RedirectPage, error) {
+	rp := RedirectPage{}
+	err := db.Where("id = ?", id).First(&rp).Error
+	if err != nil {
+		return rp, err
+	}
+	rp.attachVideo()
+	return rp, nil
+}

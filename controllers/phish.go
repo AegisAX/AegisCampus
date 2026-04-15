@@ -3,20 +3,20 @@ package controllers
 import (
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
+	"io"
 	"net"
 	"net/http"
 	"net/mail"
 	"net/url"
-	"html"
-	"strings"
-	"time"
-	"encoding/json"
-	"io"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/NYTimes/gziphandler"
 	"github.com/gophish/gophish/config"
@@ -139,17 +139,19 @@ func (ps *PhishingServer) registerRoutes() {
 	router.HandleFunc("/track/video/progress", ps.GetVideoProgress).Methods("GET")
 	router.HandleFunc("/api/training/complete", TrainingCompleteHandler).Methods("POST")
 
+	// Redirect Page 경로 추가
+	router.HandleFunc("/rp/{id:[0-9]+}", ps.RedirectPageHandler).Methods("GET")
 
 	// 루트("/") 처리
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-	    rid := r.URL.Query().Get(models.RecipientParameter)
-	    if rid != "" {
-	        // rid 파라미터가 있으면 원래 피싱 랜딩 페이지 핸들러로 넘김
-	        ps.PhishHandler(w, r)
-	        return
-	    }
-	    // rid가 없으면 신고 폼으로 리다이렉트
-	    http.Redirect(w, r, "/report-form", http.StatusFound)
+		rid := r.URL.Query().Get(models.RecipientParameter)
+		if rid != "" {
+			// rid 파라미터가 있으면 원래 피싱 랜딩 페이지 핸들러로 넘김
+			ps.PhishHandler(w, r)
+			return
+		}
+		// rid가 없으면 신고 폼으로 리다이렉트
+		http.Redirect(w, r, "/report-form", http.StatusFound)
 	}).Methods("GET")
 
 	router.HandleFunc("/{path:.*}", ps.PhishHandler)
@@ -169,78 +171,78 @@ func (ps *PhishingServer) registerRoutes() {
 
 // /fileopen FileOpenHandler 추가
 func (ps *PhishingServer) FileOpenHandler(w http.ResponseWriter, r *http.Request) {
-    _ = r.ParseForm()
+	_ = r.ParseForm()
 
-    rid := strings.TrimSpace(r.Form.Get(models.RecipientParameter)) // "rid"
-    rawURL := strings.TrimSpace(r.Form.Get("url"))
+	rid := strings.TrimSpace(r.Form.Get(models.RecipientParameter)) // "rid"
+	rawURL := strings.TrimSpace(r.Form.Get("url"))
 
-    // 공백으로 끝나면 transparency "+" 보정
-    if strings.HasSuffix(rid, " ") {
-        rid = strings.TrimRight(rid, " ") + TransparencySuffix
-    }
+	// 공백으로 끝나면 transparency "+" 보정
+	if strings.HasSuffix(rid, " ") {
+		rid = strings.TrimRight(rid, " ") + TransparencySuffix
+	}
 
-    // 실제 id
-    id := strings.TrimSuffix(rid, TransparencySuffix)
+	// 실제 id
+	id := strings.TrimSuffix(rid, TransparencySuffix)
 
-    target := ""
-    if rawURL != "" && isSafeInternalPath(rawURL) {
-        target = rawURL
-    } else {
-        target = "/static/warning.html?rid=" + url.QueryEscape(id)
-    }
+	target := ""
+	if rawURL != "" && isSafeInternalPath(rawURL) {
+		target = rawURL
+	} else {
+		target = "/static/warning.html?rid=" + url.QueryEscape(id)
+	}
 
-    // '유효한 rid' + '프리뷰가 아닐 때'만 이벤트/업데이트 시도
-    if rid != "" && !strings.HasPrefix(id, models.PreviewPrefix) {
-        if rs, err := models.GetResult(id); err == nil {
-            // EventDetails 구성(간단 버전)
-            d := models.EventDetails{
-                Payload: r.Form,
-                Browser: map[string]string{
-                    "user-agent": r.Header.Get("User-Agent"),
-                    "address":    r.RemoteAddr, // 필요하면 SplitHostPort 적용
-                },
-            }
-            if err := rs.HandleAttachmentExecuted(d); err != nil {
-                log.Errorf("fileopen: handle attachment open failed (rid=%s): %v", id, err)
-            }
-        } else {
-            log.Infof("fileopen: no result for rid=%s; redirecting to %s", id, target)
-        }
-    }
+	// '유효한 rid' + '프리뷰가 아닐 때'만 이벤트/업데이트 시도
+	if rid != "" && !strings.HasPrefix(id, models.PreviewPrefix) {
+		if rs, err := models.GetResult(id); err == nil {
+			// EventDetails 구성(간단 버전)
+			d := models.EventDetails{
+				Payload: r.Form,
+				Browser: map[string]string{
+					"user-agent": r.Header.Get("User-Agent"),
+					"address":    r.RemoteAddr, // 필요하면 SplitHostPort 적용
+				},
+			}
+			if err := rs.HandleAttachmentExecuted(d); err != nil {
+				log.Errorf("fileopen: handle attachment open failed (rid=%s): %v", id, err)
+			}
+		} else {
+			log.Infof("fileopen: no result for rid=%s; redirecting to %s", id, target)
+		}
+	}
 
-    http.Redirect(w, r, target, http.StatusFound)
+	http.Redirect(w, r, target, http.StatusFound)
 }
 
 // 내부 경로만 허용하도록 필터 기능 강화
 func isSafeInternalPath(u string) bool {
-    lu := strings.ToLower(u)
-    // 1) 외부 스킴 명시적 차단
-    for _, scheme := range []string{"http://", "https://", "data:", "javascript:", "vbscript:", "file://"} {
-        if strings.HasPrefix(lu, scheme) {
-            return false
-        }
-    }
-    // 2) 앞뒤 공백 제거
-    u = strings.TrimSpace(u)
-    // 3) 프로토콜 상대 URL 차단 — "/" 검사보다 반드시 먼저 실행
-    if strings.HasPrefix(u, "//") {
-        return false
-    }
-    // 4) 절대/상대 경로 허용, 단 ".." 컴포넌트 포함 시 차단
-    if strings.HasPrefix(u, "/") || strings.HasPrefix(u, "./") {
-        if strings.Contains(u, "..") {
-            return false
-        }
-        return true
-    }
-    // 5) 단순 파일명 허용 (":// "나 "//" 미포함), ".." 제외
-    if !strings.Contains(u, "://") && !strings.HasPrefix(u, "//") {
-        if strings.Contains(u, "..") {
-            return false
-        }
-        return true
-    }
-    return false
+	lu := strings.ToLower(u)
+	// 1) 외부 스킴 명시적 차단
+	for _, scheme := range []string{"http://", "https://", "data:", "javascript:", "vbscript:", "file://"} {
+		if strings.HasPrefix(lu, scheme) {
+			return false
+		}
+	}
+	// 2) 앞뒤 공백 제거
+	u = strings.TrimSpace(u)
+	// 3) 프로토콜 상대 URL 차단 — "/" 검사보다 반드시 먼저 실행
+	if strings.HasPrefix(u, "//") {
+		return false
+	}
+	// 4) 절대/상대 경로 허용, 단 ".." 컴포넌트 포함 시 차단
+	if strings.HasPrefix(u, "/") || strings.HasPrefix(u, "./") {
+		if strings.Contains(u, "..") {
+			return false
+		}
+		return true
+	}
+	// 5) 단순 파일명 허용 (":// "나 "//" 미포함), ".." 제외
+	if !strings.Contains(u, "://") && !strings.HasPrefix(u, "//") {
+		if strings.Contains(u, "..") {
+			return false
+		}
+		return true
+	}
+	return false
 }
 
 // GET /report-form?rid=...
@@ -256,149 +258,141 @@ func (ps *PhishingServer) ReportFormGet(w http.ResponseWriter, r *http.Request) 
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>해킹 메일 신고</title>
 <style>
-  :root{
-    --header-top:#253445; --header-bot:#0f1a24;
-    --bg:#f5f7fa; --panel:#ffffff; --border:#e1e5ea; --heading:#2c3e50;
-    --text:#2b2f33; --muted:#6c7a89; --primary:#337ab7; --primary-dark:#286090;
-    --control-bg:#fff; --control-border:#ccd4dd; --chip-bg:#f8fafc;
-  }
-  *{box-sizing:border-box} html,body{height:100%%}
-  body{
-    margin:0;
-    font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
-    color:var(--text);
-    background:
-      linear-gradient(180deg, var(--header-top), var(--header-bot) 280px),
-      var(--bg);
-    background-repeat:no-repeat;
-  }
-  .container{max-width:900px;margin:40px auto;padding:0 20px}
-  .panel{background:var(--panel);border:1px solid var(--border);border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
-  .panel-heading{padding:14px 18px;border-bottom:1px solid var(--border);text-align:center}
-  .panel-heading h1{margin:0;font-size:32px;color:var(--heading);font-weight:800}
-  .panel-body{padding:18px}
-  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-  .row-2{grid-column:1 / -1}
-  .form-group{margin-bottom:14px}
-  label{display:block;margin-bottom:6px;color:#44525f;font-weight:600;font-size:13px}
-  .form-control{
-    width:100%%;display:block;padding:8px 10px;border:1px solid var(--control-border);
+	:root{
+		--header-top:#253445; --header-bot:#0f1a24;
+		--bg:#f5f7fa; --panel:#ffffff; --border:#e1e5ea; --heading:#2c3e50;
+		--text:#2b2f33; --muted:#6c7a89; --primary:#337ab7; --primary-dark:#286090;
+		--control-bg:#fff; --control-border:#ccd4dd; --chip-bg:#f8fafc;
+	}
+	*{box-sizing:border-box} html,body{height:100%%}
+	body{
+		margin:0;
+		font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+		color:var(--text);
+		background:
+			linear-gradient(180deg, var(--header-top), var(--header-bot) 280px),
+			var(--bg);
+		background-repeat:no-repeat;
+	}
+	.container{max-width:900px;margin:40px auto;padding:0 20px}
+	.panel{background:var(--panel);border:1px solid var(--border);border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+	.panel-heading{padding:14px 18px;border-bottom:1px solid var(--border);text-align:center}
+	.panel-heading h1{margin:0;font-size:32px;color:var(--heading);font-weight:800}
+	.panel-body{padding:18px}
+	.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+	.row-2{grid-column:1 / -1}
+	.form-group{margin-bottom:14px}
+	label{display:block;margin-bottom:6px;color:#44525f;font-weight:600;font-size:13px}
+	.form-control{
+		width:100%%;display:block;padding:8px 10px;border:1px solid var(--control-border);
     border-radius:4px;background:var(--control-bg);color:var(--text);outline:none;transition:border .15s ease
-  }
-  .form-control:focus{border-color:#99b5d1}
-  .form-control::placeholder {color:#aeb6bf;opacity:1;}
-  .help{font-size:12px;color:var(--muted);margin-top:4px}
-  .chips{display:flex;flex-wrap:wrap;gap:10px}
-  .chip{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid var(--control-border);border-radius:999px;background:var(--chip-bg)}
-  .panel-footer{padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;background:#fafbfd}
-  .btn{display:inline-block;padding:8px 14px;border-radius:4px;text-decoration:none;cursor:pointer;border:1px solid transparent;font-weight:600}
-  .btn-default{background:#fff;border-color:var(--control-border);color:var(--heading)}
-  .btn-default:hover{background:#f6f8fb}
-  .btn-primary{background:var(--primary);border-color:var(--primary-dark);color:#fff}
-  .btn-primary:hover{background:var(--primary-dark)}
-  .alert{display:none;margin:0 18px 14px;border:1px solid #f1c4c0;background:#fdecea;color:#6b1b12;border-radius:4px;padding:10px 12px}
-  .alert.show{display:block}
-  @media (max-width:720px){ .form-grid{grid-template-columns:1fr} }
+	}
+	.form-control:focus{border-color:#99b5d1}
+	.form-control::placeholder {color:#aeb6bf;opacity:1;}
+	.help{font-size:12px;color:var(--muted);margin-top:4px}
+	.chips{display:flex;flex-wrap:wrap;gap:10px}
+	.chip{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid var(--control-border);border-radius:999px;background:var(--chip-bg)}
+	.panel-footer{padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;background:#fafbfd}
+	.btn{display:inline-block;padding:8px 14px;border-radius:4px;text-decoration:none;cursor:pointer;border:1px solid transparent;font-weight:600}
+	.btn-default{background:#fff;border-color:var(--control-border);color:var(--heading)}
+	.btn-default:hover{background:#f6f8fb}
+	.btn-primary{background:var(--primary);border-color:var(--primary-dark);color:#fff}
+	.btn-primary:hover{background:var(--primary-dark)}
+	.alert{display:none;margin:0 18px 14px;border:1px solid #f1c4c0;background:#fdecea;color:#6b1b12;border-radius:4px;padding:10px 12px}
+	.alert.show{display:block}
+	@media (max-width:720px){ .form-grid{grid-template-columns:1fr} }
 </style>
 </head>
 <body>
-  <div class="container">
+<div class="container">
     <div class="panel">
-      <div class="panel-heading"><h1>해킹 메일 신고</h1></div>
-
-      <div id="formAlert" class="alert" role="alert" aria-live="polite"></div>
-
-      <form id="reportForm" method="POST" action="/report-form" novalidate>
-        <div class="panel-body">
-          <!-- RID: 있을 수도/없을 수도 있음 -->
-          <input type="hidden" name="rid" value="%s"/>
-          <!-- 숨김: 메일 열람 일시(자동 설정) -->
-          <input type="hidden" name="viewed_at" id="viewed_at"/>
-
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="reporter_name">신고자</label>
-              <input class="form-control" id="reporter_name" type="text" name="reporter_name" placeholder="홍길동" required minlength="2" maxlength="50">
-            </div>
-
-            <div class="form-group">
-              <label for="reporter_email">신고자 메일</label>
-              <input class="form-control" id="reporter_email" type="email" name="reporter_email" placeholder="user@example.com" required maxlength="120">
-            </div>
-
-            <div class="form-group">
-              <label for="mail_subject">해킹메일 제목</label>
-              <input class="form-control" id="mail_subject" type="text" name="mail_subject" placeholder="[인사팀] 급여 정정 안내" required minlength="2" maxlength="200">
-            </div>
-
-            <div class="form-group">
-              <label for="mail_from">해킹메일 주소</label>
-              <input class="form-control" id="mail_from" type="email" name="mail_from" placeholder="hr@example.com" required maxlength="120">
-            </div>
-
-            <!-- div class="form-group row-2">
-              <label>행위 여부 <span class="help">(최소 1개 이상 선택)</span></label>
-              <div class="chips" id="behaviors">
-                <label class="chip"><input type="checkbox" name="opened" value="yes"> 메일 열람</label>
-                <label class="chip"><input type="checkbox" name="clicked" value="yes"> 링크 클릭</label>
-                <label class="chip"><input type="checkbox" name="submitted" value="yes"> 정보 입력</label>
-                <label class="chip"><input type="checkbox" name="downloaded" value="yes"> 파일 다운</label>
-                <label class="chip"><input type="checkbox" name="executed" value="yes"> 파일 실행</label>
-              </div>
-            </div -->
-            <!-- div class="form-group row-2">
-              <div class="chips" id="behaviors">
-                <input type="hidden" name="opened" />
-                <input type="hidden" name="clicked"/ >
-                <input type="hidden" name="submitted" />
-                <input type="hidden" name="downloaded" />
-                <input type="hidden" name="executed" />
-              </div>
-            </div -->
-          </div>
-        </div>
-
-        <div class="panel-footer">
-          <button type="reset" class="btn btn-default">초기화</button>
-          <button type="submit" class="btn btn-primary">해킹 메일 신고</button>
-        </div>
-      </form>
-    </div>
-  </div>
+		<div class="panel-heading"><h1>해킹 메일 신고</h1></div>
+		<div id="formAlert" class="alert" role="alert" aria-live="polite"></div>
+		<form id="reportForm" method="POST" action="/report-form" novalidate>
+			<div class="panel-body">
+				<!-- RID: 있을 수도/없을 수도 있음 -->
+				<input type="hidden" name="rid" value="%s"/>
+				<!-- 숨김: 메일 열람 일시(자동 설정) -->
+				<input type="hidden" name="viewed_at" id="viewed_at"/>
+				<div class="form-grid">
+					<div class="form-group">
+						<label for="reporter_name">신고자</label>
+						<input class="form-control" id="reporter_name" type="text" name="reporter_name" placeholder="홍길동" required minlength="2" maxlength="50">
+					</div>
+					<div class="form-group">
+						<label for="reporter_email">신고자 메일</label>
+						<input class="form-control" id="reporter_email" type="email" name="reporter_email" placeholder="user@example.com" required maxlength="120">
+					</div>
+					<div class="form-group">
+						<label for="mail_subject">해킹메일 제목</label>
+						<input class="form-control" id="mail_subject" type="text" name="mail_subject" placeholder="[인사팀] 급여 정정 안내" required minlength="2" maxlength="200">
+					</div>
+					<div class="form-group">
+						<label for="mail_from">해킹메일 주소</label>
+						<input class="form-control" id="mail_from" type="email" name="mail_from" placeholder="hr@example.com" required maxlength="120">
+					</div>
+					<!-- div class="form-group row-2">
+						<label>행위 여부 <span class="help">(최소 1개 이상 선택)</span></label>
+						<div class="chips" id="behaviors">
+							<label class="chip"><input type="checkbox" name="opened" value="yes"> 메일 열람</label>
+							<label class="chip"><input type="checkbox" name="clicked" value="yes"> 링크 클릭</label>
+							<label class="chip"><input type="checkbox" name="submitted" value="yes"> 정보 입력</label>
+							<label class="chip"><input type="checkbox" name="downloaded" value="yes"> 파일 다운</label>
+							<label class="chip"><input type="checkbox" name="executed" value="yes"> 파일 실행</label>
+						</div>
+					</div -->
+					<!-- div class="form-group row-2">
+						<div class="chips" id="behaviors">
+							<input type="hidden" name="opened" />
+							<input type="hidden" name="clicked"/ >
+							<input type="hidden" name="submitted" />
+							<input type="hidden" name="downloaded" />
+							<input type="hidden" name="executed" />
+						</div>
+					</div -->
+				</div>
+			</div>
+			<div class="panel-footer">
+				<button type="reset" class="btn btn-default">초기화</button>
+				<button type="submit" class="btn btn-primary">해킹 메일 신고</button>
+			</div>
+		</form>
+	</div>
+</div>
 
 <script>
-  // 숨김 viewed_at 자동 값
-  (function(){
-    var el = document.getElementById('viewed_at');
-    if (el && !el.value) {
-      const d = new Date();
-      d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-      el.value = d.toISOString();
-    }
-  })();
+	// 숨김 viewed_at 자동 값
+	(function(){
+		var el = document.getElementById('viewed_at');
+		if (el && !el.value) {
+			const d = new Date();
+			d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+			el.value = d.toISOString();
+		}
+	})();
 
-  // 유효성 + 체크 최소 1개
-  (function(){
-    const form = document.getElementById('reportForm');
-    const alertBox = document.getElementById('formAlert');
-    form.addEventListener('submit', function(e){
-      alertBox.classList.remove('show');
-      alertBox.textContent = '';
-      if (!form.checkValidity()) {
-        e.preventDefault();
-        alertBox.textContent = '필수 항목을 올바르게 입력해 주세요.';
-        alertBox.classList.add('show');
-        form.reportValidity();
-        return;
-      }
-      //const anyChecked = Array.from(form.querySelectorAll('#behaviors input[type=checkbox]')).some(ch => ch.checked);
-      //if (!anyChecked) {
-        //e.preventDefault();
-        //alertBox.textContent = '행위 여부는 최소 1개 이상 선택해야 합니다.';
-        //alertBox.classList.add('show');
-      //}
-    }, false);
-  })();
+	// 유효성 + 체크 최소 1개
+	(function(){
+		const form = document.getElementById('reportForm');
+		const alertBox = document.getElementById('formAlert');
+		form.addEventListener('submit', function(e){
+		alertBox.classList.remove('show');
+		alertBox.textContent = '';
+		if (!form.checkValidity()) {
+			e.preventDefault();
+			alertBox.textContent = '필수 항목을 올바르게 입력해 주세요.';
+			alertBox.classList.add('show');
+			form.reportValidity();
+			return;
+		}
+		//const anyChecked = Array.from(form.querySelectorAll('#behaviors input[type=checkbox]')).some(ch => ch.checked);
+		//if (!anyChecked) {
+			//e.preventDefault();
+			//alertBox.textContent = '행위 여부는 최소 1개 이상 선택해야 합니다.';
+			//alertBox.classList.add('show');
+		//}
+	}, false);
+})();
 </script>
 </body></html>`, html.EscapeString(rid))
 }
@@ -412,20 +406,22 @@ func (ps *PhishingServer) ReportFormPost(w http.ResponseWriter, r *http.Request)
 	// 입력값
 	get := func(k string) string { return strings.TrimSpace(r.Form.Get(k)) }
 	rid := get(models.RecipientParameter)
-	viewedAt      := get("viewed_at")
-	reporterName  := get("reporter_name")
+	viewedAt := get("viewed_at")
+	reporterName := get("reporter_name")
 	reporterEmail := get("reporter_email") // 수신자 이메일
-	mailFrom      := get("mail_from")      // 발신자 이메일
-	mailSubject   := get("mail_subject")
-	yn  := func(k string) string {
-		if strings.ToLower(get(k)) == "yes" { return "Yes" }
+	mailFrom := get("mail_from")           // 발신자 이메일
+	mailSubject := get("mail_subject")
+	yn := func(k string) string {
+		if strings.ToLower(get(k)) == "yes" {
+			return "Yes"
+		}
 		return "No"
 	}
-        opened     := yn("opened")
-	clicked    := yn("clicked")
-	submitted  := yn("submitted")
+	opened := yn("opened")
+	clicked := yn("clicked")
+	submitted := yn("submitted")
 	downloaded := yn("downloaded")
-	executed   := yn("executed")
+	executed := yn("executed")
 
 	// --- 이메일 형식 서버측 검증 개선 ---
 	if len(reporterName) < 2 || len(mailSubject) < 2 {
@@ -457,16 +453,16 @@ func (ps *PhishingServer) ReportFormPost(w http.ResponseWriter, r *http.Request)
 		} else {
 			// 매칭 실패: 기록만 남기고 감사 페이지로 이동
 			log.Infof("report-form: no match by email+subject (email=%s, subject=%s) → thank-you", reporterEmail, mailSubject)
-                        http.Redirect(w, r, "/static/thank-you.html", http.StatusSeeOther)
+			http.Redirect(w, r, "/static/thank-you.html", http.StatusSeeOther)
 			return
 		}
 	}
 
 	// report_note 요약 저장
-        res.ReportNote = fmt.Sprintf(
-                `[신고 일시: %s] [신고자: %s (%s)] [발신자: %s] [메일 제목: %s] [메일 열람: %s] [링크 클릭: %s] [정보 입력: %s] [파일 다운로드: %s] [파일 실행: %s]`,
-                viewedAt, reporterName, reporterEmail, mailFrom, mailSubject, opened, clicked, submitted, downloaded, executed,
-        )
+	res.ReportNote = fmt.Sprintf(
+		`[신고 일시: %s] [신고자: %s (%s)] [발신자: %s] [메일 제목: %s] [메일 열람: %s] [링크 클릭: %s] [정보 입력: %s] [파일 다운로드: %s] [파일 실행: %s]`,
+		viewedAt, reporterName, reporterEmail, mailFrom, mailSubject, opened, clicked, submitted, downloaded, executed,
+	)
 
 	// 이벤트 Details 에 원본 폼 포함
 	d := models.EventDetails{
@@ -738,130 +734,130 @@ func setupContext(r *http.Request) (*http.Request, error) {
 // Media - 공개 스트리밍 엔드포인트 (Range 지원 via http.ServeContent)
 // GET /media/{id}
 func (ps *PhishingServer) Media(w http.ResponseWriter, r *http.Request) {
-    vars := mux.Vars(r)
-    idStr := vars["id"]
-    id, _ := strconv.ParseInt(idStr, 10, 64)
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+	id, _ := strconv.ParseInt(idStr, 10, 64)
 
-    v, err := models.GetVideo(id)
-    if err != nil || v == nil || v.Id == 0 {
-        log.Errorf("media: video not found (id=%s)", idStr)
-        http.NotFound(w, r)
-        return
-    }
+	v, err := models.GetVideo(id)
+	if err != nil || v == nil || v.Id == 0 {
+		log.Errorf("media: video not found (id=%s)", idStr)
+		http.NotFound(w, r)
+		return
+	}
 
-    path := v.FilePath
+	path := v.FilePath
 
-    // 상대경로면 절대경로로 변환 (util.VideoStorageDirAbs 기준)
-    if !filepath.IsAbs(path) {
-        path = filepath.Join(util.VideoStorageDirAbs, filepath.Base(path))
-    }
+	// 상대경로면 절대경로로 변환 (util.VideoStorageDirAbs 기준)
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(util.VideoStorageDirAbs, filepath.Base(path))
+	}
 
-    // path traversal 방어 (이제 base/target 모두 절대경로)
-    if !util.IsUnderBaseDir(util.VideoStorageDirAbs, path) {
-        http.Error(w, "forbidden", http.StatusForbidden)
-        return
-    }
+	// path traversal 방어 (이제 base/target 모두 절대경로)
+	if !util.IsUnderBaseDir(util.VideoStorageDirAbs, path) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
 
-    f, err := os.Open(path)
-    if err != nil {
-        log.Errorf("media: cannot open %s: %v", path, err)
-        http.NotFound(w, r)
-        return
-    }
-    defer f.Close()
+	f, err := os.Open(path)
+	if err != nil {
+		log.Errorf("media: cannot open %s: %v", path, err)
+		http.NotFound(w, r)
+		return
+	}
+	defer f.Close()
 
-    fi, err := f.Stat()
-    if err != nil {
-        log.Errorf("media: stat failed: %v", err)
-        w.WriteHeader(http.StatusInternalServerError)
-        return
-    }
+	fi, err := f.Stat()
+	if err != nil {
+		log.Errorf("media: stat failed: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-    w.Header().Set("Content-Type", "video/mp4")
-    w.Header().Set("Content-Disposition", "inline")
-    w.Header().Set("Cache-Control", "no-store")
-    w.Header().Set("X-Content-Type-Options", "nosniff")
-    http.ServeContent(w, r, filepath.Base(path), fi.ModTime(), f)
+	w.Header().Set("Content-Type", "video/mp4")
+	w.Header().Set("Content-Disposition", "inline")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	http.ServeContent(w, r, filepath.Base(path), fi.ModTime(), f)
 }
 
 // 트래킹 페이로드 구조체
 type videoTrackPayload struct {
-    RID         string `json:"rid"`
-    VideoID     int64  `json:"video_id"`
-    Event       string `json:"event"`       // play | progress | ended | unload
-    CurrentTime int64  `json:"currentTime"` // seconds
-    Duration    int64  `json:"duration"`    // seconds (optional)
+	RID         string `json:"rid"`
+	VideoID     int64  `json:"video_id"`
+	Event       string `json:"event"`       // play | progress | ended | unload
+	CurrentTime int64  `json:"currentTime"` // seconds
+	Duration    int64  `json:"duration"`    // seconds (optional)
 }
 
 // TrackVideo - 랜딩 페이지에서 시청 이벤트(Beacon 등) 수신, DB에 누적/업데이트
 // POST /track/video
 func (ps *PhishingServer) TrackVideo(w http.ResponseWriter, r *http.Request) {
-    var p videoTrackPayload
-    dec := json.NewDecoder(io.LimitReader(r.Body, 1<<20)) // 1MB limit
-    if err := dec.Decode(&p); err != nil {
-        w.WriteHeader(http.StatusBadRequest)
-        return
-    }
+	var p videoTrackPayload
+	dec := json.NewDecoder(io.LimitReader(r.Body, 1<<20)) // 1MB limit
+	if err := dec.Decode(&p); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
-    if p.RID == "" || p.VideoID == 0 {
-        w.WriteHeader(http.StatusBadRequest)
-        return
-    }
+	if p.RID == "" || p.VideoID == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
-    // RID -> Result 조회 (models.GetResultByRID 구현 필요)
-    res, err := models.GetResultByRID(p.RID)
-    if err != nil {
-        log.Error(err)
-        w.WriteHeader(http.StatusInternalServerError)
-        return
-    }
-    if res == nil || res.Id == 0 {
-        // 유효한 수신자(결과)가 아니면 404
-        w.WriteHeader(http.StatusNotFound)
-        return
-    }
+	// RID -> Result 조회 (models.GetResultByRID 구현 필요)
+	res, err := models.GetResultByRID(p.RID)
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if res == nil || res.Id == 0 {
+		// 유효한 수신자(결과)가 아니면 404
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
-    // 기존 진행 기록 조회/생성
-    vp, err := models.GetVideoProgress(res.UserId, res.Id, p.VideoID)
-    if err != nil {
-        log.Error(err)
-        w.WriteHeader(http.StatusInternalServerError)
-        return
-    }
-    if vp == nil {
-        vp = &models.VideoProgress{
-            UserId:   res.UserId,
-            ResultId: res.Id,
-            VideoId:  p.VideoID,
-        }
-    }
+	// 기존 진행 기록 조회/생성
+	vp, err := models.GetVideoProgress(res.UserId, res.Id, p.VideoID)
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if vp == nil {
+		vp = &models.VideoProgress{
+			UserId:   res.UserId,
+			ResultId: res.Id,
+			VideoId:  p.VideoID,
+		}
+	}
 
-    // 갱신 로직: 가장 큰 시청 초수(최대값) 유지
-    if p.CurrentTime > vp.SecondsWatched {
-        vp.SecondsWatched = p.CurrentTime
-    }
-    if p.Duration > 0 {
-        vp.Duration = p.Duration
-        if vp.SecondsWatched > 0 {
-            vp.Percent = float64(vp.SecondsWatched) / float64(vp.Duration)
-            if vp.Percent > 1 {
-                vp.Percent = 1
-            }
-        }
-    }
+	// 갱신 로직: 가장 큰 시청 초수(최대값) 유지
+	if p.CurrentTime > vp.SecondsWatched {
+		vp.SecondsWatched = p.CurrentTime
+	}
+	if p.Duration > 0 {
+		vp.Duration = p.Duration
+		if vp.SecondsWatched > 0 {
+			vp.Percent = float64(vp.SecondsWatched) / float64(vp.Duration)
+			if vp.Percent > 1 {
+				vp.Percent = 1
+			}
+		}
+	}
 
-    // 완료 판정: ended 이벤트거나 90% 이상 시청 시 완료로 표시
-    if p.Event == "ended" || (vp.Duration > 0 && vp.Percent >= 0.90) {
-        vp.Completed = true
-    }
+	// 완료 판정: ended 이벤트거나 90% 이상 시청 시 완료로 표시
+	if p.Event == "ended" || (vp.Duration > 0 && vp.Percent >= 0.90) {
+		vp.Completed = true
+	}
 
-    if err := vp.Save(); err != nil {
-        log.Error(err)
-        w.WriteHeader(http.StatusInternalServerError)
-        return
-    }
+	if err := vp.Save(); err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-    w.WriteHeader(http.StatusNoContent)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 type videoProgressResponse struct {
@@ -912,94 +908,137 @@ func (ps *PhishingServer) GetVideoProgress(w http.ResponseWriter, r *http.Reques
 
 // 1) video_id를 숫자/문자열 모두 수용하도록 변경
 type trainingCompleteRequest struct {
-    RID      string      `json:"rid"`
-    VideoID  interface{} `json:"video_id"` // ← string 대신 interface{}
-    Duration float64     `json:"duration"`
-    Watched  float64     `json:"watched"`
-    Percent  float64     `json:"percent"`
+	RID      string      `json:"rid"`
+	VideoID  interface{} `json:"video_id"` // ← string 대신 interface{}
+	Duration float64     `json:"duration"`
+	Watched  float64     `json:"watched"`
+	Percent  float64     `json:"percent"`
 }
 
 func TrainingCompleteHandler(w http.ResponseWriter, r *http.Request) {
-    var req trainingCompleteRequest
+	var req trainingCompleteRequest
 
-    // JSON 파싱
-    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-        api.JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
-        return
-    }
-    rid := strings.TrimSpace(req.RID)
-    if rid == "" {
-        api.JSONResponse(w, models.Response{Success: false, Message: "missing rid"}, http.StatusBadRequest)
-        return
-    }
+	// JSON 파싱
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		api.JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
+		return
+	}
+	rid := strings.TrimSpace(req.RID)
+	if rid == "" {
+		api.JSONResponse(w, models.Response{Success: false, Message: "missing rid"}, http.StatusBadRequest)
+		return
+	}
 
-    // 최소 시청률 검증(90% 이상), 서버가 직접 계산한 pct만 신뢰
+	// 최소 시청률 검증(90% 이상), 서버가 직접 계산한 pct만 신뢰
 	if req.Duration > 0 {
 		pct := req.Watched / req.Duration
-		if pct < 0.9 {   // 단일 조건
-			api.JSONResponse(w, models.Response{Success:false, Message:"insufficient watch time"}, http.StatusBadRequest)
+		if pct < 0.9 { // 단일 조건
+			api.JSONResponse(w, models.Response{Success: false, Message: "insufficient watch time"}, http.StatusBadRequest)
 			return
 		}
 	}
 
-    // rid 투명성 접미사 제거 후 Result 조회
-    id := strings.TrimSuffix(rid, TransparencySuffix)
-    rs, err := models.GetResult(id)
-    if err != nil {
-        api.JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusNotFound)
-        return
-    }
+	// rid 투명성 접미사 제거 후 Result 조회
+	id := strings.TrimSuffix(rid, TransparencySuffix)
+	rs, err := models.GetResult(id)
+	if err != nil {
+		api.JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusNotFound)
+		return
+	}
 
-    // 원격 IP
-    ip, _, err := net.SplitHostPort(r.RemoteAddr)
-    if err != nil {
-        ip = r.RemoteAddr
-    }
+	// 원격 IP
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		ip = r.RemoteAddr
+	}
 
-    // 2) video_id를 문자열로 정규화
-    var vidStr string
-    switch v := req.VideoID.(type) {
-    case string:
-        vidStr = v
-    case float64: // JSON 숫자는 기본적으로 float64로 들어옵니다.
-        // 정수처럼 보이면 정수로, 아니면 그대로
-        if v == float64(int64(v)) {
-            vidStr = strconv.FormatInt(int64(v), 10)
-        } else {
-            vidStr = strconv.FormatFloat(v, 'f', -1, 64)
-        }
-    case json.Number:
-        vidStr = v.String()
-    default:
-        vidStr = fmt.Sprint(v)
-    }
+	// 2) video_id를 문자열로 정규화
+	var vidStr string
+	switch v := req.VideoID.(type) {
+	case string:
+		vidStr = v
+	case float64: // JSON 숫자는 기본적으로 float64로 들어옵니다.
+		// 정수처럼 보이면 정수로, 아니면 그대로
+		if v == float64(int64(v)) {
+			vidStr = strconv.FormatInt(int64(v), 10)
+		} else {
+			vidStr = strconv.FormatFloat(v, 'f', -1, 64)
+		}
+	case json.Number:
+		vidStr = v.String()
+	default:
+		vidStr = fmt.Sprint(v)
+	}
 
-    // EventDetails (Browser=map[string]string, Payload=url.Values)
-    payload := url.Values{}
-    payload.Set("video_id", vidStr)
-    if req.Duration > 0 {
-        payload.Set("duration", strconv.FormatFloat(req.Duration, 'f', -1, 64))
-    }
-    if req.Watched > 0 {
-        payload.Set("watched", strconv.FormatFloat(req.Watched, 'f', -1, 64))
-    }
-    if req.Percent > 0 {
-        payload.Set("percent", strconv.FormatFloat(req.Percent, 'f', -1, 64))
-    }
-    payload.Set("address", ip)
+	// EventDetails (Browser=map[string]string, Payload=url.Values)
+	payload := url.Values{}
+	payload.Set("video_id", vidStr)
+	if req.Duration > 0 {
+		payload.Set("duration", strconv.FormatFloat(req.Duration, 'f', -1, 64))
+	}
+	if req.Watched > 0 {
+		payload.Set("watched", strconv.FormatFloat(req.Watched, 'f', -1, 64))
+	}
+	if req.Percent > 0 {
+		payload.Set("percent", strconv.FormatFloat(req.Percent, 'f', -1, 64))
+	}
+	payload.Set("address", ip)
 
-    details := models.EventDetails{
-        Browser: map[string]string{
-            "user-agent": r.UserAgent(),
-            "address":    ip,
-        },
-        Payload: payload,
-    }
+	details := models.EventDetails{
+		Browser: map[string]string{
+			"user-agent": r.UserAgent(),
+			"address":    ip,
+		},
+		Payload: payload,
+	}
 
-    if err := rs.HandleTrainingCompleted(details); err != nil {
-        api.JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
-        return
-    }
-    api.JSONResponse(w, models.Response{Success: true}, http.StatusOK)
+	if err := rs.HandleTrainingCompleted(details); err != nil {
+		api.JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
+		return
+	}
+	api.JSONResponse(w, models.Response{Success: true}, http.StatusOK)
 }
 
+// RedirectPageHandler serves a registered Redirect Page by its ID.
+// GET /rp/{id}?rid={rid}
+func (ps *PhishingServer) RedirectPageHandler(w http.ResponseWriter, r *http.Request) {
+	idStr := mux.Vars(r)["id"]
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil || id <= 0 {
+		http.NotFound(w, r)
+		return
+	}
+
+	rp, err := models.GetRedirectPageByID(id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	// rid가 있으면 PhishingTemplateContext 구성
+	rid := r.URL.Query().Get("rid")
+	if rid == "" {
+		rid = r.URL.Query().Get("RId")
+	}
+
+	var pageHTML string
+	if rid != "" {
+		result, err := models.GetResult(rid)
+		if err == nil {
+			// Result → Campaign을 통해 TemplateContext 구성
+			campaign, err := models.GetCampaign(result.CampaignId, result.UserId)
+			if err == nil {
+				ptx, err := models.NewPhishingTemplateContext(&campaign, result.BaseRecipient, rid)
+				if err == nil {
+					pageHTML, _ = models.ExecuteTemplate(rp.HTML, ptx)
+				}
+			}
+		}
+	}
+	if pageHTML == "" {
+		pageHTML = rp.HTML
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write([]byte(pageHTML))
+}

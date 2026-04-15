@@ -228,8 +228,8 @@ function load() {
 $(document).ready(function () {
     // CKEditor가 script, video, source, style, iframe 등을 지우지 않도록 허용
     if (window.CKEDITOR) {
-      CKEDITOR.config.allowedContent = true;
-      CKEDITOR.config.extraAllowedContent = 'script[*]{*}(*);video[*]{*}(*);source[*]{*}(*);style[*]{*}(*);iframe[*]{*}(*);div[*]{*}(*);span[*]{*}(*)';
+        CKEDITOR.config.allowedContent = true;
+        CKEDITOR.config.extraAllowedContent = 'script[*]{*}(*);video[*]{*}(*);source[*]{*}(*);style[*]{*}(*);iframe[*]{*}(*);div[*]{*}(*);span[*]{*}(*)';
     }
     // Setup multiple modals
     // Code based on http://miles-by-motorcycle.com/static/bootstrap-modal/index.html
@@ -297,6 +297,28 @@ $(document).ready(function () {
     });
 
     load()
+
+    // 목록 버튼 클릭 → 드롭다운 토글
+    $("#btn-pick-redirect-page").on("click", function() {
+        var $picker = $("#redirect-page-picker");
+        if ($picker.is(":hidden")) {
+            loadRedirectPagePicker();
+            $picker.show();
+        } else {
+            $picker.hide();
+        }
+    });
+
+    // 드롭다운 선택 → redirect_url 자동 완성
+    $("#redirect-page-select").on("change", function() {
+        var val = $(this).val();
+        if (val) {
+            $("#redirect_url_input").val(val);
+            $("#redirect-page-picker").hide();
+        } else {
+            $("#redirect_url_input").val("");
+        }
+    });
 })
 
 /* === Video Picker Integration for Landing Pages === */
@@ -507,4 +529,22 @@ function insertTrainingTemplate(videoId, videoName) {
         console.error(e);
         modalError("템플릿 삽입에 실패했습니다.");
     }
+}
+
+/* === Redirect Page Picker === */
+function loadRedirectPagePicker() {
+    api.redirectPages.get()
+        .success(function(pages) {
+            var $sel = $("#redirect-page-select");
+            $sel.empty().append('<option value="">-- 직접 URL 입력 --</option>');
+            if (Array.isArray(pages)) {
+                pages.forEach(function(p) {
+                    $sel.append(
+                        $("<option>")
+                            .val("/rp/" + p.id + "?rid={{.RId}}")
+                            .text(p.name)
+                    );
+                });
+            }
+        });
 }
