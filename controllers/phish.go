@@ -331,25 +331,6 @@ func (ps *PhishingServer) ReportFormGet(w http.ResponseWriter, r *http.Request) 
 						<label for="mail_from">해킹메일 주소</label>
 						<input class="form-control" id="mail_from" type="email" name="mail_from" placeholder="hr@example.com" required maxlength="120">
 					</div>
-					<!-- div class="form-group row-2">
-						<label>행위 여부 <span class="help">(최소 1개 이상 선택)</span></label>
-						<div class="chips" id="behaviors">
-							<label class="chip"><input type="checkbox" name="opened" value="yes"> 메일 열람</label>
-							<label class="chip"><input type="checkbox" name="clicked" value="yes"> 링크 클릭</label>
-							<label class="chip"><input type="checkbox" name="submitted" value="yes"> 정보 입력</label>
-							<label class="chip"><input type="checkbox" name="downloaded" value="yes"> 파일 다운</label>
-							<label class="chip"><input type="checkbox" name="executed" value="yes"> 파일 실행</label>
-						</div>
-					</div -->
-					<!-- div class="form-group row-2">
-						<div class="chips" id="behaviors">
-							<input type="hidden" name="opened" />
-							<input type="hidden" name="clicked"/ >
-							<input type="hidden" name="submitted" />
-							<input type="hidden" name="downloaded" />
-							<input type="hidden" name="executed" />
-						</div>
-					</div -->
 				</div>
 			</div>
 			<div class="panel-footer">
@@ -361,40 +342,68 @@ func (ps *PhishingServer) ReportFormGet(w http.ResponseWriter, r *http.Request) 
 </div>
 
 <script>
-	// 숨김 viewed_at 자동 값
-	(function(){
-		var el = document.getElementById('viewed_at');
-		if (el && !el.value) {
-			const d = new Date();
-			d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-			el.value = d.toISOString();
-		}
-	})();
+// 숨김 viewed_at 자동 값
+(function(){
+	var el = document.getElementById('viewed_at');
+	if (el && !el.value) {
+		const d = new Date();
+		d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+		el.value = d.toISOString();
+	}
+})();
 
-	// 유효성 + 체크 최소 1개
-	(function(){
-		const form = document.getElementById('reportForm');
-		const alertBox = document.getElementById('formAlert');
-		form.addEventListener('submit', function(e){
+// 유효성 + 체크 최소 1개
+(function(){
+	const form = document.getElementById('reportForm');
+	const alertBox = document.getElementById('formAlert');
+	// 수정 — fetch로 AJAX 제출 후 팝업 처리
+	form.addEventListener('submit', function(e){
+		e.preventDefault();
 		alertBox.classList.remove('show');
 		alertBox.textContent = '';
+
 		if (!form.checkValidity()) {
-			e.preventDefault();
 			alertBox.textContent = '필수 항목을 올바르게 입력해 주세요.';
 			alertBox.classList.add('show');
 			form.reportValidity();
 			return;
 		}
-		//const anyChecked = Array.from(form.querySelectorAll('#behaviors input[type=checkbox]')).some(ch => ch.checked);
-		//if (!anyChecked) {
-			//e.preventDefault();
-			//alertBox.textContent = '행위 여부는 최소 1개 이상 선택해야 합니다.';
-			//alertBox.classList.add('show');
-		//}
+
+		var submitBtn = form.querySelector('button[type="submit"]');
+		submitBtn.disabled = true;
+		submitBtn.textContent = '처리 중...';
+
+		var formData = new URLSearchParams(new FormData(form));
+		fetch('/report-form', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+			body: formData
+		})
+		.then(function(res) {
+			if (!res.ok) throw new Error('서버 오류');
+			return res.json();
+		})
+		.then(function(data) {
+			if (data.success) {
+				alert('해킹 메일 신고가 완료되었습니다.\n신고해 주셔서 감사합니다.');
+				// 창 닫기 시도, 실패 시 빈 화면으로
+				try { window.close(); } catch(e) {}
+				setTimeout(function() {
+					document.body.innerHTML = '<p style="text-align:center;margin-top:50px;font-size:18px;">창을 닫아주세요.</p>';
+				}, 300);
+			}
+		})
+		.catch(function() {
+			alertBox.textContent = '신고 처리 중 오류가 발생했습니다. 다시 시도해 주세요.';
+			alertBox.classList.add('show');
+			submitBtn.disabled = false;
+			submitBtn.textContent = '해킹 메일 신고';
+		});
 	}, false);
 })();
 </script>
-</body></html>`, html.EscapeString(rid))
+</body>
+</html>`, html.EscapeString(rid))
 }
 
 // POST /report-form
@@ -453,7 +462,9 @@ func (ps *PhishingServer) ReportFormPost(w http.ResponseWriter, r *http.Request)
 		} else {
 			// 매칭 실패: 기록만 남기고 감사 페이지로 이동
 			log.Infof("report-form: no match by email+subject (email=%s, subject=%s) → thank-you", reporterEmail, mailSubject)
-			http.Redirect(w, r, "/static/thank-you.html", http.StatusSeeOther)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"success":true}`))
 			return
 		}
 	}
@@ -474,10 +485,14 @@ func (ps *PhishingServer) ReportFormPost(w http.ResponseWriter, r *http.Request)
 	if err := res.HandleEmailReport(d); err != nil {
 		log.Error(err)
 		// 처리 실패여도 사용자 경험은 동일하게 감사 페이지로
-		http.Redirect(w, r, "/static/thank-you.html", http.StatusSeeOther)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"success":true}`))
 		return
 	}
-	http.Redirect(w, r, "/static/thank-you.html", http.StatusSeeOther)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"success":true}`))
 }
 
 // TrackHandler tracks emails as they are opened, updating the status for the given Result
@@ -640,6 +655,45 @@ func renderPhishResponse(w http.ResponseWriter, r *http.Request, ptx models.Phis
 		http.NotFound(w, r)
 		return
 	}
+
+	// RedirectURL이 설정된 경우 페이지 이탈/닫기 시 자동 리다이렉트 스크립트 주입
+	// Landing Page HTML에 별도 코드 없이 서버에서 자동 처리
+	if p.RedirectURL != "" {
+		redirectURL, err := models.ExecuteTemplate(p.RedirectURL, ptx)
+		if err == nil && redirectURL != "" {
+			script := fmt.Sprintf(`<script>(function(){
+				var _r=%q, _done=false;
+
+				// 폼 제출 시 서버 POST 리다이렉트 처리 → 중복 방지
+				document.addEventListener('submit',function(){_done=true;},true);
+
+				// window.close() 가로채기 → 나중에 하기 버튼 등
+				var _orig=window.close.bind(window);
+				window.close=function(){
+					if(!_done){_done=true;window.location.replace(_r);setTimeout(_orig,400);}
+					else{_orig();}
+				};
+
+				// 뒤로가기 감지: 가짜 히스토리 항목 추가 후 popstate로 가로채기
+				history.pushState({_sentinel:true},'');
+				window.addEventListener('popstate',function(e){
+					if(!_done){_done=true;window.location.replace(_r);}
+					else{history.back();}
+				});
+
+				// beforeunload 폴백
+				window.addEventListener('beforeunload',function(){
+					if(!_done){_done=true;window.location.replace(_r);}
+				});
+				})();</script>`, redirectURL)
+			if strings.Contains(html, "</body>") {
+				html = strings.Replace(html, "</body>", script+"</body>", 1)
+			} else {
+				html += script
+			}
+		}
+	}
+
 	w.Write([]byte(html))
 }
 
