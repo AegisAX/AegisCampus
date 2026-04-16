@@ -457,7 +457,7 @@ function renderTimeline(data) {
                 '    <div class="timeline-bar"></div>'
             var meta = getStatusMeta(event.message)
             results +=
-                '    <div class="timeline-icon ' + meta.label + '">' +
+                '    <div class="timeline-icon" style="background-color:' + (meta.color || '#95a5a6') + '">' +
                 '    <i class="fa ' + meta.icon + '"></i></div>' +
                 '    <div class="timeline-message">' + escapeHtml(event.message) +
                 '    <span class="timeline-date">' + moment.utc(event.time).local().format('MMMM Do YYYY h:mm:ss a') + '</span>'
@@ -877,7 +877,7 @@ function load() {
                     columnDefs: [
                         { orderable: false, targets: "no-sort" },
                         { className: "details-control", targets: [1] },
-                        { visible: false, targets: [0, 14] },
+                        { visible: false, targets: [0, 6, 14] },
                         {
                             // Status 컬럼 렌더링
                             render: function(data, type, row) {
@@ -886,28 +886,36 @@ function load() {
                             targets: [6]
                         },
                         {
-                            // Sent/Opened/Clicked/Submitted/Executed/Trained — 시간 있으면 체크, 없으면 빈칸
                             className: "text-center",
-                            render: function(data, type, row) {
+                            render: function(data, type, row, meta) {
                                 if (type !== "display") return data;
+                                // 컬럼 인덱스 → 차트 색상 매핑
+                                var colColors = {
+                                    7:  statuses["Sent"].color,
+                                    8:  statuses["Opened"].color,
+                                    9:  statuses["Clicked"].color,
+                                    10: statuses["Submitted"].color,
+                                    11: statuses["Executed"].color,
+                                    13: statuses["Trained"].color
+                                };
+                                var color = colColors[meta.col] || "#1abc9c";
                                 return data
-                                    ? "<i class='fa fa-check-circle text-success' title='" + data + "'></i>"
+                                    ? "<i class='fa fa-check-circle' style='color:" + color + "' title='" + data + "'></i>"
                                     : "<span class='text-muted'>-</span>";
                             },
                             targets: [7, 8, 9, 10, 11, 13]
                         },
                         {
-                            // Reported — ON(체크)/OFF(X) 토글 버튼
                             className: "text-center",
                             render: function(reported, type, row) {
                                 if (type !== "display") return reported;
+                                var reportedColor = statuses["Reported"].color;  // #45d6ef
                                 if (reported) {
-                                    // 현재 ON → OFF 토글 가능
-                                    return "<i role='button' class='fa fa-check-circle text-success' " +
+                                    return "<i role='button' class='fa fa-check-circle' " +
+                                        "style='color:" + reportedColor + "' " +
                                         "title='클릭하여 신고 취소' " +
                                         "onclick='toggle_report(\"" + row[0] + "\", \"" + campaign.id + "\", true);'></i>";
                                 }
-                                // 현재 OFF → ON 토글
                                 return "<i role='button' class='fa fa-times-circle text-muted' " +
                                     "title='클릭하여 신고 처리' " +
                                     "onclick='toggle_report(\"" + row[0] + "\", \"" + campaign.id + "\", false);'></i>";
