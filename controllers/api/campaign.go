@@ -135,3 +135,27 @@ func (as *Server) CampaignComplete(w http.ResponseWriter, r *http.Request) {
 		JSONResponse(w, models.Response{Success: true, Message: "Campaign completed successfully!"}, http.StatusOK)
 	}
 }
+
+// DELETE /api/campaigns/:id/results/:rid/report
+// reported 상태를 false로 되돌림
+func (as *Server) CampaignResultUnreport(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	cid, _ := strconv.ParseInt(vars["id"], 10, 64)
+	rid := vars["rid"]
+	uid := ctx.Get(r, "user_id").(int64)
+
+	// 캠페인 소유권 확인
+	c, err := models.GetCampaign(cid, uid)
+	if err != nil {
+		JSONResponse(w, models.Response{Success: false, Message: "Campaign not found"}, http.StatusNotFound)
+		return
+	}
+	_ = c
+
+	err = models.UnreportResult(rid)
+	if err != nil {
+		JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
+		return
+	}
+	JSONResponse(w, models.Response{Success: true, Message: "Reported status cleared"}, http.StatusOK)
+}

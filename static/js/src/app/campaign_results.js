@@ -442,8 +442,8 @@ function renderTimeline(data) {
         "email": data[4],
         "position": data[5],
         "status": data[6],
-        "reported": data[7],
-        "send_date": data[8]
+        "reported": data[12],
+        "send_date": data[14]
     }
     results = '<div class="timeline col-sm-12 well well-lg">' +
         '<h6>Timeline for ' + escapeHtml(record.name) + ' ' + escapeHtml(record.department) +
@@ -815,8 +815,8 @@ function poll() {
                 var rid = rowData[0]
                 $.each(campaign.results, function (j, result) {
                     if (result.id == rid) {
-                        rowData[8] = moment(result.send_date).format('MMMM Do YYYY, h:mm:ss a')
-                        rowData[7] = result.reported
+                        rowData[14] = moment(result.send_date).format('MMMM Do YYYY, h:mm:ss a')
+                        rowData[12] = result.reported
                         rowData[6] = normalizeStatus(result.status)
                         resultsTable.row(i).data(rowData)
                         if (row.child.isShown()) {
@@ -874,34 +874,45 @@ function load() {
                     "order": [
                         [2, "asc"]
                     ],
-                    columnDefs: [{
-                            orderable: false,
-                            targets: "no-sort"
-                        }, {
-                            className: "details-control",
-                            "targets": [1]
-                        }, {
-                            "visible": false,
-                            "targets": [0, 8]
-                        },
+                    columnDefs: [
+                        { orderable: false, targets: "no-sort" },
+                        { className: "details-control", targets: [1] },
+                        { visible: false, targets: [0, 14] },
                         {
-                            "render": function (data, type, row) {
-                                return createStatusLabel(data, row[8])
+                            // Status 컬럼 렌더링
+                            render: function(data, type, row) {
+                                return createStatusLabel(data, row[14]);
                             },
-                            "targets": [6]
+                            targets: [6]
                         },
                         {
+                            // Sent/Opened/Clicked/Submitted/Executed/Trained — 시간 있으면 체크, 없으면 빈칸
                             className: "text-center",
-                            "render": function (reported, type, row) {
-                                if (type == "display") {
-                                    if (reported) {
-                                        return "<i class='fa fa-check-circle text-center text-success'></i>"
-                                    }
-                                    return "<i role='button' class='fa fa-times-circle text-center text-muted' onclick='report_mail(\"" + row[0] + "\", \"" + campaign.id + "\");'></i>"
-                                }
-                                return reported
+                            render: function(data, type, row) {
+                                if (type !== "display") return data;
+                                return data
+                                    ? "<i class='fa fa-check-circle text-success' title='" + data + "'></i>"
+                                    : "<span class='text-muted'>-</span>";
                             },
-                            "targets": [7]
+                            targets: [7, 8, 9, 10, 11, 13]
+                        },
+                        {
+                            // Reported — ON(체크)/OFF(X) 토글 버튼
+                            className: "text-center",
+                            render: function(reported, type, row) {
+                                if (type !== "display") return reported;
+                                if (reported) {
+                                    // 현재 ON → OFF 토글 가능
+                                    return "<i role='button' class='fa fa-check-circle text-success' " +
+                                        "title='클릭하여 신고 취소' " +
+                                        "onclick='toggle_report(\"" + row[0] + "\", \"" + campaign.id + "\", true);'></i>";
+                                }
+                                // 현재 OFF → ON 토글
+                                return "<i role='button' class='fa fa-times-circle text-muted' " +
+                                    "title='클릭하여 신고 처리' " +
+                                    "onclick='toggle_report(\"" + row[0] + "\", \"" + campaign.id + "\", false);'></i>";
+                            },
+                            targets: [12]
                         }
                     ]
                 });
@@ -926,6 +937,8 @@ function load() {
                 });
                 $.each(campaign.results, function (i, result) {
                     var st = normalizeStatus(result.status)
+                    var evIdx = indexEventTimesByEmail(campaign.timeline || {});
+                    var evRec = evIdx[result.email] || {};
                     resultsTable.row.add([
                         result.id,
                         "<i id=\"caret\" class=\"fa fa-caret-right\"></i>",
@@ -934,7 +947,13 @@ function load() {
                         escapeHtml(result.email) || "",
                         escapeHtml(result.position) || "",
                         st,
+                        evRec.sent   || "",
+                        evRec.open   || "",
+                        evRec.click  || "",
+                        evRec.submit || "",
+                        evRec.exec   || "",
                         result.reported,
+                        evRec.train  || "",
                         moment(result.send_date).format('MMMM Do YYYY, h:mm:ss a')
                     ])
                     if (email_series_data[st] === undefined && statusMapping[st]) {
@@ -1069,46 +1088,59 @@ function refresh() {
     setRefresh = setTimeout(refresh, 60000)
 };
 
-function report_mail(rid, cid) {
+function toggle_report(rid, cid, currentlyReported) {
+    var action = currentlyReported ? "신고 취소" : "신고 처리";
+    var text = currentlyReported
+        ? "이 결과의 신고 상태를 취소합니다 (RID: " + rid + ")"
+        : "이 결과를 신고 처리합니다 (RID: " + rid + ")";
+
     Swal.fire({
-        title: "Are you sure?",
-        text: "This result will be flagged as reported (RID: " + rid + ")",
+        title: action + " 하시겠습니까?",
+        text: text,
         type: "question",
         animation: false,
         showCancelButton: true,
-        confirmButtonText: "Continue",
+        confirmButtonText: "확인",
         confirmButtonColor: "#428bca",
         reverseButtons: true,
         allowOutsideClick: false,
         showLoaderOnConfirm: true
-    }).then(function (result) {
-        if (result.value){
-            api.campaignId.get(cid).success((function(c) {
-                report_url = new URL(c.url)
-                report_url.pathname = '/report'
-                report_url.search = "?rid=" + rid
-                fetch(report_url)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
+    }).then(function(result) {
+        if (!result.value) return;
+
+        if (currentlyReported) {
+            // OFF: API로 reported=false 처리
+            api.campaignId.get(cid).success(function(c) {
+                // 직접 reported 상태 토글 API 호출
+                $.ajax({
+                    url: "/api/campaigns/" + cid + "/results/" + rid + "/report",
+                    method: "DELETE",
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader("Authorization", "Bearer " + user.api_key);
                     }
+                }).done(function() {
                     refresh();
-                })
-                .catch(error => {
-                    let errorMessage = error.message;
-                    if (error.message === "Failed to fetch") {
-                        errorMessage = "This might be due to Mixed Content issues or network problems.";
-                    }
-                    Swal.fire({
-                        title: 'Error',
-                        text: errorMessage,
-                        type: 'error',
-                        confirmButtonText: 'Close'
-                    });
+                }).fail(function() {
+                    Swal.fire("오류", "신고 취소에 실패했습니다.", "error");
                 });
-            }));
+            });
+        } else {
+            // ON: 기존 방식 (피싱 서버 /report 엔드포인트 호출)
+            api.campaignId.get(cid).success(function(c) {
+                var report_url = new URL(c.url);
+                report_url.pathname = '/report';
+                report_url.search = "?rid=" + rid;
+                fetch(report_url)
+                    .then(function(response) {
+                        if (!response.ok) throw new Error("HTTP " + response.status);
+                        refresh();
+                    })
+                    .catch(function(error) {
+                        Swal.fire("오류", "신고 처리에 실패했습니다: " + error.message, "error");
+                    });
+            });
         }
-    })
+    });
 }
 
 $(document).ready(function () {
@@ -1275,4 +1307,3 @@ function getFullName(r) {
     var ln = r.last_name  || r.LastName  || "";
     return (fn && ln) ? (fn + " " + ln) : (fn || ln);
 }
-

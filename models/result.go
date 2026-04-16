@@ -35,10 +35,10 @@ type Result struct {
 	SendDate     time.Time `json:"send_date"`
 	Reported     bool      `json:"reported" sql:"not null"`
 	ModifiedDate time.Time `json:"modified_date"`
-        // 새로 추가: 신고자가 남긴 메모
-        ReportNote   string    `json:"report_note"`
-        // 새로 추가: 첨부파일 열람 여부
-	Executed     bool      `json:"executed" sql:"not null"`
+	// 새로 추가: 신고자가 남긴 메모
+	ReportNote string `json:"report_note"`
+	// 새로 추가: 첨부파일 열람 여부
+	Executed bool `json:"executed" sql:"not null"`
 	BaseRecipient
 }
 
@@ -163,22 +163,22 @@ func (r *Result) HandleFormSubmit(details EventDetails) error {
 // HandleEmailReport updates a Result in the case where they report a simulated
 // phishing email using the HTTP handler.
 func (r *Result) HandleEmailReport(details EventDetails) error {
-        // details를 JSON 문자열로 직렬화(빈 구조체면 ""가 되지 않게 "null" 회피)
-        data := ""
-        if b, err := json.Marshal(details); err == nil && string(b) != "null" {
-            data = string(b)
-        }
-        e := &Event{
-            Email:   r.Email,
-            Message: EventReported, // "Email Reported"
-            Details: data,
-        }
-        if err := AddEvent(e, r.CampaignId); err != nil {
-            return err
-        }
-        r.Reported = true
-        r.ModifiedDate = e.Time // AddEvent 안에서 Time이 세팅됨
-        return db.Save(r).Error
+	// details를 JSON 문자열로 직렬화(빈 구조체면 ""가 되지 않게 "null" 회피)
+	data := ""
+	if b, err := json.Marshal(details); err == nil && string(b) != "null" {
+		data = string(b)
+	}
+	e := &Event{
+		Email:   r.Email,
+		Message: EventReported, // "Email Reported"
+		Details: data,
+	}
+	if err := AddEvent(e, r.CampaignId); err != nil {
+		return err
+	}
+	r.Reported = true
+	r.ModifiedDate = e.Time // AddEvent 안에서 Time이 세팅됨
+	return db.Save(r).Error
 }
 
 // UpdateGeo updates the latitude and longitude of the result in
@@ -244,11 +244,33 @@ func GetResult(rid string) (Result, error) {
 }
 
 func GetResultByRID(rid string) (*Result, error) {
-    var res Result
-    err := db.Where("r_id = ?", rid).First(&res).Error
-    if err == gorm.ErrRecordNotFound {
-        return nil, nil
-    }
-    return &res, err
+	var res Result
+	err := db.Where("r_id = ?", rid).First(&res).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	return &res, err
 }
 
+// UnreportResult 는 reported 상태를 false로 되돌리고
+// 해당 결과의 "Reported" 이벤트를 타임라인에서 모두 삭제합니다.
+func UnreportResult(rid string) error {
+	// rid로 Result 조회 (campaign_id, email 확인용)
+	r := Result{}
+	if err := db.Where("r_id = ?", rid).First(&r).Error; err != nil {
+		return err
+	}
+
+	// reported = false 업데이트
+	if err := db.Model(&Result{}).
+		Where("r_id = ?", rid).
+		Update("reported", false).Error; err != nil {
+		return err
+	}
+
+	// 타임라인에서 해당 이메일의 "Reported" 이벤트 삭제
+	return db.Where(
+		"campaign_id = ? AND email = ? AND message = ?",
+		r.CampaignId, r.Email, EventReported,
+	).Delete(&Event{}).Error
+}
