@@ -5,6 +5,23 @@
 */
 var pages = []
 var selectedVideoId = null;
+/* === 피싱 페이지 내장용 미니 Swal (외부 의존성 없음) === */
+var MINI_SWAL = '(function(){' +
+    'var _sf=function(o){return new Promise(function(res){' +
+    'var ov=document.createElement("div");' +
+    'ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:99999";' +
+    'var ic={"success":"\u2705","error":"\u274c","warning":"\u26a0\ufe0f","info":"\u2139\ufe0f"}[o.icon||""]||"";' +
+    'ov.innerHTML="<div style=\\"background:#fff;border-radius:12px;padding:32px 24px;max-width:360px;width:90%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.18)\\">"' +
+    '+"<div style=\\"font-size:48px;margin-bottom:12px\\">"+ic+"</div>"' +
+    '+(o.title?"<h2 style=\\"margin:0 0 10px;font-size:22px;color:#2c3e50\\">"+o.title+"</h2>":"")' +
+    '+(o.text?"<p style=\\"margin:0 0 20px;color:#555;font-size:15px\\">"+o.text+"</p>":"")' +
+    '+"<button style=\\"background:#3085d6;color:#fff;border:0;border-radius:8px;padding:10px 28px;font-size:16px;font-weight:700;cursor:pointer\\">"+(o.confirmButtonText||"OK")+"</button>"' +
+    '+"</div>";' +
+    'ov.querySelector("button").onclick=function(){document.body.removeChild(ov);res({value:true});};' +
+    'document.body.appendChild(ov);' +
+    '});};' +
+    'window.Swal={fire:_sf};' +
+    '})();';
 
 // Save attempts to POST to /templates/
 function save(idx) {
@@ -401,13 +418,14 @@ function insertTrainingTemplate(videoId, videoName) {
         '  <style>',
         '    body { background: #f7f9fc; }',
         '    header { background:#0f2743; color:#fff; padding:15px; text-align:center; }',
-        '    .container-box { max-width:960px; margin:30px auto; background:#fff; padding:25px; border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,0.08);}',
+        '    .container-box { max-width:640px; margin:30px auto; background:#fff; padding:25px; border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,0.08);}',
         '    #training-video { width:100%; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.2);}',
         '    .btn-complete { margin-top:20px; }',
         '    video::-internal-media-controls-download-button { display: none; }',
         '    video::-webkit-media-controls-enclosure { overflow: hidden; }',
         '    video::-webkit-media-controls-picture-in-picture-button { display: none; }',
         '  </style>',
+        '  <script>' + MINI_SWAL + '<\/script>',
         '</head>',
         '<body>',
         '  <header>',
@@ -496,14 +514,14 @@ function insertTrainingTemplate(videoId, videoName) {
         '',
         '    completeBtn.addEventListener("click", async function(){',
         '      var params=new URLSearchParams(location.search); var rid=params.get("rid")||params.get("RID")||"";',
-        '      if(!rid){ alert("RID가 없어 수강 완료를 기록할 수 없습니다."); return; }',
+        '      if(!rid){ Swal.fire({title:"알림",text:"RID가 없어 수강 완료를 기록할 수 없습니다.",icon:"warning",confirmButtonText:"확인"}); return; }',
         '      var dur=Math.floor(v.duration||0); var watched=Math.floor(v.currentTime||0); var percent=dur?Math.round((watched/dur)*100):0;',
-        '      if(percent<90){ alert("영상 시청이 충분하지 않습니다. (90% 이상 시청 필요)"); return; }',
+        '      if(percent<90){ Swal.fire({title:"알림",text:"영상 시청이 충분하지 않습니다. (90% 이상 시청 필요)",icon:"info",confirmButtonText:"확인"}); return; }',
         '      completeBtn.disabled=true;',
         '      fetch(TRAINING_COMPLETE_URL,{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({rid:rid,video_id:(typeof videoId==="string"?videoId:Number(videoId)),duration:dur,watched:watched,percent:percent})})',
         '      .then(function(res){ if(!res.ok) return res.text().then(function(t){throw new Error(t);}); return res.json(); })',
-        '      .then(function(){ alert("수강 완료 확인되었습니다. 감사합니다!"); window.close(); })',
-        '      .catch(function(err){ alert("수강 기록 실패: "+(err&&err.message?err.message:err)); completeBtn.disabled=false; });',
+        '      .then(function(){ Swal.fire({title:"수강 완료",text:"수강 완료 확인되었습니다. 감사합니다!",icon:"success",confirmButtonText:"확인"}).then(function(){ window.close(); }); })',
+        '      .catch(function(err){ Swal.fire({title:"오류",text:"수강 기록 실패: "+(err&&err.message?err.message:err),icon:"error",confirmButtonText:"확인"}); completeBtn.disabled=false; });',
         '    });',
         '',
         '    window.addEventListener("beforeunload", function(){ beaconFlush(false); });',
