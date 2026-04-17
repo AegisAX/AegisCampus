@@ -118,8 +118,14 @@ function normalizeStatus(raw) {
     if (!raw) return "";
     var s = ("" + raw).trim();
     switch (s) {
-        case "Success":
-            return "Submitted";
+        // Sentinel 라벨로 정규화 (마이그레이션 전 방어)
+        case "Email Sent":     return "Sent";
+        case "Email Opened":   return "Opened";
+        case "Clicked Link":   return "Clicked";
+        case "Submitted Data": return "Submitted";
+        case "Email Reported": return "Reported";
+        // 기존 호환
+        case "Success":        return "Submitted";
         case "Attach Opened":
         case "Attachment Opened":
         case "Attachment Executed":
