@@ -129,12 +129,7 @@ func (s *SMTP) GetDialer() (mailer.Dialer, error) {
 		ServerName:         host,
 		InsecureSkipVerify: s.IgnoreCertErrors,
 	}
-	hostname, err := os.Hostname()
-	if err != nil {
-		log.Error(err)
-		hostname = "localhost"
-	}
-	d.LocalName = hostname
+	d.LocalName = ehloName(s.FromAddress)
 	return &Dialer{d}, err
 }
 
@@ -255,4 +250,34 @@ func DeleteSMTP(id int64, uid int64) error {
 		log.Error(err)
 	}
 	return err
+}
+
+// ehloName은 SMTP EHLO 인사말로 사용할 FQDN을 결정합니다.
+//
+// 우선순위:
+//  1. 환경변수 GOPHISH_EHLO_DOMAIN
+//  2. Sending Profile의 FromAddress 도메인
+//  3. os.Hostname() — 점(.)이 있는 FQDN인 경우만
+//  4. "mail.invalid" — 위 모두 실패 시 (설정 필요를 명시)
+//
+// "mail.invalid" 이 EHLO로 사용되면 일부 수신 서버가 거부할 수 있습니다.
+// 환경변수 GOPHISH_EHLO_DOMAIN 또는 올바른 FromAddress를 설정하세요.
+func ehloName(fromAddress string) string {
+	// 1) 환경변수 우선
+	if v := os.Getenv("GOPHISH_EHLO_DOMAIN"); v != "" && strings.Contains(v, ".") {
+		return strings.ToLower(v)
+	}
+	// 2) FromAddress에서 @ 뒤 도메인 추출
+	if addr, err := mail.ParseAddress(fromAddress); err == nil {
+		parts := strings.Split(addr.Address, "@")
+		if len(parts) == 2 && strings.Contains(parts[1], ".") {
+			return strings.ToLower(parts[1])
+		}
+	}
+	// 3) os.Hostname() — 점(.)이 있는 진짜 FQDN인 경우만 사용
+	if h, err := os.Hostname(); err == nil && strings.Contains(h, ".") {
+		return strings.ToLower(h)
+	}
+	// 4) 설정이 필요함을 명시하는 기본값
+	return "mail.invalid"
 }

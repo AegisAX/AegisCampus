@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"mime"
 	"net/mail"
-	"net/url"
 	"path/filepath"
 	"strings"
 	"unicode/utf8"
@@ -62,7 +61,7 @@ func ASCIIFileNameFallback(name string) string {
 	return f
 }
 
-// PercentASCIIName: 원본 UTF-8 파일명을 URL percent-encoding으로 ASCII로 변환
+// PercentASCIIName 도 함께 수정 (url.PathEscape → rfc5987)
 func PercentASCIIName(s string) string {
 	if s == "" {
 		return "attachment"
@@ -70,12 +69,12 @@ func PercentASCIIName(s string) string {
 	if !utf8.ValidString(s) {
 		s = ASCIIFileNameFallback(s)
 	}
-	return url.PathEscape(s) // 공백→%20, 한글 등 비-ASCII → %XX
+	return rfc5987(s) // url.PathEscape 대신 RFC 5987 인코더 사용
 }
 
 // RFC2231/5987 형식의 filename* / name* 파라미터와 ASCII 폴백을 만드는 헤더
-// Content-Type: <ctype>; name="<fallback>"; name*=UTF-8''<pct-utf8>
-// Content-Disposition: <disp>; filename="<fallback>"; filename*=UTF-8''<pct-utf8>
+// Content-Type: <ctype>; name="<fallback>"; name*=UTF-8”<pct-utf8>
+// Content-Disposition: <disp>; filename="<fallback>"; filename*=UTF-8”<pct-utf8>
 func BuildAttachmentHeaders(utf8Filename, contentType string, inline bool) map[string][]string {
 	if contentType == "" {
 		contentType = "application/octet-stream"
@@ -111,14 +110,45 @@ func isASCII(s string) bool {
 func isAlphaNum(b byte) bool {
 	return (b >= 'A' && b <= 'Z') || (b >= 'a' && b <= 'z') || (b >= '0' && b <= '9')
 }
-// RFC5987 percent-encoding (RFC2231용)
+
+// RFC 5987 Section 3.2에 정의된 percent-encoding을 구현
+// attr-char(그대로 통과)과 그 외(모두 %XX 인코딩) 두 가지로만 처리
+//
+//	attr-char = ALPHA / DIGIT / "!" / "#" / "$" / "&" / "+" / "-" / "."
+//	          / "^" / "_" / "`" / "|" / "~"
+//
+// url.PathEscape와의 차이:
+//   - url.PathEscape는 공백을 %20으로 인코딩하지만 "'", "(", ")" 등을
+//     인코딩하지 않아 RFC 5987 비준수
+//   - 이 함수는 attr-char가 아닌 모든 문자를 엄격히 %XX로 인코딩
 func rfc5987(s string) string {
 	if s == "" {
 		return ""
 	}
 	if !utf8.ValidString(s) {
-		return url.PathEscape(ASCIIFileNameFallback(s))
+		s = ASCIIFileNameFallback(s)
 	}
-	return url.PathEscape(s) // 공백→%20, 비-ASCII→%XX
+	var buf strings.Builder
+	for _, r := range s {
+		if isRFC5987AttrChar(r) {
+			buf.WriteRune(r)
+		} else {
+			// 멀티바이트 문자는 UTF-8 인코딩 후 각 바이트를 %XX로
+			for _, b := range []byte(string(r)) {
+				fmt.Fprintf(&buf, "%%%02X", b)
+			}
+		}
+	}
+	return buf.String()
 }
 
+// isRFC5987AttrChar는 RFC 5987 Section 3.2의 attr-char 집합에
+// 속하는지 확인합니다.
+func isRFC5987AttrChar(r rune) bool {
+	return (r >= 'A' && r <= 'Z') ||
+		(r >= 'a' && r <= 'z') ||
+		(r >= '0' && r <= '9') ||
+		r == '!' || r == '#' || r == '$' || r == '&' ||
+		r == '+' || r == '-' || r == '.' || r == '^' ||
+		r == '_' || r == '`' || r == '|' || r == '~'
+}
