@@ -1,8 +1,8 @@
 package models
 
 import (
-	"strings"
 	"fmt"
+	"strings"
 )
 
 // subjectRow는 JOIN 쿼리 결과를 담는 내부 구조체입니다.
@@ -34,7 +34,7 @@ func (s *subjectRow) getBaseURL() string {
 
 // FindResultByEmailAndRenderedSubject는 수신자 이메일과 메일 제목으로
 // 해당 Result를 찾습니다.
-func FindResultByEmailAndRenderedSubject(recipientEmail, submittedSubject string) (*Result, error) {
+func FindResultByEmailAndRenderedSubject(recipientEmail, submittedSubject string) ([]*Result, error) {
 	email := strings.TrimSpace(recipientEmail)
 	want := strings.TrimSpace(submittedSubject)
 	if email == "" || want == "" {
@@ -70,6 +70,8 @@ func FindResultByEmailAndRenderedSubject(recipientEmail, submittedSubject string
 		return nil, fmt.Errorf("no match")
 	}
 
+	var results []*Result
+
 	for _, row := range rows {
 		subj := strings.TrimSpace(row.TemplateSubject)
 
@@ -102,9 +104,13 @@ func FindResultByEmailAndRenderedSubject(recipientEmail, submittedSubject string
 			if err != nil || rs == nil {
 				continue
 			}
-			return rs, nil
+			results = append(results, rs)
 		}
 	}
 
-	return nil, fmt.Errorf("no match")
+	if len(results) == 0 {
+		return nil, fmt.Errorf("no match")
+	}
+
+	return results, nil
 }

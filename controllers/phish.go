@@ -467,48 +467,46 @@ func (ps *PhishingServer) ReportFormPost(w http.ResponseWriter, r *http.Request)
 	}
 	// -------------------
 
-	var res *models.Result
+	// note: 모든 매칭 결과에 동일한 신고 내용 기록
+	noteText := fmt.Sprintf(
+		`[신고 일시: %s] [신고자: %s (%s)] [발신자: %s] [메일 제목: %s] [메일 열람: %s] [링크 클릭: %s] [정보 입력: %s] [파일 다운로드: %s] [파일 실행: %s]`,
+		viewedAt, reporterName, reporterEmail, mailFrom, mailSubject, opened, clicked, submitted, downloaded, executed,
+	)
+
+	d := models.EventDetails{
+		Payload: r.Form,
+		Browser: map[string]string{},
+	}
+
 	// 1) rid 우선 시도
+	var targets []*models.Result
 	if rid != "" {
 		id := strings.TrimSuffix(rid, TransparencySuffix)
 		if rs, err := models.GetResult(id); err == nil {
-			res = &rs
+			targets = append(targets, &rs)
 		}
 	}
-	// 2) rid 실패 시 → 이메일+제목으로 매칭
-	if res == nil {
-		if rs, err := models.FindResultByEmailAndRenderedSubject(reporterEmail, mailSubject); err == nil {
-			res = rs
-		} else {
-			// 매칭 실패: 기록만 남기고 감사 페이지로 이동
+
+	// 2) rid 실패 시 → 이메일+제목으로 매칭 (다중 결과 처리)
+	if len(targets) == 0 {
+		matched, err := models.FindResultByEmailAndRenderedSubject(reporterEmail, mailSubject)
+		if err != nil || len(matched) == 0 {
 			log.Infof("report-form: no match by email+subject (email=%s, subject=%s) → thank-you", reporterEmail, mailSubject)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`{"success":true}`))
 			return
 		}
+		targets = matched
 	}
 
-	// report_note 요약 저장
-	res.ReportNote = fmt.Sprintf(
-		`[신고 일시: %s] [신고자: %s (%s)] [발신자: %s] [메일 제목: %s] [메일 열람: %s] [링크 클릭: %s] [정보 입력: %s] [파일 다운로드: %s] [파일 실행: %s]`,
-		viewedAt, reporterName, reporterEmail, mailFrom, mailSubject, opened, clicked, submitted, downloaded, executed,
-	)
-
-	// 이벤트 Details 에 원본 폼 포함
-	d := models.EventDetails{
-		Payload: r.Form,
-		Browser: map[string]string{},
-	}
-
-	// Email Reported 처리
-	if err := res.HandleEmailReport(d); err != nil {
-		log.Error(err)
-		// 처리 실패여도 사용자 경험은 동일하게 감사 페이지로
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"success":true}`))
-		return
+	// 모든 매칭 결과에 신고 처리
+	for _, res := range targets {
+		res.ReportNote = noteText
+		if err := res.HandleEmailReport(d); err != nil {
+			log.Errorf("report-form: HandleEmailReport failed (rid=%s): %v", res.RId, err)
+			// 일부 실패해도 나머지는 계속 처리
+		}
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

@@ -261,10 +261,13 @@ func UnreportResult(rid string) error {
 		return err
 	}
 
-	// reported = false 업데이트
+	// reported = false, report_note = "" 동시 업데이트
 	if err := db.Model(&Result{}).
 		Where("r_id = ?", rid).
-		Update("reported", false).Error; err != nil {
+		Updates(map[string]interface{}{
+			"reported":    false,
+			"report_note": "",
+		}).Error; err != nil {
 		return err
 	}
 
