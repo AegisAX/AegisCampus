@@ -52,6 +52,7 @@ func (rp *RedirectPage) attachVideo() {
 }
 
 // GetRedirectPages 는 해당 사용자의 모든 Redirect Page를 반환합니다.
+// video_id 수집 후 단일 IN 쿼리
 func GetRedirectPages(uid int64) ([]RedirectPage, error) {
 	var pages []RedirectPage
 	err := db.Where("user_id = ?", uid).Order("modified_date desc").Find(&pages).Error
@@ -59,9 +60,33 @@ func GetRedirectPages(uid int64) ([]RedirectPage, error) {
 		log.Error(err)
 		return pages, err
 	}
-	for i := range pages {
-		pages[i].attachVideo()
+
+	// video_id 수집
+	var videoIDs []int64
+	for _, rp := range pages {
+		if rp.VideoId != nil && *rp.VideoId > 0 {
+			videoIDs = append(videoIDs, *rp.VideoId)
+		}
 	}
+
+	// 단일 IN 쿼리로 필요한 Video만 조회
+	if len(videoIDs) > 0 {
+		var videos []Video
+		if err := db.Where("id IN (?)", videoIDs).Find(&videos).Error; err == nil {
+			// id → Video 맵 구성
+			vmap := make(map[int64]*Video, len(videos))
+			for i := range videos {
+				vmap[videos[i].Id] = &videos[i]
+			}
+			// 각 페이지에 매핑
+			for i := range pages {
+				if pages[i].VideoId != nil {
+					pages[i].Video = vmap[*pages[i].VideoId]
+				}
+			}
+		}
+	}
+
 	return pages, nil
 }
 

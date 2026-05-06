@@ -880,6 +880,7 @@ func (ps *PhishingServer) TrackVideo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// RID -> Result 조회 (models.GetResultByRID 구현 필요)
+	// 캠페인 완료 체크 추가
 	res, err := models.GetResultByRID(p.RID)
 	if err != nil {
 		log.Error(err)
@@ -887,9 +888,16 @@ func (ps *PhishingServer) TrackVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if res == nil || res.Id == 0 {
-		// 유효한 수신자(결과)가 아니면 404
 		w.WriteHeader(http.StatusNotFound)
 		return
+	}
+
+	// I-06: 완료된 캠페인은 비디오 트래킹 기록 중단
+	if campaign, err := models.GetCampaign(res.CampaignId, res.UserId); err == nil {
+		if campaign.Status == models.CampaignComplete {
+			w.WriteHeader(http.StatusGone) // 410 Gone — 완료된 캠페인
+			return
+		}
 	}
 
 	// 기존 진행 기록 조회/생성
@@ -956,11 +964,15 @@ func (ps *PhishingServer) GetVideoProgress(w http.ResponseWriter, r *http.Reques
 	}
 
 	// 결과 조회 (여기서 r_id 로 조회)
+	// 캠페인 완료 체크 추가
 	res, err := models.GetResultByRID(rid)
 	if err != nil || res == nil || res.Id == 0 {
 		http.Error(w, "result not found", http.StatusNotFound)
 		return
 	}
+
+	// I-06: 완료된 캠페인은 진행률 조회 허용 (읽기는 허용, 쓰기만 차단)
+	// GetVideoProgress는 읽기 전용이므로 완료 여부와 무관하게 조회 허용
 
 	// 진행률 조회
 	vp, err := models.GetVideoProgress(res.UserId, res.Id, videoID)
