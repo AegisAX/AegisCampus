@@ -244,34 +244,6 @@ func sniffDelimiter(text string) rune {
 	return best
 }
 
-// 헤더처럼 보이는지(간단 휴리스틱)
-func looksLikeHeader(row []string) bool {
-	joined := strings.ToLower(strings.Join(row, " "))
-	// '@'가 없으면 헤더로 간주
-	return !(strings.Contains(joined, "@"))
-}
-
-// 헤더 별칭(국/영문 혼용)으로 컬럼 인덱스 찾기
-func findIndex(header []string, aliases ...string) int {
-	for i, h := range header {
-		lh := strings.ToLower(strings.TrimSpace(strings.TrimPrefix(h, "\uFEFF")))
-		for _, a := range aliases {
-			if lh == a {
-				return i
-			}
-		}
-	}
-	return -1
-}
-
-// 문자열 안전 접근 및 정리
-func pick(rec []string, idx int) string {
-	if idx >= 0 && idx < len(rec) {
-		return strings.TrimSpace(strings.Trim(rec[idx], "\u0000"))
-	}
-	return ""
-}
-
 // 무헤더일 때 이메일 칼럼 추정(@ 포함)
 func guessEmailIndex(rec []string) int {
 	best := -1
