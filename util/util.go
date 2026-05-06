@@ -22,13 +22,14 @@ import (
 	"strings"
 	"time"
 
+	"unicode/utf8"
+
 	log "github.com/gophish/gophish/logger"
 	"github.com/gophish/gophish/models"
 	"github.com/jordan-wright/email"
 	"golang.org/x/text/encoding/korean"
 	"golang.org/x/text/encoding/unicode"
 	"golang.org/x/text/transform"
-        "unicode/utf8"
 )
 
 var (
@@ -53,10 +54,10 @@ func ParseMail(r *http.Request) (email.Email, error) {
 
 // ParseCSV contains the logic to parse the user provided csv file containing Target entries
 // 개선 사항:
-//  - 인코딩 자동 처리(UTF-8(BOM), CP949/EUC-KR, UTF-16 BOM)
-//  - 구분자 자동 추정(, / \t / ; / |)
-//  - 헤더 유무 자동 판단 + 헤더/무헤더 모두 처리
-//  - 첫 셀 BOM 제거, 널문자 제거, 좌우 공백 정리
+//   - 인코딩 자동 처리(UTF-8(BOM), CP949/EUC-KR, UTF-16 BOM)
+//   - 구분자 자동 추정(, / \t / ; / |)
+//   - 헤더 유무 자동 판단 + 헤더/무헤더 모두 처리
+//   - 첫 셀 BOM 제거, 널문자 제거, 좌우 공백 정리
 func ParseCSV(r *http.Request) ([]models.Target, error) {
 	ts := []models.Target{}
 
@@ -191,26 +192,26 @@ func CheckAndCreateSSL(cp string, kp string) error {
    ========================= */
 
 func bestEffortUTF8(r io.Reader) (io.Reader, string) {
-    br := bufio.NewReader(r)
-    // UTF 판별을 위해 조금 넉넉히 미리보기
-    peek, _ := br.Peek(4096)
+	br := bufio.NewReader(r)
+	// UTF 판별을 위해 조금 넉넉히 미리보기
+	peek, _ := br.Peek(4096)
 
-    // UTF-16 BOM
-    if len(peek) >= 2 && ((peek[0] == 0xFF && peek[1] == 0xFE) || (peek[0] == 0xFE && peek[1] == 0xFF)) {
-        return transform.NewReader(br, unicode.BOMOverride(
-            unicode.UTF16(unicode.LittleEndian, unicode.UseBOM).NewDecoder(),
-        )), "utf-16"
-    }
-    // UTF-8 BOM
-    if len(peek) >= 3 && peek[0] == 0xEF && peek[1] == 0xBB && peek[2] == 0xBF {
-        return br, "utf-8-sig"
-    }
-    // ★ BOM이 없어도 샘플이 UTF-8로 유효하면 그대로 통과
-    if utf8.Valid(peek) {
-        return br, "utf-8"
-    }
-    // 그 외엔 Excel CSV(한글)에서 흔한 CP949/EUC-KR로 가정
-    return transform.NewReader(br, korean.EUCKR.NewDecoder()), "cp949/euc-kr"
+	// UTF-16 BOM
+	if len(peek) >= 2 && ((peek[0] == 0xFF && peek[1] == 0xFE) || (peek[0] == 0xFE && peek[1] == 0xFF)) {
+		return transform.NewReader(br, unicode.BOMOverride(
+			unicode.UTF16(unicode.LittleEndian, unicode.UseBOM).NewDecoder(),
+		)), "utf-16"
+	}
+	// UTF-8 BOM
+	if len(peek) >= 3 && peek[0] == 0xEF && peek[1] == 0xBB && peek[2] == 0xBF {
+		return br, "utf-8-sig"
+	}
+	// ★ BOM이 없어도 샘플이 UTF-8로 유효하면 그대로 통과
+	if utf8.Valid(peek) {
+		return br, "utf-8"
+	}
+	// 그 외엔 Excel CSV(한글)에서 흔한 CP949/EUC-KR로 가정
+	return transform.NewReader(br, korean.EUCKR.NewDecoder()), "cp949/euc-kr"
 }
 
 // 첫 비어있지 않은 줄을 기준으로 구분자 추정
@@ -329,7 +330,11 @@ func parseTargetsFromCSV(text string, delim rune) ([]models.Target, error) {
 	}
 
 	if fi == -1 && li == -1 && ei == -1 && pi == -1 {
-		// 헤더가 아닐 가능성 → 무헤더로 간주
+		// 헤더 컬럼을 인식하지 못함 → 무헤더로 간주
+		// I-09: 위치 기반 추정(이메일 인접 칼럼)은 실제 CSV 배치와 다를 수 있음
+		// 사용자에게 헤더 추가를 권장하는 것이 안전하지만, 하위 호환을 위해 경고만 남김
+		log.Warn("CSV에서 헤더를 인식하지 못했습니다. 위치 기반 추정으로 파싱합니다. " +
+			"오분류 방지를 위해 'Email', 'Name', 'Department' 헤더 행을 추가하는 것을 권장합니다.")
 		dataStart = 0
 	}
 
@@ -414,4 +419,3 @@ func parseTargetsFromCSV(text string, delim rune) ([]models.Target, error) {
 	}
 	return out, nil
 }
-
