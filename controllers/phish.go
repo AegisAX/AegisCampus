@@ -65,16 +65,18 @@ type PhishingServer struct {
 type PhishServer = PhishingServer
 
 // miniSwalScript: 해킹 메일 신고 페이지용 내장 알림 (외부 의존성 없음)
+// escHtml 헬퍼 추가, title/text/button에 적용
 const miniSwalScript = `<script>(function(){
+var _esc=function(s){var d=document.createElement("div");d.textContent=String(s||"");return d.innerHTML;};
 var _sf=function(o){return new Promise(function(res){
 var ov=document.createElement("div");
 ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:99999";
 var ic={"success":"✅","error":"❌","warning":"⚠️","info":"ℹ️"}[o.icon||""]||"";
 ov.innerHTML="<div style=\"background:#fff;border-radius:12px;padding:32px 24px;max-width:360px;width:90%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.18)\">"
 +"<div style=\"font-size:48px;margin-bottom:12px\">"+ic+"</div>"
-+(o.title?"<h2 style=\"margin:0 0 10px;font-size:22px;color:#2c3e50\">"+o.title+"</h2>":"")
-+(o.text?"<p style=\"margin:0 0 20px;color:#555;font-size:15px\">"+o.text+"</p>":"")
-+"<button style=\"background:#3085d6;color:#fff;border:0;border-radius:8px;padding:10px 28px;font-size:16px;font-weight:700;cursor:pointer\">"+(o.confirmButtonText||"OK")+"</button>"
++(o.title?"<h2 style=\"margin:0 0 10px;font-size:22px;color:#2c3e50\">"+_esc(o.title)+"</h2>":"")
++(o.text?"<p style=\"margin:0 0 20px;color:#555;font-size:15px\">"+_esc(o.text)+"</p>":"")
++"<button style=\"background:#3085d6;color:#fff;border:0;border-radius:8px;padding:10px 28px;font-size:16px;font-weight:700;cursor:pointer\">"+_esc(o.confirmButtonText||"OK")+"</button>"
 +"</div>";
 ov.querySelector("button").onclick=function(){document.body.removeChild(ov);res({value:true});};
 document.body.appendChild(ov);
@@ -1131,6 +1133,12 @@ func (ps *PhishingServer) RedirectPageHandler(w http.ResponseWriter, r *http.Req
 	if rid != "" {
 		result, err := models.GetResult(rid)
 		if err == nil {
+			// I-07: rid와 RedirectPage 소유자가 동일한지 검증
+			// 다른 사용자의 rid로 개인정보(이름/부서/이메일)가 렌더링되는 것을 방지
+			if result.UserId != rp.UserId {
+				http.NotFound(w, r)
+				return
+			}
 			// Result → Campaign을 통해 TemplateContext 구성
 			campaign, err := models.GetCampaign(result.CampaignId, result.UserId)
 			if err == nil {

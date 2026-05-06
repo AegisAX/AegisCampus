@@ -75,10 +75,12 @@ func (p *Page) Validate() error {
 	if p.Name == "" {
 		return ErrPageNameNotSpecified
 	}
-	// If the user specifies to capture passwords,
-	// we automatically capture credentials
 	if p.CapturePasswords && !p.CaptureCredentials {
 		p.CaptureCredentials = true
+	}
+	// video_id = 0 을 "미설정"으로 정규화 (RedirectPage와 동일)
+	if p.VideoId != nil && *p.VideoId == 0 {
+		p.VideoId = nil
 	}
 	if err := ValidateTemplate(p.HTML); err != nil {
 		return err
