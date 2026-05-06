@@ -159,3 +159,25 @@ func (as *Server) CampaignResultUnreport(w http.ResponseWriter, r *http.Request)
 	}
 	JSONResponse(w, models.Response{Success: true, Message: "Reported status cleared"}, http.StatusOK)
 }
+
+// GET /api/campaigns/{id}/video_progress
+// 캠페인 수신자별 수강 현황 조회
+func (as *Server) CampaignVideoProgress(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	cid, _ := strconv.ParseInt(vars["id"], 10, 64)
+	uid := ctx.Get(r, "user_id").(int64)
+
+	// 캠페인 소유권 확인
+	if _, err := models.GetCampaign(cid, uid); err != nil {
+		JSONResponse(w, models.Response{Success: false, Message: "Campaign not found"}, http.StatusNotFound)
+		return
+	}
+
+	items, err := models.GetVideoProgressByCampaign(uid, cid)
+	if err != nil {
+		log.Error(err)
+		JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
+		return
+	}
+	JSONResponse(w, items, http.StatusOK)
+}

@@ -107,6 +107,10 @@ var api = {
         // summary() - Queries the API for GET /campaigns/summary
         summary: function (id) {
             return query("/campaigns/" + id + "/summary", "GET", {}, true)
+        },
+        // videoProgress() - 수신자별 수강 현황 GET /campaigns/:id/video_progress
+        videoProgress: function (id) {
+            return query("/campaigns/" + id + "/video_progress", "GET", {}, true)
         }
     },
     // groups contains the endpoints for /groups
@@ -366,4 +370,3 @@ $(document).ready(function () {
     // Setup tooltips
     $('[data-toggle="tooltip"]').tooltip()
 });
-

@@ -856,11 +856,12 @@ func (ps *PhishingServer) Media(w http.ResponseWriter, r *http.Request) {
 
 // 트래킹 페이로드 구조체
 type videoTrackPayload struct {
-	RID         string `json:"rid"`
-	VideoID     int64  `json:"video_id"`
-	Event       string `json:"event"`       // play | progress | ended | unload
-	CurrentTime int64  `json:"currentTime"` // seconds
-	Duration    int64  `json:"duration"`    // seconds (optional)
+	RID            string `json:"rid"`
+	VideoID        int64  `json:"video_id"`
+	Event          string `json:"event"`           // play | progress | ended | unload
+	SecondsWatched int64  `json:"seconds_watched"` // 변경
+	Duration       int64  `json:"duration"`        // seconds (optional)
+	Completed      bool   `json:"completed"`       // 추가
 }
 
 // TrackVideo - 랜딩 페이지에서 시청 이벤트(Beacon 등) 수신, DB에 누적/업데이트
@@ -907,8 +908,8 @@ func (ps *PhishingServer) TrackVideo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 갱신 로직: 가장 큰 시청 초수(최대값) 유지
-	if p.CurrentTime > vp.SecondsWatched {
-		vp.SecondsWatched = p.CurrentTime
+	if p.SecondsWatched > vp.SecondsWatched {
+		vp.SecondsWatched = p.SecondsWatched
 	}
 	if p.Duration > 0 {
 		vp.Duration = p.Duration
@@ -921,7 +922,7 @@ func (ps *PhishingServer) TrackVideo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 완료 판정: ended 이벤트거나 90% 이상 시청 시 완료로 표시
-	if p.Event == "ended" || (vp.Duration > 0 && vp.Percent >= 0.90) {
+	if p.Completed || (vp.Duration > 0 && vp.Percent >= 0.90) {
 		vp.Completed = true
 	}
 

@@ -61,32 +61,87 @@
                 </div>
             </div>
         </div>
+
+        <!-- 탭 네비게이션 -->
         <div class="row">
-            <h2>Details</h2>
-            <table id="resultsTable" class="table">
-                <thead>
-                    <tr>
-                        <th>Result ID</th>
-                        <th class="no-sort"></th>
-                        <th>Name</th>
-                        <th>Department</th>
-                        <th>Email</th>
-                        <th>Position</th>
-                        <th>Status</th>
-                        <th class="text-center">Sent</th>
-                        <th class="text-center">Opened</th>
-                        <th class="text-center">Clicked</th>
-                        <th class="text-center">Submitted</th>
-                        <th class="text-center">Executed</th>
-                        <th class="text-center">Reported</th>
-                        <th class="text-center">Trained</th>
-                        <th style="display:none;">Send Date</th>
-                    </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            </table>
+            <ul class="nav nav-tabs" role="tablist" style="margin-bottom:0">
+                <li role="presentation" class="active">
+                    <a href="#tab-results" aria-controls="tab-results"
+                       role="tab" data-toggle="tab">
+                        <i class="fa fa-list"></i> 결과 목록
+                    </a>
+                </li>
+                <li role="presentation">
+                    <a href="#tab-video-progress" aria-controls="tab-video-progress"
+                       role="tab" data-toggle="tab" id="tab-video-progress-link">
+                        <i class="fa fa-graduation-cap"></i> 수강 현황
+                    </a>
+                </li>
+            </ul>
         </div>
+
+        <div class="tab-content">
+
+            <!-- 결과 목록 탭 (기존) -->
+            <div role="tabpanel" class="tab-pane active" id="tab-results">
+                <div class="row">
+                    <h2>Details</h2>
+                    <table id="resultsTable" class="table">
+                        <thead>
+                            <tr>
+                                <th>Result ID</th>
+                                <th class="no-sort"></th>
+                                <th>Name</th>
+                                <th>Department</th>
+                                <th>Email</th>
+                                <th>Position</th>
+                                <th>Status</th>
+                                <th class="text-center">Sent</th>
+                                <th class="text-center">Opened</th>
+                                <th class="text-center">Clicked</th>
+                                <th class="text-center">Submitted</th>
+                                <th class="text-center">Executed</th>
+                                <th class="text-center">Reported</th>
+                                <th class="text-center">Trained</th>
+                                <th style="display:none;">Send Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div><!-- /tab-pane#tab-results -->
+
+            <!-- 수강 현황 탭 (신규) -->
+            <div role="tabpanel" class="tab-pane" id="tab-video-progress">
+                <div class="row" style="margin-top:15px">
+                    <div class="col-md-12">
+                        <p id="video-progress-empty" class="text-muted" style="display:none">
+                            <i class="fa fa-info-circle"></i> 수강 기록이 없습니다.
+                        </p>
+                        <table id="video-progress-table"
+                               class="table table-condensed table-bordered table-hover"
+                               style="display:none">
+                            <thead>
+                                <tr>
+                                    <th class="text-center">이름</th>
+                                    <th class="text-center">부서</th>
+                                    <th class="text-center">이메일</th>
+                                    <th class="text-center">시청 시간</th>
+                                    <th class="text-center">전체 시간</th>
+                                    <th class="text-center" style="min-width:120px">진행률</th>
+                                    <th class="text-center">완료</th>
+                                    <th class="text-center">마지막 업데이트</th>
+                                </tr>
+                            </thead>
+                            <tbody id="video-progress-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div><!-- /tab-pane#tab-video-progress -->
+
+        </div><!-- /tab-content -->
+
     </div>
     <div id="flashes" class="row"></div>
 </div>
