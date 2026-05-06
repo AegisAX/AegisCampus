@@ -1070,6 +1070,39 @@ func TrainingCompleteHandler(w http.ResponseWriter, r *http.Request) {
 		api.JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
 		return
 	}
+
+	// B-04: VideoProgress.completed 동기화
+	// HandleTrainingCompleted는 events 테이블에 Trained 이벤트만 기록하므로,
+	// video_progresses 테이블의 completed 컬럼을 별도로 갱신해야 합니다.
+	if vidID, err := strconv.ParseInt(vidStr, 10, 64); err == nil && vidID > 0 {
+		vp, err := models.GetVideoProgress(rs.UserId, rs.Id, vidID)
+		if err == nil {
+			if vp == nil {
+				vp = &models.VideoProgress{
+					UserId:   rs.UserId,
+					ResultId: rs.Id,
+					VideoId:  vidID,
+				}
+			}
+			// 가장 큰 시청 시간 유지
+			if watched := int64(req.Watched); watched > vp.SecondsWatched {
+				vp.SecondsWatched = watched
+			}
+			if req.Duration > 0 {
+				vp.Duration = int64(req.Duration)
+				vp.Percent = req.Watched / req.Duration
+				if vp.Percent > 1 {
+					vp.Percent = 1
+				}
+			}
+			vp.Completed = true
+			if err := vp.Save(); err != nil {
+				log.Warnf("TrainingComplete: VideoProgress 동기화 실패 (rid=%s, vid=%d): %v", rs.RId, vidID, err)
+				// 동기화 실패는 non-fatal — Trained 이벤트는 이미 기록됨
+			}
+		}
+	}
+
 	api.JSONResponse(w, models.Response{Success: true}, http.StatusOK)
 }
 

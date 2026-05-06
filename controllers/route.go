@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/tls"
+	"fmt"
 	"html/template"
 	"net/http"
 	"net/url"
@@ -77,8 +78,13 @@ func WithWorker(w worker.Worker) AdminServerOption {
 func NewAdminServer(config config.AdminServer, options ...AdminServerOption) *AdminServer {
 	defaultWorker, _ := worker.New()
 	defaultServer := &http.Server{
-		ReadTimeout: 10 * time.Second,
-		Addr:        config.ListenURL,
+		// ReadTimeout을 제거하고 ReadHeaderTimeout만 유지합니다.
+		// ReadTimeout은 요청 헤더 + 바디 전체를 읽는 시간을 제한하므로
+		// 대용량 영상 업로드 시 연결이 강제 종료됩니다.
+		// ReadHeaderTimeout은 헤더만 제한하여 업로드에 영향을 주지 않으면서
+		// Slowloris 공격을 방어합니다.
+		ReadHeaderTimeout: 10 * time.Second,
+		Addr:              config.ListenURL,
 	}
 	defaultLimiter := ratelimit.NewPostLimiter()
 	as := &AdminServer{
@@ -610,10 +616,19 @@ func (as *AdminServer) UploadVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, util.MaxVideoUploadBytes)
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		if err.Error() == "http: request body too large" {
+			api.JSONResponse(w, models.Response{
+				Success: false,
+				Message: fmt.Sprintf("파일 크기가 허용 한도를 초과합니다 (최대 %dMB)", util.MaxVideoUploadBytes>>20),
+			}, http.StatusRequestEntityTooLarge)
+			return
+		}
 		api.JSONResponse(w, models.Response{Success: false, Message: "Parse error"}, http.StatusBadRequest)
 		return
 	}
+
 	file, handler, err := r.FormFile("file")
 	if err != nil {
 		api.JSONResponse(w, models.Response{Success: false, Message: "File required"}, http.StatusBadRequest)

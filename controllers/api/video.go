@@ -77,22 +77,20 @@ func (as *Server) HandleVideoByID(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// 2) Redirect Page 사용 중 확인 (소유자 포함 전체)
-		//    IsVideoUsedByOthers → IsVideoInUse 로 교체
-		inUse, err := models.IsVideoInUse(id)
-		if err != nil {
-			JSONResponse(w, models.Response{Success: false, Message: "lookup error"}, http.StatusInternalServerError)
-			return
-		}
-		if inUse {
-			JSONResponse(w, models.Response{Success: false, Message: "Redirect Page에서 사용 중인 동영상은 수정할 수 없습니다"}, http.StatusConflict)
-			return
-		}
-
-		// 3) Content-Type에 따라 분기
+		// 2) Content-Type에 따라 분기
+		//    파일 교체 시에만 IsVideoInUse 체크 (I-02)
 		ct := r.Header.Get("Content-Type")
 		if strings.Contains(ct, "multipart/form-data") {
+			// I-04: 크기 제한 적용
+			r.Body = http.MaxBytesReader(w, r.Body, util.MaxVideoUploadBytes)
 			if err := r.ParseMultipartForm(32 << 20); err != nil {
+				if err.Error() == "http: request body too large" {
+					JSONResponse(w, models.Response{
+						Success: false,
+						Message: fmt.Sprintf("파일 크기가 허용 한도를 초과합니다 (최대 %dMB)", util.MaxVideoUploadBytes>>20),
+					}, http.StatusRequestEntityTooLarge)
+					return
+				}
 				JSONResponse(w, models.Response{Success: false, Message: "Parse error"}, http.StatusBadRequest)
 				return
 			}
@@ -103,7 +101,20 @@ func (as *Server) HandleVideoByID(w http.ResponseWriter, r *http.Request) {
 
 			file, handler, fileErr := r.FormFile("file")
 			if fileErr == nil {
-				// IsVideoInUse 체크는 위(2번)에서 이미 완료 → 중복 제거
+				// I-02: 파일이 실제로 교체되는 경우에만 In-Use 체크
+				// 이름/설명/공개여부만 바꾸는 메타데이터 수정은 허용합니다.
+				inUse, err := models.IsVideoInUse(id)
+				if err != nil {
+					JSONResponse(w, models.Response{Success: false, Message: "lookup error"}, http.StatusInternalServerError)
+					return
+				}
+				if inUse {
+					JSONResponse(w, models.Response{
+						Success: false,
+						Message: "참조 중인 영상 파일은 교체할 수 없습니다. 새 영상을 별도 업로드 후 연결을 변경하세요.",
+					}, http.StatusConflict)
+					return
+				}
 				defer file.Close()
 				durationHint := int64(0)
 				if ds := r.FormValue("duration_seconds"); ds != "" {
@@ -243,7 +254,15 @@ func (as *Server) handleVideoUpload(w http.ResponseWriter, r *http.Request) {
 	userId := getCurrentUserID(r)
 
 	const maxMultipartMem = 32 << 20
+	r.Body = http.MaxBytesReader(w, r.Body, util.MaxVideoUploadBytes)
 	if err := r.ParseMultipartForm(maxMultipartMem); err != nil {
+		if err.Error() == "http: request body too large" {
+			JSONResponse(w, models.Response{
+				Success: false,
+				Message: fmt.Sprintf("파일 크기가 허용 한도를 초과합니다 (최대 %dMB)", util.MaxVideoUploadBytes>>20),
+			}, http.StatusRequestEntityTooLarge)
+			return
+		}
 		JSONResponse(w, models.Response{Success: false, Message: "Parse error"}, http.StatusBadRequest)
 		return
 	}
