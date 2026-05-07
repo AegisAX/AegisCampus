@@ -35,14 +35,14 @@ SET `redirect_url` = REPLACE(REPLACE(`redirect_url`,
 WHERE `redirect_url` LIKE '%{{.FirstName}}%'
    OR `redirect_url` LIKE '%{{.LastName}}%';
 
-UPDATE `smtp_headers`
+UPDATE `headers`
 SET `key` = REPLACE(REPLACE(`key`,
     '{{.FirstName}}', '{{.Name}}'),
     '{{.LastName}}',  '{{.Department}}')
 WHERE `key` LIKE '%{{.FirstName}}%'
    OR `key` LIKE '%{{.LastName}}%';
 
-UPDATE `smtp_headers`
+UPDATE `headers`
 SET `value` = REPLACE(REPLACE(`value`,
     '{{.FirstName}}', '{{.Name}}'),
     '{{.LastName}}',  '{{.Department}}')
@@ -87,14 +87,14 @@ SET `redirect_url` = REPLACE(REPLACE(`redirect_url`,
 WHERE `redirect_url` LIKE '%{{.Name}}%'
    OR `redirect_url` LIKE '%{{.Department}}%';
 
-UPDATE `smtp_headers`
+UPDATE `headers`
 SET `key` = REPLACE(REPLACE(`key`,
     '{{.Name}}', '{{.FirstName}}'),
     '{{.Department}}', '{{.LastName}}')
 WHERE `key` LIKE '%{{.Name}}%'
    OR `key` LIKE '%{{.Department}}%';
 
-UPDATE `smtp_headers`
+UPDATE `headers`
 SET `value` = REPLACE(REPLACE(`value`,
     '{{.Name}}', '{{.FirstName}}'),
     '{{.Department}}', '{{.LastName}}')
