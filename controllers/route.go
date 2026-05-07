@@ -144,7 +144,11 @@ func (as *AdminServer) registerRoutes() {
 	router.HandleFunc("/redirect_pages", mid.Use(as.RedirectPages, mid.RequireLogin))
 	router.HandleFunc("/videos", mid.Use(as.Videos, mid.RequireLogin))
 	router.HandleFunc("/videos/stream/{id:[0-9]+}", mid.Use(as.StreamVideo, mid.RequireLogin))
-	router.HandleFunc("/videos/upload", mid.Use(as.UploadVideo, mid.RequireLogin)).Methods("POST")
+	// 향후 Phase 6 에서 /api/videos/ POST 로 통일 예정 (다른 객체들과 라우팅 패턴 일치).
+	// 그 전까지 defense-in-depth 로 ModifyObjects 권한을 명시 검사한다.
+	// 현재 RBAC 모델에서는 admin/user 둘 다 이 권한을 가지므로 동작 변화는 없으나,
+	// 향후 view-only 같은 새 역할이 추가될 때 자동으로 차단된다.
+	router.HandleFunc("/videos/upload", mid.Use(as.UploadVideo, mid.RequirePermission(models.PermissionModifyObjects), mid.RequireLogin)).Methods("POST")
 	router.HandleFunc("/videos/thumb/{id:[0-9]+}", as.HandleVideoThumb).Methods("GET")
 	router.HandleFunc("/media/{id:[0-9]+}", mid.Use(as.StreamVideo, mid.RequireLogin)).Methods("GET")
 	router.HandleFunc("/sending_profiles", mid.Use(as.SendingProfiles, mid.RequireLogin))
