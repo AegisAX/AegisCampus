@@ -816,15 +816,41 @@ func (ps *PhishingServer) Media(w http.ResponseWriter, r *http.Request) {
 	idStr := vars["id"]
 	id, _ := strconv.ParseInt(idStr, 10, 64)
 
+	// Phase 2 #7: rid 기반 캠페인-영상 연결 검증.
+	// 외부 직접 접근 (ID 추측) 으로 영상이 노출되는 것을 차단한다.
+	// 정상 캠페인 수신자는 RedirectPage/LandingPage 의 <source> 태그가
+	// 렌더 시점에 ?rid={{.RId}} 토큰을 포함하므로 자연스럽게 통과한다.
+	rid := r.URL.Query().Get(models.RecipientParameter)
+	if rid == "" {
+		log.Errorf("media: rid missing (id=%s, ip=%s)", idStr, r.RemoteAddr)
+		http.NotFound(w, r)
+		return
+	}
+	result, err := models.GetResult(rid)
+	if err != nil {
+		log.Errorf("media: invalid rid (id=%s, rid=%s)", idStr, rid)
+		http.NotFound(w, r)
+		return
+	}
+	campaign, err := models.GetCampaign(result.CampaignId, result.UserId)
+	if err != nil {
+		log.Errorf("media: campaign lookup failed (id=%s, rid=%s, campaign_id=%d)", idStr, rid, result.CampaignId)
+		http.NotFound(w, r)
+		return
+	}
+	if campaign.Page.VideoId == nil || *campaign.Page.VideoId != id {
+		log.Errorf("media: campaign %d page does not reference video %d (rid=%s)", campaign.Id, id, rid)
+		http.NotFound(w, r)
+		return
+	}
+
 	v, err := models.GetVideo(id)
 	if err != nil || v == nil || v.Id == 0 {
 		log.Errorf("media: video not found (id=%s)", idStr)
 		http.NotFound(w, r)
 		return
 	}
-
 	path := v.FilePath
-
 	// 상대경로면 절대경로로 변환 (util.VideoStorageDirAbs 기준)
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(util.VideoStorageDirAbs, filepath.Base(path))

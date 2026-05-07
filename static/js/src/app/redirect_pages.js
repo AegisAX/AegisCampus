@@ -379,7 +379,7 @@ function insertTrainingTemplate(videoId, videoName) {
         '  </header>',
         '  <div class="container-box">',
         '    <video id="training-video" controls preload="metadata" playsinline disablePictureInPicture controlsList="nodownload noplaybackrate" oncontextmenu="return false">',
-        '      <source src="/media/' + (typeof videoId === "number" ? videoId : String(videoId)) + '" type="video/mp4">',
+        '      <source src="/media/' + (typeof videoId === "number" ? videoId : String(videoId)) + '?rid={{.RId}}" type="video/mp4">',
         '      지원되지 않는 브라우저입니다.',
         '    </video>',
         '    <div id="resumeBadge" class="text-muted" style="display:none;margin-top:8px;font-size:12px;opacity:.8;"></div>',
