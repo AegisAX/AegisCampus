@@ -166,20 +166,39 @@ func (as *Server) HandleVideoByID(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			JSONResponse(w, existing, http.StatusOK)
-
 		} else {
-			// JSON 분기 — IsVideoInUse 체크는 위(2번)에서 완료
-			var v models.Video
-			if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
+			// JSON 분기 — 메타데이터만 부분 갱신 가능.
+			// 보안: db.Save() 가 모든 컬럼을 덮어쓰는 GORM v1 의 특성상
+			// 사용자 입력을 그대로 Video 구조체에 디코딩하면 user_id, file_path,
+			// file_name, thumbnail_path, duration_seconds 까지 0/빈 문자열로
+			// 파괴되거나 강제 양도될 수 있습니다. 그래서 화이트리스트한 메타데이터
+			// 필드(name/description/is_public)만 raw map 으로 받아 명시적으로 갱신합니다.
+			// (multipart 분기의 메타데이터-only 케이스와 동일한 패턴입니다.)
+			var raw map[string]interface{}
+			if err := json.NewDecoder(r.Body).Decode(&raw); err != nil {
 				JSONResponse(w, models.Response{Success: false, Message: "Invalid request"}, http.StatusBadRequest)
 				return
 			}
-			v.Id = id
-			if err := models.UpdateVideo(&v); err != nil {
+			if v, ok := raw["name"]; ok {
+				if s, ok := v.(string); ok {
+					existing.Name = strings.TrimSpace(s)
+				}
+			}
+			if v, ok := raw["description"]; ok {
+				if s, ok := v.(string); ok {
+					existing.Description = s
+				}
+			}
+			if v, ok := raw["is_public"]; ok {
+				if b, ok := v.(bool); ok {
+					existing.IsPublic = b
+				}
+			}
+			if err := models.UpdateVideo(existing); err != nil {
 				JSONResponse(w, models.Response{Success: false, Message: "Update failed"}, http.StatusInternalServerError)
 				return
 			}
-			JSONResponse(w, models.Response{Success: true}, http.StatusOK)
+			JSONResponse(w, existing, http.StatusOK)
 		}
 
 	case http.MethodDelete:
