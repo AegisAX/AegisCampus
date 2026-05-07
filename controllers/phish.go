@@ -271,7 +271,9 @@ func (ps *PhishingServer) ReportFormGet(w http.ResponseWriter, r *http.Request) 
 	// rid 없어도 폼은 열 수 있도록 허용 (POST에서 fallback 매칭 처리)
 	// if rid == "" { ... }  <-- 차단하지 않음
 
-	fmt.Fprintf(w, `<!doctype html>
+	// 주의: miniSwalScript 안에 리터럴 '%' 가 포함돼 있어 fmt.Fprintf 의 포맷 문자열로 바로 넘길 수 없습니다 ("%; has unknown verb ;" 오류).
+	// 그래서 정적 부분은 io.WriteString 으로, rid 가 들어가는 부분만 fmt.Fprintf 로 처리하도록 분리했습니다.
+	io.WriteString(w, `<!doctype html>
 <html lang="ko">
 <head>
 <meta charset="utf-8">
@@ -284,7 +286,7 @@ func (ps *PhishingServer) ReportFormGet(w http.ResponseWriter, r *http.Request) 
 		--text:#2b2f33; --muted:#6c7a89; --primary:#337ab7; --primary-dark:#286090;
 		--control-bg:#fff; --control-border:#ccd4dd; --chip-bg:#f8fafc;
 	}
-	*{box-sizing:border-box} html,body{height:100%%}
+	*{box-sizing:border-box} html,body{height:100%}
 	body{
 		margin:0;
 		font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
@@ -304,7 +306,7 @@ func (ps *PhishingServer) ReportFormGet(w http.ResponseWriter, r *http.Request) 
 	.form-group{margin-bottom:14px}
 	label{display:block;margin-bottom:6px;color:#44525f;font-weight:600;font-size:13px}
 	.form-control{
-		width:100%%;display:block;padding:8px 10px;border:1px solid var(--control-border);
+		width:100%;display:block;padding:8px 10px;border:1px solid var(--control-border);
     border-radius:4px;background:var(--control-bg);color:var(--text);outline:none;transition:border .15s ease
 	}
 	.form-control:focus{border-color:#99b5d1}
@@ -322,7 +324,9 @@ func (ps *PhishingServer) ReportFormGet(w http.ResponseWriter, r *http.Request) 
 	.alert.show{display:block}
 	@media (max-width:720px){ .form-grid{grid-template-columns:1fr} }
 </style>
-`+miniSwalScript+`
+`)
+	io.WriteString(w, miniSwalScript)
+	fmt.Fprintf(w, `
 </head>
 <body>
 <div class="container">
