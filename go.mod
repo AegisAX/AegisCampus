@@ -2,8 +2,6 @@ module github.com/gophish/gophish
 
 go 1.23.0
 
-toolchain go1.24.6
-
 require (
 	bitbucket.org/liamstask/goose v0.0.0-20150115234039-8488cc47d90c
 	github.com/NYTimes/gziphandler v1.1.1
