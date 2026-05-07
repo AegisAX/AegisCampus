@@ -149,7 +149,7 @@ func (as *AdminServer) registerRoutes() {
 	// 현재 RBAC 모델에서는 admin/user 둘 다 이 권한을 가지므로 동작 변화는 없으나,
 	// 향후 view-only 같은 새 역할이 추가될 때 자동으로 차단된다.
 	router.HandleFunc("/videos/upload", mid.Use(as.UploadVideo, mid.RequirePermission(models.PermissionModifyObjects), mid.RequireLogin)).Methods("POST")
-	router.HandleFunc("/videos/thumb/{id:[0-9]+}", as.HandleVideoThumb).Methods("GET")
+	router.HandleFunc("/videos/thumb/{id:[0-9]+}", mid.Use(as.HandleVideoThumb, mid.RequireLogin)).Methods("GET")
 	router.HandleFunc("/media/{id:[0-9]+}", mid.Use(as.StreamVideo, mid.RequireLogin)).Methods("GET")
 	router.HandleFunc("/sending_profiles", mid.Use(as.SendingProfiles, mid.RequireLogin))
 	router.HandleFunc("/settings", mid.Use(as.Settings, mid.RequireLogin))
@@ -567,7 +567,7 @@ func (as *AdminServer) StreamVideo(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, filepath.Base(v.FilePath), fi.ModTime(), f)
 }
 
-// GET /videos/thumb/{id} : 썸네일 이미지 서빙 (로그인 없이 접근 가능)
+// GET /videos/thumb/{id} : 썸네일 이미지 서빙 (로그인 필요 — Phase 2 #8)
 func (as *AdminServer) HandleVideoThumb(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idStr := vars["id"]
