@@ -34,14 +34,15 @@ func (as *Server) SendTestEmail(w http.ResponseWriter, r *http.Request) {
 	// If a Template is not specified use a default
 	if s.Template.Name == "" {
 		//default message body
-		text := "It works!\n\nThis is an email letting you know that your gophish\nconfiguration was successful.\n" +
-			"Here are the details:\n\nWho you sent from: {{.From}}\n\nWho you sent to: \n" +
-			"{{if .Name}} Name: {{.Name}}\n{{end}}" +
-			"{{if .Department}} Department: {{.Department}}\n{{end}}" +
-			"{{if .Position}} Position: {{.Position}}\n{{end}}" +
-			"\nNow go send some phish!"
+		text := "정상 작동 중입니다!\n\nSentinel 설정이 성공적으로 적용되었음을 알리는 메일입니다.\n\n" +
+			"상세 정보:\n발신: {{.From}}\n" +
+			"{{if .Email}}수신: {{.Email}}\n{{end}}" +
+			"{{if .Name}}이름: {{.Name}}\n{{end}}" +
+			"{{if .Department}}부서: {{.Department}}\n{{end}}" +
+			"{{if .Position}}직책: {{.Position}}\n{{end}}" +
+			"\n이제 캠페인을 시작해 보세요!"
 		t := models.Template{
-			Subject: "Default Email from Gophish",
+			Subject: "Sentinel 테스트 메일",
 			Text:    text,
 		}
 		s.Template = t
