@@ -838,8 +838,18 @@ func (ps *PhishingServer) Media(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if campaign.Page.VideoId == nil || *campaign.Page.VideoId != id {
-		log.Errorf("media: campaign %d page does not reference video %d (rid=%s)", campaign.Id, id, rid)
+	// Phase 2 #7: 영상이 result 소유자의 LandingPage 또는 RedirectPage 중
+	// 어느 한 곳에라도 연결되어 있으면 통과시킨다.
+	// RedirectPage 안에만 영상이 임베드된 시나리오 (campaign.Page.VideoId == nil)
+	// 도 정상 처리되도록 함.
+	linked, lerr := models.IsVideoLinkedToUser(id, result.UserId)
+	if lerr != nil {
+		log.Errorf("media: video link lookup failed (id=%s, rid=%s): %v", idStr, rid, lerr)
+		http.NotFound(w, r)
+		return
+	}
+	if !linked {
+		log.Errorf("media: rid %s (campaign=%d, user=%d) does not authorize video %d", rid, campaign.Id, result.UserId, id)
 		http.NotFound(w, r)
 		return
 	}

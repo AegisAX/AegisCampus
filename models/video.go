@@ -134,3 +134,31 @@ func IsVideoInUse(videoId int64) (bool, error) {
 	}
 	return count > 0, nil
 }
+
+// IsVideoLinkedToUser returns true if any LandingPage OR RedirectPage owned by
+// userId references this video. Used by the public Media handler (Phase 2 #7)
+// to authorize rid-based access where the video may be embedded in either the
+// campaign's LandingPage (pages.video_id) or its RedirectPage (redirect_pages.video_id).
+func IsVideoLinkedToUser(videoId int64, userId int64) (bool, error) {
+	var count int64
+
+	// 1) RedirectPage 검사
+	err := db.Model(&RedirectPage{}).
+		Where("video_id = ? AND user_id = ?", videoId, userId).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	if count > 0 {
+		return true, nil
+	}
+
+	// 2) LandingPage 검사
+	err = db.Model(&Page{}).
+		Where("video_id = ? AND user_id = ?", videoId, userId).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
