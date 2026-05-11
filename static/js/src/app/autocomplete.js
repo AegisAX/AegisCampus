@@ -36,7 +36,7 @@ var TEMPLATE_TAGS = [{
     {
         id: 8,
         name: 'URL',
-        description: 'The URL to your Gophish listener.'
+        description: 'The URL to your Sentinel listener.'
     },
     {
         id: 9,
