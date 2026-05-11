@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	log "github.com/gophish/gophish/logger"
@@ -153,5 +154,10 @@ func (w *DefaultWorker) SendTestEmail(s *models.EmailRequest) error {
 		ms := []mailer.Mail{s}
 		w.mailer.Queue(ms)
 	}()
-	return <-s.ErrorChan
+	select {
+	case err := <-s.ErrorChan:
+		return err
+	case <-time.After(10 * time.Second):
+		return fmt.Errorf("SMTP 서버 응답이 없습니다. 호스트/포트/방화벽을 확인하세요. (10초 타임아웃)")
+	}
 }
