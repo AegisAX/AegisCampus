@@ -1,56 +1,43 @@
 {{define "nav"}}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-sm-3 col-md-2 sidebar">
-            <ul class="nav nav-sidebar">
-    <li>
-        <a href="/"><span class="sidebar-nav-item-icon fa fa-tachometer"></span> Dashboard</a>
-    </li>
-    <li>
-        <a href="/campaigns"><span class="sidebar-nav-item-icon fa fa-bullseye"></span> Campaigns</a>
-    </li>
-    <li>
-        <a href="/groups"><span class="sidebar-nav-item-icon fa fa-users"></span> Users &amp; Groups</a>
-    </li>
-    <li>
-        <a href="/templates"><span class="sidebar-nav-item-icon fa fa-envelope"></span> Email Templates</a>
-    </li>
-    <li>
-        <a href="/landing_pages"><span class="sidebar-nav-item-icon fa fa-file-text-o"></span> Landing Pages</a>
-    </li>
-    <li>
-        <a href="/redirect_pages"><span class="sidebar-nav-item-icon fa fa-share-square-o"></span> Redirect Pages</a>
-    </li>
-    <li>
-        <a href="/videos"><span class="sidebar-nav-item-icon fa fa-film"></span> Video Management</a>
-    </li>
-    <li>
-        <a href="/sending_profiles"><span class="sidebar-nav-item-icon fa fa-paper-plane"></span> Sending Profiles</a>
-    </li>
-    <li>
-        <a href="/settings"><span class="sidebar-nav-item-icon fa fa-cog"></span> Account Settings</a>
-    </li>
-    {{if .ModifySystem}}
-    <li>
-        <a href="/users"><span class="sidebar-nav-item-icon fa fa-user-secret"></span> User Management
+<div class="container-fluid"><div class="row"><div class="col-sm-3 col-md-2 sidebar">
+    <ul class="nav nav-sidebar">
+        <li>
+            <a href="/"><span class="sidebar-nav-item-icon fa fa-tachometer"></span> Dashboard</a>
+        </li>
+        <li>
+            <a href="/campaigns"><span class="sidebar-nav-item-icon fa fa-bullseye"></span> Campaigns</a>
+        </li>
+        <li>
+            <a href="/groups"><span class="sidebar-nav-item-icon fa fa-users"></span> Users &amp; Groups</a>
+        </li>
+        <li>
+            <a href="/templates"><span class="sidebar-nav-item-icon fa fa-envelope"></span> Email Templates</a>
+        </li>
+        <li>
+            <a href="/landing_pages"><span class="sidebar-nav-item-icon fa fa-file-text-o"></span> Landing Pages</a>
+        </li>
+        <li>
+            <a href="/redirect_pages"><span class="sidebar-nav-item-icon fa fa-share-square-o"></span> Redirect Pages</a>
+        </li>
+        <li>
+            <a href="/videos"><span class="sidebar-nav-item-icon fa fa-film"></span> Video Management</a>
+        </li>
+        <li>
+            <a href="/sending_profiles"><span class="sidebar-nav-item-icon fa fa-paper-plane"></span> Sending Profiles</a>
+        </li>
+        <li>
+            <a href="/settings"><span class="sidebar-nav-item-icon fa fa-cog"></span> Account Settings</a>
+        </li>
+        {{if .ModifySystem}}
+        <li>
+            <a href="/users"><span class="sidebar-nav-item-icon fa fa-user-secret"></span> User Management
             <span class="nav-badge badge pull-right">Admin</span></a>
-    </li>
-    <li>
-        <a href="/webhooks"><span class="sidebar-nav-item-icon fa fa-link"></span> Webhooks
+        </li>
+        <li>
+            <a href="/webhooks"><span class="sidebar-nav-item-icon fa fa-link"></span> Webhooks
             <span class="nav-badge badge pull-right">Admin</span></a>
-    </li>
-    {{end}}
-    <li>
-        <hr>
-    </li>
-    <li>
-        <a href="https://docs.getgophish.com/user-guide/"><span class="sidebar-nav-item-icon fa fa-book"></span> User Guide</a>
-    </li>
-    <li>
-        <a href="https://docs.getgophish.com/api-documentation/"><span class="sidebar-nav-item-icon fa fa-code"></span> API Documentation</a>
-    </li>
-            </ul>
-        </div>
-    </div>
-</div>
+        </li>
+        {{end}}
+    </ul>
+</div></div></div>
 {{end}}
