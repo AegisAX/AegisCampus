@@ -214,8 +214,8 @@ func (m *MailLog) Generate(msg *gomail.Message) error {
 	// Date 헤더
 	msg.SetHeader("Date", time.Now().Format(time.RFC1123Z))
 	// Gmail 550-5.7.1 회피: FQDN 기반 Message-ID 생성
-	msgidDomain := pickMsgIDDomain(c)
-	messageID, err := m.generateMessageIDForDomain(msgidDomain)
+	msgidDomain := pickMsgIDDomain(c.Template.EnvelopeSender, c.SMTP.FromAddress)
+	messageID, err := generateMessageIDForDomain(msgidDomain)
 	if err != nil {
 		return err
 	}
@@ -337,20 +337,20 @@ func UnlockAllMailLogs() error {
 //  5. "mail.invalid" — 위 모두 실패 시
 //
 // 환경변수 예시: export GOPHISH_MSGID_DOMAIN=mail.example.com
-func pickMsgIDDomain(c *Campaign) string {
+func pickMsgIDDomain(envelopeSender, smtpFromAddress string) string {
 	// 1) 환경변수 우선
 	if v := os.Getenv("GOPHISH_MSGID_DOMAIN"); v != "" && strings.Contains(v, ".") {
 		return strings.ToLower(v)
 	}
 	// 2) EnvelopeSender 도메인
-	if addr, err := mail.ParseAddress(c.Template.EnvelopeSender); err == nil {
+	if addr, err := mail.ParseAddress(envelopeSender); err == nil {
 		parts := strings.Split(addr.Address, "@")
 		if len(parts) == 2 && strings.Contains(parts[1], ".") {
 			return strings.ToLower(parts[1])
 		}
 	}
 	// 3) SMTP.FromAddress 도메인
-	if addr, err := mail.ParseAddress(c.SMTP.FromAddress); err == nil {
+	if addr, err := mail.ParseAddress(smtpFromAddress); err == nil {
 		parts := strings.Split(addr.Address, "@")
 		if len(parts) == 2 && strings.Contains(parts[1], ".") {
 			return strings.ToLower(parts[1])
@@ -366,8 +366,10 @@ func pickMsgIDDomain(c *Campaign) string {
 	return "mail.invalid"
 }
 
-// generateMessageIDForDomain: FQDN을 사용해 RFC5322 규격 Message-ID 생성
-func (m *MailLog) generateMessageIDForDomain(domain string) (string, error) {
+// generateMessageIDForDomain: FQDN을 사용해 RFC5322 규격 Message-ID 생성.
+// 패키지 함수로 두어 MailLog (캠페인 경로) 와 EmailRequest (테스트 메일 경로)
+// 양쪽에서 공유 호출한다.
+func generateMessageIDForDomain(domain string) (string, error) {
 	t := time.Now().UnixNano()
 	pid := os.Getpid()
 	rint, err := rand.Int(rand.Reader, maxBigInt)

@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"net/mail"
+	"time"
 
 	"github.com/gophish/gomail"
 	"github.com/gophish/gophish/config"
@@ -123,6 +124,17 @@ func (s *EmailRequest) Generate(msg *gomail.Message) error {
 		msg.SetHeader("X-Gophish-Contact", conf.ContactAddress)
 	}
 
+	// Date 헤더
+	msg.SetHeader("Date", time.Now().Format(time.RFC1123Z))
+	// Gmail 550-5.7.1 회피: FQDN 기반 Message-ID 생성
+	// (maillog.go 캠페인 경로와 동일한 패키지 함수를 공유)
+	msgidDomain := pickMsgIDDomain(s.Template.EnvelopeSender, s.SMTP.FromAddress)
+	messageID, err := generateMessageIDForDomain(msgidDomain)
+	if err != nil {
+		return err
+	}
+	msg.SetHeader("Message-ID", messageID)
+
 	// Parse the customHeader templates
 	for _, header := range s.SMTP.Headers {
 		key, err := ExecuteTemplate(header.Key, ptx)
@@ -171,7 +183,7 @@ func (s *EmailRequest) Generate(msg *gomail.Message) error {
 
 	// Attach the files
 	for i := range s.Template.Attachments {
-		addAttachment(msg, &s.Template.Attachments[i], ptx)   // 원본 포인터 전달
+		addAttachment(msg, &s.Template.Attachments[i], ptx) // 원본 포인터 전달
 	}
 
 	return nil
