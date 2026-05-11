@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net/mail"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -102,10 +101,13 @@ func (s *SMTP) Validate() error {
 	return err
 }
 
-// validateFromAddress validates
+// validateFromAddress validates that the SMTP From address is a parseable
+// email. Accepts both bare email (admin@example.com) and RFC 5322 mailbox
+// form (Display Name <admin@example.com>). 발신자 표시명을 허용하기 위해
+// 정규식 검사 대신 net/mail 의 RFC 5322 파서를 사용한다.
 func validateFromAddress(email string) bool {
-	r, _ := regexp.Compile("^([a-zA-Z0-9_\\-\\.]+)@([a-zA-Z0-9_\\-\\.]+)\\.([a-zA-Z]{2,18})$")
-	return r.MatchString(email)
+	_, err := mail.ParseAddress(email)
+	return err == nil
 }
 
 // GetDialer returns a dialer for the given SMTP profile
