@@ -269,7 +269,7 @@ p {
 }
 
 .ct-point-sent {
-    fill: #1abc9c !important;
+    fill: #3F3D7A !important;
 }
 
 .ct-point-success {
@@ -363,7 +363,7 @@ p {
 }
 
 .ct-series-a .ct-slice-donut {
-    stroke: #1abc9c !important;
+    stroke: #3F3D7A !important;
 }
 
 .ct-slice-donut.ct-slice-donut-error {
@@ -371,7 +371,7 @@ p {
 }
 
 .ct-slice-donut.ct-slice-donut-sent {
-    stroke: #1abc9c !important
+    stroke: #3F3D7A !important
 }
 
 .ct-slice-donut.ct-slice-donut-opened {
@@ -399,7 +399,7 @@ p {
 }
 
 .ct-legend-sent {
-    background-color: #1abc9c !important;
+    background-color: #3F3D7A !important;
 }
 
 .ct-legend-opened {
@@ -484,7 +484,7 @@ table.dataTable thead .sorting_desc:after {
     top: initial !important;
     right: initial !important;
     left: 6px;
-    color: #1abc9c;
+    color: #3F3D7A;
 }
 
 table.dataTable thead .sorting:after {
@@ -695,7 +695,7 @@ table.dataTable {
 
 .color-sent {
     font-weight: bold;
-    color: #1abc9c;
+    color: #3F3D7A;
 }
 
 .color-opened {
