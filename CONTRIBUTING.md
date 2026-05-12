@@ -1,44 +1,110 @@
-# Contribute to gophish
+# 기여 가이드 / Contributing to Sentinel
 
-Thank you for your interest in contributing to gophish! It is our goal to make the best simulated phishing framework possible, and we are excited you want to help out.
+Sentinel 에 기여해주셔서 감사합니다. 이 문서는 효율적인 기여를 위한 안내입니다.
 
-This guide details how to contribute to gophish in a way that is efficient for everyone involved.
+*Thank you for your interest in contributing to Sentinel. This document outlines how to contribute effectively.*
 
-Gophish currently only comes in one flavor, gophish Community Edition (CE), which is our free and open source edition. In the future, we reserve the right to create an Enterprise Edition, though we're currently pouring our effort into create a rock-solid open source platform. This document will be updated if an EE edition is created.
+---
 
-## Contributor license agreement
+## 이슈 신고 / Reporting issues
 
-By submitting code as an individual you agree to the
-[individual contributor license agreement](doc/individual_contributor_license_agreement.md).
-By submitting code as an entity you agree to the
-[corporate contributor license agreement](doc/corporate_contributor_license_agreement.md).
+버그를 발견하거나 기능을 제안하고 싶으시면 [이슈 등록](https://github.com/AegisAX/Sentinel/issues) 을 통해 알려주세요. 이슈 템플릿이 필요한 정보를 안내해드립니다.
 
-## Security vulnerability disclosure
+*To report a bug or suggest a feature, please [open an issue](https://github.com/AegisAX/Sentinel/issues). Issue templates will guide you through the required information.*
 
-Please report suspected security vulnerabilities in private to
-`security@getgophish.com`.
-Please do **NOT** create publicly viewable issues for suspected security
-vulnerabilities.
+⚠️ 보안 취약점은 **공개 이슈로 신고하지 마세요**. [SECURITY.md](SECURITY.md) 의 비공개 신고 채널을 이용해주세요.
 
-## Closing policy for issues and merge requests
+*Do not report security vulnerabilities via public issues. Use the private channel described in [SECURITY.md](SECURITY.md).*
 
-It is our goal that gophish will become a popular tool for the infosec community. If this were to happen, we may begin receiving more issues and merge requests than we can keep up with.
+---
 
-Out of respect for our volunteers, issues and merge requests not in line with the guidelines listed in this document may be closed without notice. It will always be our goal to try and provide at least a reason why the issue is closed as much as possible.
+## 기여 절차 / Contribution workflow
 
-Please treat our volunteers with courtesy and respect, it will go a long way
-towards getting your issue resolved.
+### 1. Fork & Branch
 
-Issues and merge requests should be in English and contain appropriate language
-for audiences of all ages.
+저장소를 fork 한 후 작업용 브랜치를 만듭니다. 브랜치 명명 규칙:
 
-## I want to contribute!
+*Fork the repository and create a working branch. Naming convention:*
 
-**Awesome!** We're excited to have your help. If you want to contribute to gophish, but are not sure where to start,
-look for [issues with the label `contributor-friendly`][contributor-friendly]. These issues
-will be of reasonable size and challenge, as well as not requiring a ton of internal plumbing on the gophish source code.
+- `feat/<short-desc>` — 신규 기능 / new feature
+- `fix/<short-desc>` — 버그 수정 / bug fix
+- `chore/<short-desc>` — 빌드/구성 변경 / build or tooling
+- `docs/<short-desc>` — 문서 변경 / documentation
+- `refactor/<short-desc>` — 리팩터링 / refactoring
 
-## Have Questions?
-If you ever have questions, please don't hesitate to reach out to us directly at `support@getgophish.com`
+### 2. 개발 / Development
 
-[contributor-friendly]: https://github.com/gophish/gophish/labels/contributor-friendly
+변경 사항 구현 후 로컬에서 테스트.
+
+*Implement your changes and test locally.*
+
+### 3. 빌드 검증 / Build verification
+
+```
+# Frontend assets
+npx gulp build
+
+# Backend
+go build -ldflags="-s -w" -trimpath .
+go test ./...
+```
+
+빌드와 테스트가 모두 통과해야 PR 가능합니다.
+
+*All builds and tests must pass before a PR.*
+
+### 4. 커밋 메시지 / Commit messages
+
+간결한 한국어 또는 영문, conventional commit 스타일 권장.
+
+*Concise Korean or English, conventional commit style preferred.*
+
+예 / Examples:
+- `fix(api): handle nil rid in /report-form`
+- `feat(video): 영상 진행률 저장 주기 단축`
+- `chore(deps): bump go from 1.23 to 1.24`
+
+### 5. Pull Request
+
+변경 의도, 테스트 결과, 관련 이슈 번호를 PR 설명에 포함해주세요.
+
+*Include the intent, test results, and related issue numbers in the PR description.*
+
+---
+
+## 코드 스타일 / Code style
+
+| 영역 / Area | 요구 사항 / Requirement |
+|---|---|
+| **Go** | `gofmt` + `goimports` 정렬, `go vet` 통과 |
+| **JavaScript** | 변경 후 `npx gulp scripts` 로 minified 파일 동기화 |
+| **CSS** | 변경 후 `npx gulp styles` 로 dist 동기화 |
+| **Imports** | 미사용 import 는 commit 전 제거 (Go 컴파일러가 실패시킴) |
+| **언어 / Language** | UI 사용자 노출 메시지는 한국어, 코드 주석은 영문 또는 한국어 자유 |
+
+빌드 파이프라인 메모: JS / CSS 소스 변경 후 gulp 빌드를 하지 않으면 `dist/` 가 갱신되지 않아 변경이 적용되지 않은 것처럼 보입니다.
+
+*Build pipeline note: JS / CSS source changes have no effect until gulp rebuilds the `dist/` files.*
+
+---
+
+## 리뷰 기준 / Review criteria
+
+모든 PR 은 메인테이너 검토 후 머지됩니다. 검토 항목:
+
+*All PRs are reviewed by maintainers before merging. Review criteria:*
+
+- 기능 동작 / Functionality
+- 보안 영향 (특히 인증/권한/입력 검증) / Security impact (auth, RBAC, input validation)
+- 빌드 + 테스트 통과 / Build & test pass
+- 문서 갱신 (필요 시) / Documentation updates if applicable
+- 한국 기업 환경 호환성 (메일 인코딩, 한국어 처리) — 관련 변경 시
+- *Korean enterprise compatibility (mail encoding, Korean handling) — when applicable*
+
+---
+
+## 질문 / Questions
+
+기타 문의는 [GitHub Issues](https://github.com/AegisAX/Sentinel/issues) 를 이용해주세요.
+
+*For other inquiries, please use GitHub Issues.*

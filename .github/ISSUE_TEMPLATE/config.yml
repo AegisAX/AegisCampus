@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔒 보안 취약점 신고 / Security vulnerability
+    url: https://github.com/AegisAX/Sentinel/security/advisories/new
+    about: 보안 결함은 GitHub Security Advisory 로 비공개 신고해주세요. / Report security issues privately via GitHub Security Advisory.
