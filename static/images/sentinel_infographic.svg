@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Sentinel system infographic">
+  <title>Sentinel System Infographic</title>
+  <desc>Hero, architecture, key features, and tech stack overview of Sentinel.</desc>
+
+  <!-- ============ SECTION 1: Hero ============ -->
+  <svg x="375" y="20" width="50" height="50" viewBox="0 0 80 80">
+    <polygon points="40,11 66,25 66,55 40,69 14,55 14,25" fill="none" stroke="#3F3D7A" stroke-width="3"/>
+    <polygon points="40,21 56,30 56,50 40,59 24,50 24,30" fill="none" stroke="#7F77DD" stroke-width="2"/>
+    <polygon points="40,31 47,35 47,45 40,49 33,45 33,35" fill="#F0B429"/>
+  </svg>
+  <text x="400" y="96" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="28" font-weight="800" fill="#3F3D7A" letter-spacing="-0.5">Sentinel</text>
+  <text x="400" y="118" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="12.5" fill="#5F5F5F">Security awareness training, integrated</text>
+  <text x="400" y="134" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="12.5" fill="#5F5F5F">사이버보안 인식 교육 통합 플랫폼</text>
+
+  <line x1="340" y1="152" x2="460" y2="152" stroke="#F0B429" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- ============ SECTION 2: Architecture ============ -->
+  <text x="400" y="180" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="10" font-weight="700" fill="#7F77DD" letter-spacing="2.5">ARCHITECTURE · 시스템 구성</text>
+
+  <rect x="32" y="200" width="160" height="110" fill="#FAFAFA" stroke="#E5E5EA" stroke-width="0.5" rx="8"/>
+  <rect x="32" y="200" width="6" height="110" fill="#3F3D7A" rx="3"/>
+  <text x="52" y="226" font-family="'Open Sans', system-ui, sans-serif" font-size="14" font-weight="700" fill="#3F3D7A">Recipients</text>
+  <text x="52" y="244" font-family="'Open Sans', system-ui, sans-serif" font-size="11" font-weight="600" fill="#7F77DD">수신자</text>
+  <text x="52" y="272" font-family="'Open Sans', system-ui, sans-serif" font-size="11" fill="#3a3a3a">Email · Click</text>
+  <text x="52" y="288" font-family="'Open Sans', system-ui, sans-serif" font-size="11" fill="#3a3a3a">Watch · Report</text>
+
+  <rect x="222" y="190" width="356" height="130" fill="#FFFFFF" stroke="#3F3D7A" stroke-width="2" rx="10"/>
+  <text x="400" y="212" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="13" font-weight="700" fill="#3F3D7A">Sentinel System</text>
+
+  <g transform="translate(238, 226)">
+    <rect width="100" height="36" fill="#FAFAFA" stroke="#7F77DD" stroke-width="0.8" rx="5"/>
+    <text x="50" y="16" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="11" font-weight="600" fill="#3F3D7A">Phishing</text>
+    <text x="50" y="29" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="9.5" fill="#5F5F5F">:80 / :443</text>
+  </g>
+  <g transform="translate(350, 226)">
+    <rect width="100" height="36" fill="#FAFAFA" stroke="#7F77DD" stroke-width="0.8" rx="5"/>
+    <text x="50" y="16" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="11" font-weight="600" fill="#3F3D7A">Admin</text>
+    <text x="50" y="29" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="9.5" fill="#5F5F5F">:3333</text>
+  </g>
+  <g transform="translate(462, 226)">
+    <rect width="100" height="36" fill="#FAFAFA" stroke="#7F77DD" stroke-width="0.8" rx="5"/>
+    <text x="50" y="16" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="11" font-weight="600" fill="#3F3D7A">Database</text>
+    <text x="50" y="29" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="9.5" fill="#5F5F5F">SQLite / MySQL</text>
+  </g>
+
+  <g transform="translate(238, 274)">
+    <rect width="324" height="36" fill="#FAFAFA" stroke="#7F77DD" stroke-width="0.8" rx="5"/>
+    <text x="162" y="16" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="11" font-weight="600" fill="#3F3D7A">Video storage + ffmpeg / ffprobe pipeline</text>
+    <text x="162" y="29" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="9.5" fill="#5F5F5F">static/videos · MP4 + SHA-256 dedupe</text>
+  </g>
+
+  <rect x="608" y="200" width="160" height="110" fill="#FAFAFA" stroke="#E5E5EA" stroke-width="0.5" rx="8"/>
+  <rect x="608" y="200" width="6" height="110" fill="#3F3D7A" rx="3"/>
+  <text x="628" y="226" font-family="'Open Sans', system-ui, sans-serif" font-size="14" font-weight="700" fill="#3F3D7A">Operator</text>
+  <text x="628" y="244" font-family="'Open Sans', system-ui, sans-serif" font-size="11" font-weight="600" fill="#7F77DD">운영자</text>
+  <text x="628" y="272" font-family="'Open Sans', system-ui, sans-serif" font-size="11" fill="#3a3a3a">Campaign · Video</text>
+  <text x="628" y="288" font-family="'Open Sans', system-ui, sans-serif" font-size="11" fill="#3a3a3a">Reports</text>
+
+  <line x1="192" y1="247" x2="222" y2="247" stroke="#7F77DD" stroke-width="2"/>
+  <polygon points="224,247 217,243 217,251" fill="#7F77DD"/>
+  <line x1="192" y1="263" x2="222" y2="263" stroke="#7F77DD" stroke-width="2"/>
+  <polygon points="192,263 199,259 199,267" fill="#7F77DD"/>
+
+  <line x1="578" y1="247" x2="608" y2="247" stroke="#7F77DD" stroke-width="2"/>
+  <polygon points="578,247 585,243 585,251" fill="#7F77DD"/>
+  <line x1="578" y1="263" x2="608" y2="263" stroke="#7F77DD" stroke-width="2"/>
+  <polygon points="610,263 603,259 603,267" fill="#7F77DD"/>
+
+  <!-- ============ SECTION 3: Key Features ============ -->
+  <line x1="32" y1="346" x2="768" y2="346" stroke="#E5E5EA" stroke-width="0.5"/>
+  <text x="400" y="370" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="10" font-weight="700" fill="#7F77DD" letter-spacing="2.5">KEY FEATURES · 핵심 특징</text>
+
+  <g transform="translate(32, 388)">
+    <rect width="232" height="76" fill="#FAFAFA" stroke="#E5E5EA" stroke-width="0.5" rx="6"/>
+    <rect width="5" height="76" fill="#3F3D7A" rx="2.5"/>
+    <text x="20" y="26" font-family="'Open Sans', system-ui, sans-serif" font-size="13" font-weight="700" fill="#3F3D7A">Training video</text>
+    <text x="20" y="44" font-family="'Open Sans', system-ui, sans-serif" font-size="11" font-weight="500" fill="#7F77DD">교육 영상 임베드</text>
+    <text x="20" y="64" font-family="'Open Sans', system-ui, sans-serif" font-size="10.5" fill="#5F5F5F">MP4 upload · per-recipient tracking</text>
+  </g>
+
+  <g transform="translate(280, 388)">
+    <rect width="232" height="76" fill="#FAFAFA" stroke="#E5E5EA" stroke-width="0.5" rx="6"/>
+    <rect width="5" height="76" fill="#3F3D7A" rx="2.5"/>
+    <text x="20" y="26" font-family="'Open Sans', system-ui, sans-serif" font-size="13" font-weight="700" fill="#3F3D7A">Redirect pages</text>
+    <text x="20" y="44" font-family="'Open Sans', system-ui, sans-serif" font-size="11" font-weight="500" fill="#7F77DD">리다이렉트 페이지</text>
+    <text x="20" y="64" font-family="'Open Sans', system-ui, sans-serif" font-size="10.5" fill="#5F5F5F">Editable post-click education</text>
+  </g>
+
+  <g transform="translate(528, 388)">
+    <rect width="232" height="76" fill="#FAFAFA" stroke="#E5E5EA" stroke-width="0.5" rx="6"/>
+    <rect width="5" height="76" fill="#3F3D7A" rx="2.5"/>
+    <text x="20" y="26" font-family="'Open Sans', system-ui, sans-serif" font-size="13" font-weight="700" fill="#3F3D7A">New events</text>
+    <text x="20" y="44" font-family="'Open Sans', system-ui, sans-serif" font-size="11" font-weight="500" fill="#7F77DD">신규 추적 이벤트</text>
+    <text x="20" y="64" font-family="'Open Sans', system-ui, sans-serif" font-size="10.5" fill="#5F5F5F">Executed · Trained added</text>
+  </g>
+
+  <g transform="translate(32, 478)">
+    <rect width="232" height="76" fill="#FAFAFA" stroke="#E5E5EA" stroke-width="0.5" rx="6"/>
+    <rect width="5" height="76" fill="#3F3D7A" rx="2.5"/>
+    <text x="20" y="26" font-family="'Open Sans', system-ui, sans-serif" font-size="13" font-weight="700" fill="#3F3D7A">Report form</text>
+    <text x="20" y="44" font-family="'Open Sans', system-ui, sans-serif" font-size="11" font-weight="500" fill="#7F77DD">피싱 신고 폼</text>
+    <text x="20" y="64" font-family="'Open Sans', system-ui, sans-serif" font-size="10.5" fill="#5F5F5F">/report-form · rid fallback match</text>
+  </g>
+
+  <g transform="translate(280, 478)">
+    <rect width="232" height="76" fill="#FAFAFA" stroke="#E5E5EA" stroke-width="0.5" rx="6"/>
+    <rect width="5" height="76" fill="#3F3D7A" rx="2.5"/>
+    <text x="20" y="26" font-family="'Open Sans', system-ui, sans-serif" font-size="13" font-weight="700" fill="#3F3D7A">Korean ready</text>
+    <text x="20" y="44" font-family="'Open Sans', system-ui, sans-serif" font-size="11" font-weight="500" fill="#7F77DD">한국 기업 환경</text>
+    <text x="20" y="64" font-family="'Open Sans', system-ui, sans-serif" font-size="10.5" fill="#5F5F5F">RFC 2047/5987 · FQDN Msg-ID</text>
+  </g>
+
+  <g transform="translate(528, 478)">
+    <rect width="232" height="76" fill="#FAFAFA" stroke="#E5E5EA" stroke-width="0.5" rx="6"/>
+    <rect width="5" height="76" fill="#3F3D7A" rx="2.5"/>
+    <text x="20" y="26" font-family="'Open Sans', system-ui, sans-serif" font-size="13" font-weight="700" fill="#3F3D7A">Security hardened</text>
+    <text x="20" y="44" font-family="'Open Sans', system-ui, sans-serif" font-size="11" font-weight="500" fill="#7F77DD">보안 강화</text>
+    <text x="20" y="64" font-family="'Open Sans', system-ui, sans-serif" font-size="10.5" fill="#5F5F5F">Cross-tenant block · RBAC</text>
+  </g>
+
+  <!-- ============ SECTION 4: Tech stack ============ -->
+  <text x="400" y="585" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="10.5" fill="#7F7F7F" letter-spacing="0.3">Go 1.23+  ·  Node 20+  ·  SQLite / MySQL  ·  ffmpeg  ·  Self-hosted  ·  MIT License</text>
+
+</svg>
