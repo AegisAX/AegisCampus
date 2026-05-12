@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" role="img" aria-label="Sentinel">
+  <title>Sentinel</title>
+  <desc>Sentinel logo mark — three concentric hexagons representing defense in depth.</desc>
+  <polygon points="40,11 66,25 66,55 40,69 14,55 14,25" fill="none" stroke="#3F3D7A" stroke-width="3"/>
+  <polygon points="40,21 56,30 56,50 40,59 24,50 24,30" fill="none" stroke="#7F77DD" stroke-width="2"/>
+  <polygon points="40,31 47,35 47,45 40,49 33,45 33,35" fill="#F0B429"/>
+</svg>

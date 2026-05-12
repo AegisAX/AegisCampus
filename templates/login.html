@@ -8,6 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Sentinel - Security Awareness Training Platform">
     <meta name="author" content="AegisAX (https://github.com/AegisAX)">
+    <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
     <link rel="shortcut icon" href="/images/favicon.ico">
 
     <title>Sentinel - {{ .Title }}</title>
@@ -26,8 +27,10 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <img class="navbar-logo" src="/images/logo_inv_small.png" />
-                <a class="navbar-brand" href="/">&nbsp;Sentinel</a>
+                <a class="navbar-brand" href="/" style="display: flex; align-items: center; gap: 6px; height: 53px; padding-top: 0; padding-bottom: 0;">
+                    <img class="navbar-logo" src="/images/sentinel_mark_dark.svg" height="36" alt="" />
+                    <span>Sentinel</span>
+                </a>
             </div>
             <div class="navbar-collapse collapse">
                 <ul class="nav navbar-nav navbar-right">
@@ -42,7 +45,10 @@
     </div>
     <div class="container">
         <form class="form-signin" action="" method="POST">
-            <img id="logo" src="/images/logo_purple.png" />
+            <div id="logo" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <img src="/images/sentinel_mark.svg" height="56" alt="" />
+                <span style="font-family: 'Open Sans', sans-serif; font-size: 28px; font-weight: 700; color: #3F3D7A;">Sentinel</span>
+            </div>
             <h2 class="form-signin-heading">Please sign in</h2>
             {{template "flashes" .Flashes}}
             <input type="text" name="username" class="form-control top-input" placeholder="Username" required autofocus>
