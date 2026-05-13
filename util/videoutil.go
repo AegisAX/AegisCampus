@@ -28,11 +28,11 @@ var VideoStorageDirAbs = func() string {
 // VideoThumbDirAbs는 썸네일 저장 절대 경로입니다.
 var VideoThumbDirAbs = filepath.Join(VideoStorageDirAbs, "thumbs")
 
-// FfmpegBin은 ffmpeg 바이너리 경로입니다. 환경변수 GOPHISH_FFMPEG로 오버라이드 가능합니다.
-var FfmpegBin = videoEnvDefault("GOPHISH_FFMPEG", "ffmpeg")
+// FfmpegBin은 ffmpeg 바이너리 경로입니다. 환경변수 SENTINEL_FFMPEG로 오버라이드 가능합니다.
+var FfmpegBin = videoEnvDefault("SENTINEL_FFMPEG", "ffmpeg")
 
-// FfprobeBin은 ffprobe 바이너리 경로입니다. 환경변수 GOPHISH_FFPROBE로 오버라이드 가능합니다.
-var FfprobeBin = videoEnvDefault("GOPHISH_FFPROBE", "ffprobe")
+// FfprobeBin은 ffprobe 바이너리 경로입니다. 환경변수 SENTINEL_FFPROBE로 오버라이드 가능합니다.
+var FfprobeBin = videoEnvDefault("SENTINEL_FFPROBE", "ffprobe")
 
 func videoEnvDefault(k, def string) string {
 	if v := os.Getenv(k); v != "" {
@@ -42,12 +42,12 @@ func videoEnvDefault(k, def string) string {
 }
 
 // MaxVideoUploadBytes는 영상 업로드 요청의 최대 허용 크기(바이트)입니다.
-// 환경변수 GOPHISH_MAX_VIDEO_BYTES 로 오버라이드할 수 있습니다.
-// 예: export GOPHISH_MAX_VIDEO_BYTES=1073741824  # 1GB
+// 환경변수 SENTINEL_MAX_VIDEO_BYTES 로 오버라이드할 수 있습니다.
+// 예: export SENTINEL_MAX_VIDEO_BYTES=1073741824  # 1GB
 var MaxVideoUploadBytes = videoMaxBytesDefault()
 
 func videoMaxBytesDefault() int64 {
-	if v := os.Getenv("GOPHISH_MAX_VIDEO_BYTES"); v != "" {
+	if v := os.Getenv("SENTINEL_MAX_VIDEO_BYTES"); v != "" {
 		if n, err := strconv.ParseInt(v, 10, 64); err == nil && n > 0 {
 			return n
 		}
@@ -59,8 +59,8 @@ func videoMaxBytesDefault() int64 {
 // 없으면 stderr에 경고를 출력합니다.
 // Sentinel 기동 시 운영자가 바로 인지할 수 있도록 합니다.
 func init() {
-	checkVideoBin(FfmpegBin, "ffmpeg", "GOPHISH_FFMPEG", "동영상 썸네일 생성 및 재인코딩")
-	checkVideoBin(FfprobeBin, "ffprobe", "GOPHISH_FFPROBE", "동영상 재생 시간(길이) 자동 감지")
+	checkVideoBin(FfmpegBin, "ffmpeg", "SENTINEL_FFMPEG", "동영상 썸네일 생성 및 재인코딩")
+	checkVideoBin(FfprobeBin, "ffprobe", "SENTINEL_FFPROBE", "동영상 재생 시간(길이) 자동 감지")
 }
 
 func checkVideoBin(bin, name, envKey, purpose string) {

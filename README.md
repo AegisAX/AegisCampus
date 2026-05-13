@@ -66,7 +66,7 @@ go build -ldflags="-s -w" -trimpath .
 ./gophish
 ```
 
-첫 실행 시 초기 admin 비밀번호가 로그에 출력됩니다 (`GOPHISH_INITIAL_ADMIN_API_TOKEN` 환경변수로 override 가능). 브라우저에서 `https://localhost:3333/` 접속 후 로그인.
+첫 실행 시 초기 admin 비밀번호가 로그에 출력됩니다 (`SENTINEL_INITIAL_ADMIN_API_TOKEN` 환경변수로 override 가능). 브라우저에서 `https://localhost:3333/` 접속 후 로그인.
 
 ## 설정 / Configuration
 
@@ -74,11 +74,11 @@ go build -ldflags="-s -w" -trimpath .
 
 | 변수 / Variable | 기본값 / Default | 설명 / Purpose |
 |---|---|---|
-| `GOPHISH_FFMPEG` | `ffmpeg` | ffmpeg 바이너리 경로 |
-| `GOPHISH_FFPROBE` | `ffprobe` | ffprobe 바이너리 경로 |
-| `GOPHISH_MAX_VIDEO_BYTES` | (built-in) | 영상 업로드 상한 (예: `1073741824` = 1 GB) |
-| `GOPHISH_MSGID_DOMAIN` | (envelope sender 도메인) | `Message-ID` 헤더용 FQDN (Gmail 발송 시 권장) |
-| `GOPHISH_INITIAL_ADMIN_API_TOKEN` | (자동 생성) | 첫 부팅 시 초기 admin API 토큰 |
+| `SENTINEL_FFMPEG` | `ffmpeg` | ffmpeg 바이너리 경로 |
+| `SENTINEL_FFPROBE` | `ffprobe` | ffprobe 바이너리 경로 |
+| `SENTINEL_MAX_VIDEO_BYTES` | (built-in) | 영상 업로드 상한 (예: `1073741824` = 1 GB) |
+| `SENTINEL_MSGID_DOMAIN` | (envelope sender 도메인) | `Message-ID` 헤더용 FQDN (Gmail 발송 시 권장) |
+| `SENTINEL_INITIAL_ADMIN_API_TOKEN` | (자동 생성) | 첫 부팅 시 초기 admin API 토큰 |
 
 ## Docker
 

@@ -257,16 +257,16 @@ func DeleteSMTP(id int64, uid int64) error {
 // ehloName은 SMTP EHLO 인사말로 사용할 FQDN을 결정합니다.
 //
 // 우선순위:
-//  1. 환경변수 GOPHISH_EHLO_DOMAIN
+//  1. 환경변수 SENTINEL_EHLO_DOMAIN
 //  2. Sending Profile의 FromAddress 도메인
 //  3. os.Hostname() — 점(.)이 있는 FQDN인 경우만
 //  4. "mail.invalid" — 위 모두 실패 시 (설정 필요를 명시)
 //
 // "mail.invalid" 이 EHLO로 사용되면 일부 수신 서버가 거부할 수 있습니다.
-// 환경변수 GOPHISH_EHLO_DOMAIN 또는 올바른 FromAddress를 설정하세요.
+// 환경변수 SENTINEL_EHLO_DOMAIN 또는 올바른 FromAddress를 설정하세요.
 func ehloName(fromAddress string) string {
 	// 1) 환경변수 우선
-	if v := os.Getenv("GOPHISH_EHLO_DOMAIN"); v != "" && strings.Contains(v, ".") {
+	if v := os.Getenv("SENTINEL_EHLO_DOMAIN"); v != "" && strings.Contains(v, ".") {
 		return strings.ToLower(v)
 	}
 	// 2) FromAddress에서 @ 뒤 도메인 추출
