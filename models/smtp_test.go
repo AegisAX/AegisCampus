@@ -46,7 +46,7 @@ func (s *ModelsSuite) TestPostInvalidFrom(c *check.C) {
 	smtp := SMTP{
 		Name:        "Test SMTP",
 		Host:        "1.1.1.1:25",
-		FromAddress: "Foo Bar <foo@example.com>",
+		FromAddress: "Foo Bar <not-an-email>",
 		UserId:      1,
 	}
 	err := PostSMTP(&smtp)
