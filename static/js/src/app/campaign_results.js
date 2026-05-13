@@ -850,7 +850,7 @@ function poll() {
 
 function load() {
     campaign.id = window.location.pathname.split('/').slice(-1)[0]
-    var use_map = JSON.parse(localStorage.getItem('gophish.use_map'))
+    var use_map = JSON.parse(localStorage.getItem('sentinel.use_map'))
     api.campaignId.results(campaign.id)
         .success(function (c) {
             campaign = c
