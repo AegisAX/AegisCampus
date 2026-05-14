@@ -1,7 +1,6 @@
 /*
 	landing_pages.js
 	Handles the creation, editing, and deletion of landing pages
-	Author: Jordan Wright <github.com/jordan-wright>
 */
 var pages = []
 var selectedVideoId = null;
