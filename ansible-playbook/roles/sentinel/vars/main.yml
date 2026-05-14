@@ -1,0 +1,19 @@
+enable_ufw_firewall: true
+
+install_packages:
+  - postfix
+  - unzip
+  - libcap2-bin
+  - python-is-python3
+  - python3-pip
+
+hostname: sentinel
+sentinel_user: ubuntu
+postfix_hostname: sentinel
+postfix_inet_interfaces: 127.0.0.1
+sentinel_domain: sentinel.local
+sentinel_ssl_cert_path: /etc/ssl/private/sentinel.pem
+sentinel_csr_path: /etc/ssl/csr/sentinel.csr
+sentinel_crt_path: /etc/ssl/crt/sentinel.crt
+# Required if changing /etc/hostname to something different.
+reboot_box: true
