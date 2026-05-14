@@ -1,5 +1,5 @@
 production:
     driver: sqlite3 
-    open: gophish.db
+    open: sentinel.db
     dialect: sqlite3
     import: github.com/mattn/go-sqlite3

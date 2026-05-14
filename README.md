@@ -55,15 +55,15 @@ cd Sentinel
 npx gulp build
 
 # 백엔드 바이너리 빌드
-go build -ldflags="-s -w" -trimpath .
+go build -ldflags="-s -w" -trimpath -o sentinel .
 ```
 
-빌드 산출물은 `./gophish` 바이너리 + `static/` + `templates/` + `db/` + `VERSION` 디렉터리 묶음입니다.
+빌드 산출물은 `./sentinel` 바이너리 + `static/` + `templates/` + `db/` + `VERSION` 디렉터리 묶음입니다.
 
 ## 첫 실행 / First run
 
 ```
-./gophish
+./sentinel
 ```
 
 첫 실행 시 초기 admin 비밀번호가 로그에 출력됩니다 (`SENTINEL_INITIAL_ADMIN_API_TOKEN` 환경변수로 override 가능). 브라우저에서 `https://localhost:3333/` 접속 후 로그인.
@@ -103,23 +103,23 @@ echo "1.0.0-rc1" > VERSION
 
 ```
 npx gulp build
-go build -ldflags="-s -w" -trimpath .
+go build -ldflags="-s -w" -trimpath -o sentinel .
 ```
 
 ### 3. 운영 디렉터리 배포
 
 ```
-cp -arv gophish db/ static/ templates/ VERSION ~/Sentinel/
+cp -arv sentinel db/ static/ templates/ VERSION ~/Sentinel/
 ```
 
-⚠️ 운영 DB 파일 (`~/Sentinel/gophish.db`) 은 덮어쓰지 마세요. 빌드 디렉터리의 `db/` 는 마이그레이션 파일 (`.sql`) 만 포함합니다.
+⚠️ 운영 DB 파일 (`~/Sentinel/sentinel.db`) 은 덮어쓰지 마세요. 빌드 디렉터리의 `db/` 는 마이그레이션 파일 (`.sql`) 만 포함합니다.
 
 ### 4. 운영 환경 재시작
 
 ```
 cd ~/Sentinel/
-pkill gophish
-./gophish &
+pkill sentinel
+./sentinel &
 ```
 
 로그에서 마이그레이션 적용 결과 확인.

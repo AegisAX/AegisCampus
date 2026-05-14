@@ -148,7 +148,7 @@ func CheckAndCreateSSL(cp string, kp string) error {
 	template := x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
-			Organization: []string{"Gophish"},
+			Organization: []string{"Sentinel"},
 		},
 		NotBefore: notBefore,
 		NotAfter:  notAfter,

@@ -62,7 +62,7 @@ scripts = function () {
             app_directory + 'sending_profiles.js',
             app_directory + 'settings.js',
             app_directory + 'templates.js',
-            app_directory + 'gophish.js',
+            app_directory + 'sentinel.js',
             app_directory + 'users.js',
             app_directory + 'webhooks.js',
             app_directory + 'passwords.js'
@@ -94,7 +94,7 @@ styles = function () {
         .pipe(cleanCSS({
             compatibilty: 'ie9'
         }))
-        .pipe(concat('gophish.css'))
+        .pipe(concat('sentinel.css'))
         .pipe(gulp.dest(dest_css_directory));
 }
 

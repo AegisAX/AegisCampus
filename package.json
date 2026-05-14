@@ -1,5 +1,5 @@
 {
-  "name": "gophish",
+  "name": "sentinel",
   "version": "0.4.0-dev",
   "repository": {
     "type": "git",
@@ -10,7 +10,7 @@
   "bugs": {
     "url": "https://github.com/gophish/gophish/issues"
   },
-  "homepage": "https://getgophish.com",
+  "homepage": "https://github.com/AegisAX/Sentinel",
   "devDependencies": {
     "@babel/core": "^7.4.5",
     "@babel/preset-env": "^7.4.5",
