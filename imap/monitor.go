@@ -16,7 +16,7 @@ import (
 	"time"
 
 	log "github.com/AegisAX/Sentinel/logger"
-	"github.com/jordan-wright/email"
+	emailparser "github.com/AegisAX/Sentinel/util/email"
 
 	"github.com/AegisAX/Sentinel/models"
 )
@@ -147,7 +147,7 @@ func checkForNewEmails(im models.IMAP) {
 		for _, m := range msgs {
 			// Check if sender is from company's domain, if enabled. TODO: Make this an IMAP filter
 			if im.RestrictDomain != "" { // e.g domainResitct = widgets.com
-				splitEmail := strings.Split(m.Email.From, "@")
+				splitEmail := strings.Split(m.Message.From, "@")
 				senderDomain := splitEmail[len(splitEmail)-1]
 				if senderDomain != im.RestrictDomain {
 					log.Debug("Ignoring email as not from company domain: ", senderDomain)
@@ -155,20 +155,20 @@ func checkForNewEmails(im models.IMAP) {
 				}
 			}
 
-			rids, err := matchEmail(m.Email) // Search email Text, HTML, and each attachment for rid parameters
+			rids, err := matchEmail(m.Message) // Search email Text, HTML, and each attachment for rid parameters
 
 			if err != nil {
-				log.Errorf("Error searching email for rids from user '%s': %s", m.Email.From, err.Error())
+				log.Errorf("Error searching email for rids from user '%s': %s", m.Message.From, err.Error())
 				continue
 			}
 			if len(rids) < 1 {
 				// In the future this should be an alert in Sentinel
-				log.Infof("User '%s' reported email with subject '%s'. This is not a GoPhish campaign; you should investigate it.", m.Email.From, m.Email.Subject)
+				log.Infof("User '%s' reported email with subject '%s'. This is not a GoPhish campaign; you should investigate it.", m.Message.From, m.Message.Subject)
 			}
 			// rid별 성공/실패 집계 후 SeqNum은 한 번만 결정:
 			successCount, failCount := 0, 0
 			for rid := range rids {
-				log.Infof("User '%s' reported email with rid %s", m.Email.From, rid)
+				log.Infof("User '%s' reported email with rid %s", m.Message.From, rid)
 				result, err := models.GetResult(rid)
 				if err != nil {
 					log.Error("Error getting result for rid ", rid, ": ", err.Error())
@@ -178,15 +178,15 @@ func checkForNewEmails(im models.IMAP) {
 				rd := models.ReportDetails{
 					Method:   "imap",
 					Reporter: im.Username,
-					Subject:  m.Email.Subject,
+					Subject:  m.Message.Subject,
 				}
 				hdrs := map[string]string{}
-				if m.Email.Headers != nil {
-					if v := m.Email.Headers.Get("Message-ID"); v != "" { rd.MessageID = v }
-					if v := m.Email.Headers.Get("Date"); v != "" { hdrs["Date"] = v }
+				if m.Message.Headers != nil {
+					if v := m.Message.Headers.Get("Message-ID"); v != "" { rd.MessageID = v }
+					if v := m.Message.Headers.Get("Date"); v != "" { hdrs["Date"] = v }
 				}
-				if m.Email.From != "" { hdrs["From"] = m.Email.From }
-				if len(m.Email.To) > 0 { hdrs["To"] = strings.Join(m.Email.To, ", ") }
+				if m.Message.From != "" { hdrs["From"] = m.Message.From }
+				if len(m.Message.To) > 0 { hdrs["To"] = strings.Join(m.Message.To, ", ") }
 				if len(hdrs) > 0 { rd.Headers = hdrs }
 
 				if err = result.HandleEmailReport(models.EventDetails{Report: &rd}); err != nil {
@@ -225,7 +225,7 @@ func checkForNewEmails(im models.IMAP) {
 	}
 }
 
-func checkRIDs(em *email.Email, rids map[string]bool) {
+func checkRIDs(em *emailparser.Message, rids map[string]bool) {
 	// Check Text and HTML
 	emailContent := string(em.Text) + string(em.HTML)
 	for _, r := range goPhishRegex.FindAllStringSubmatch(emailContent, -1) {
@@ -237,7 +237,7 @@ func checkRIDs(em *email.Email, rids map[string]bool) {
 }
 
 // returns a slice of sentinel rid paramters found in the email HTML, Text, and attachments
-func matchEmail(em *email.Email) (map[string]bool, error) {
+func matchEmail(em *emailparser.Message) (map[string]bool, error) {
 	rids := make(map[string]bool)
 	checkRIDs(em, rids)
 
@@ -248,7 +248,7 @@ func matchEmail(em *email.Email) (map[string]bool, error) {
 
 			// Let's decode the email
 			rawBodyStream := bytes.NewReader(a.Content)
-			attachmentEmail, err := email.NewEmailFromReader(rawBodyStream)
+			attachmentEmail, err := emailparser.NewMessageFromReader(rawBodyStream)
 			if err != nil {
 				return rids, err
 			}

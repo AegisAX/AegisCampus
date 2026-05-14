@@ -13,7 +13,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/big"
 	"net/http"
 	"net/mail"
@@ -26,7 +25,6 @@ import (
 
 	log "github.com/AegisAX/Sentinel/logger"
 	"github.com/AegisAX/Sentinel/models"
-	"github.com/jordan-wright/email"
 	"golang.org/x/text/encoding/korean"
 	"golang.org/x/text/encoding/unicode"
 	"golang.org/x/text/transform"
@@ -41,16 +39,6 @@ var (
 
 // ParseMail takes in an HTTP Request and returns an Email object
 // TODO: This function will likely be changed to take in a []byte
-func ParseMail(r *http.Request) (email.Email, error) {
-	e := email.Email{}
-	m, err := mail.ReadMessage(r.Body)
-	if err != nil {
-		fmt.Println(err)
-	}
-	body, err := ioutil.ReadAll(m.Body)
-	e.HTML = body
-	return e, err
-}
 
 // ParseCSV contains the logic to parse the user provided csv file containing Target entries
 // 개선 사항:

@@ -15,7 +15,7 @@ import (
 	log "github.com/AegisAX/Sentinel/logger"
 	"github.com/AegisAX/Sentinel/models"
 
-	"github.com/jordan-wright/email"
+	emailparser "github.com/AegisAX/Sentinel/util/email"
 )
 
 // Client interface for IMAP interactions
@@ -30,7 +30,7 @@ type Client interface {
 // Email represents an email.Email with an included IMAP Sequence Number
 type Email struct {
 	SeqNum uint32 `json:"seqnum"`
-	*email.Email
+	*emailparser.Message
 }
 
 // Mailbox holds onto the credentials and other information
@@ -154,7 +154,7 @@ func (mbox *Mailbox) GetUnread(markAsRead, delete bool) ([]Email, error) {
 	// Step through each email
 	for msg := range messages {
 		// Extract raw message body. I can't find a better way to do this with the emersion library
-		var em *email.Email
+		var em *emailparser.Message
 		var buf []byte
 		for _, value := range msg.Body {
 			buf = make([]byte, value.Len())
@@ -162,19 +162,18 @@ func (mbox *Mailbox) GetUnread(markAsRead, delete bool) ([]Email, error) {
 			break // There should only ever be one item in this map, but I'm not 100% sure
 		}
 
-		//Remove CR characters, see https://github.com/jordan-wright/email/issues/106
 		tmp := string(buf)
 		re := regexp.MustCompile(`\r`)
 		tmp = re.ReplaceAllString(tmp, "")
 		buf = []byte(tmp)
 
 		rawBodyStream := bytes.NewReader(buf)
-		em, err = email.NewEmailFromReader(rawBodyStream) // Parse with @jordanwright's library
+		em, err = emailparser.NewMessageFromReader(rawBodyStream)
 		if err != nil {
 			return emails, err
 		}
 
-		emtmp := Email{Email: em, SeqNum: msg.SeqNum} // Not sure why msg.Uid is always 0, so swapped to sequence numbers
+		emtmp := Email{Message: em, SeqNum: msg.SeqNum} // Not sure why msg.Uid is always 0, so swapped to sequence numbers
 		emails = append(emails, emtmp)
 
 	}

@@ -12,11 +12,11 @@ import (
 	"github.com/AegisAX/Sentinel/config"
 
 	"github.com/gophish/gomail"
-	"github.com/jordan-wright/email"
+	emailparser "github.com/AegisAX/Sentinel/util/email"
 	"gopkg.in/check.v1"
 )
 
-func (s *ModelsSuite) emailFromFirstMailLog(campaign Campaign, ch *check.C) *email.Email {
+func (s *ModelsSuite) emailFromFirstMailLog(campaign Campaign, ch *check.C) *emailparser.Message {
 	result := campaign.Results[0]
 	m := &MailLog{}
 	err := db.Where("r_id=? AND campaign_id=?", result.RId, campaign.Id).
@@ -31,7 +31,7 @@ func (s *ModelsSuite) emailFromFirstMailLog(campaign Campaign, ch *check.C) *ema
 	_, err = msg.WriteTo(msgBuff)
 	ch.Assert(err, check.Equals, nil)
 
-	got, err := email.NewEmailFromReader(msgBuff)
+	got, err := emailparser.NewMessageFromReader(msgBuff)
 	ch.Assert(err, check.Equals, nil)
 	return got
 }
@@ -242,7 +242,7 @@ func (s *ModelsSuite) TestMailLogGetSmtpFrom(ch *check.C) {
 	_, err = msg.WriteTo(msgBuff)
 	ch.Assert(err, check.Equals, nil)
 
-	got, err := email.NewEmailFromReader(msgBuff)
+	got, err := emailparser.NewMessageFromReader(msgBuff)
 	ch.Assert(err, check.Equals, nil)
 	ch.Assert(got.From, check.Equals, "spoofing@example.com")
 }
@@ -250,7 +250,7 @@ func (s *ModelsSuite) TestMailLogGetSmtpFrom(ch *check.C) {
 func (s *ModelsSuite) TestMailLogGenerate(ch *check.C) {
 	campaign := s.createCampaign(ch)
 	result := campaign.Results[0]
-	expected := &email.Email{
+	expected := &emailparser.Message{
 		From:    "test@test.com", // Default smtp.FromAddress
 		Subject: fmt.Sprintf("%s - Subject", result.RId),
 		Text:    []byte(fmt.Sprintf("%s - Text", result.RId)),
@@ -351,7 +351,7 @@ func (s *ModelsSuite) TestMailLogGenerateEmptySubject(ch *check.C) {
 	ch.Assert(PostCampaign(&campaign, campaign.UserId), check.Equals, nil)
 	result := campaign.Results[0]
 
-	expected := &email.Email{
+	expected := &emailparser.Message{
 		Subject: "",
 		Text:    []byte(fmt.Sprintf("%s - Text", result.RId)),
 		HTML:    []byte(fmt.Sprintf("%s - HTML", result.RId)),

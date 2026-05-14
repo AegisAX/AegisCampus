@@ -14,7 +14,7 @@ import (
 	log "github.com/AegisAX/Sentinel/logger"
 	"github.com/AegisAX/Sentinel/models"
 	"github.com/AegisAX/Sentinel/util"
-	"github.com/jordan-wright/email"
+	emailparser "github.com/AegisAX/Sentinel/util/email"
 )
 
 type cloneRequest struct {
@@ -65,7 +65,7 @@ func (as *Server) ImportEmail(w http.ResponseWriter, r *http.Request) {
 		JSONResponse(w, models.Response{Success: false, Message: "Error decoding JSON Request"}, http.StatusBadRequest)
 		return
 	}
-	e, err := email.NewEmailFromReader(strings.NewReader(ir.Content))
+	e, err := emailparser.NewMessageFromReader(strings.NewReader(ir.Content))
 	if err != nil {
 		log.Error(err)
 	}

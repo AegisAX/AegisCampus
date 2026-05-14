@@ -7,7 +7,7 @@ import (
 
 	"github.com/gophish/gomail"
 	"github.com/AegisAX/Sentinel/config"
-	"github.com/jordan-wright/email"
+	emailparser "github.com/AegisAX/Sentinel/util/email"
 	check "gopkg.in/check.v1"
 )
 
@@ -86,7 +86,7 @@ func (s *ModelsSuite) TestEmailRequestGenerate(ch *check.C) {
 	err := req.Generate(msg)
 	ch.Assert(err, check.Equals, nil)
 
-	expected := &email.Email{
+	expected := &emailparser.Message{
 		Subject: fmt.Sprintf("%s - Subject", req.Name),
 		Text:    []byte(fmt.Sprintf("%s - Text", req.Email)),
 		HTML:    []byte(fmt.Sprintf("%s - HTML", req.Email)),
@@ -96,7 +96,7 @@ func (s *ModelsSuite) TestEmailRequestGenerate(ch *check.C) {
 	_, err = msg.WriteTo(msgBuff)
 	ch.Assert(err, check.Equals, nil)
 
-	got, err := email.NewEmailFromReader(msgBuff)
+	got, err := emailparser.NewMessageFromReader(msgBuff)
 	ch.Assert(err, check.Equals, nil)
 	ch.Assert(got.Subject, check.Equals, expected.Subject)
 	ch.Assert(string(got.Text), check.Equals, string(expected.Text))
@@ -170,7 +170,7 @@ func (s *ModelsSuite) TestEmailRequestURLTemplating(ch *check.C) {
 	_, err = msg.WriteTo(msgBuff)
 	ch.Assert(err, check.Equals, nil)
 
-	got, err := email.NewEmailFromReader(msgBuff)
+	got, err := emailparser.NewMessageFromReader(msgBuff)
 	ch.Assert(err, check.Equals, nil)
 	ch.Assert(got.Subject, check.Equals, expectedURL)
 	ch.Assert(string(got.Text), check.Equals, expectedURL)
@@ -201,7 +201,7 @@ func (s *ModelsSuite) TestEmailRequestGenerateEmptySubject(ch *check.C) {
 	err := req.Generate(msg)
 	ch.Assert(err, check.Equals, nil)
 
-	expected := &email.Email{
+	expected := &emailparser.Message{
 		Subject: "",
 		Text:    []byte(fmt.Sprintf("%s - Text", req.Email)),
 		HTML:    []byte(fmt.Sprintf("%s - HTML", req.Email)),
@@ -211,7 +211,7 @@ func (s *ModelsSuite) TestEmailRequestGenerateEmptySubject(ch *check.C) {
 	_, err = msg.WriteTo(msgBuff)
 	ch.Assert(err, check.Equals, nil)
 
-	got, err := email.NewEmailFromReader(msgBuff)
+	got, err := emailparser.NewMessageFromReader(msgBuff)
 	ch.Assert(err, check.Equals, nil)
 	ch.Assert(got.Subject, check.Equals, expected.Subject)
 }
