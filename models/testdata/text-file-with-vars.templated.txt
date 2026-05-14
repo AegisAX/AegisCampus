@@ -1,6 +1,6 @@
 The target's unique ID: 1234567
 
-The target's name: Foo bar
+The target's name: Foo
 
 The target's department: HQ
 
