@@ -1,4 +1,4 @@
-module github.com/gophish/gophish
+module github.com/AegisAX/Sentinel
 
 go 1.23.0
 

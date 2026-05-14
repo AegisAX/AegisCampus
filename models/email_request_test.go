@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/gophish/gomail"
-	"github.com/gophish/gophish/config"
+	"github.com/AegisAX/Sentinel/config"
 	"github.com/jordan-wright/email"
 	check "gopkg.in/check.v1"
 )

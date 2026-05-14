@@ -24,8 +24,8 @@ import (
 
 	"unicode/utf8"
 
-	log "github.com/gophish/gophish/logger"
-	"github.com/gophish/gophish/models"
+	log "github.com/AegisAX/Sentinel/logger"
+	"github.com/AegisAX/Sentinel/models"
 	"github.com/jordan-wright/email"
 	"golang.org/x/text/encoding/korean"
 	"golang.org/x/text/encoding/unicode"

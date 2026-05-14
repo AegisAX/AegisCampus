@@ -13,10 +13,10 @@ import (
 	"bitbucket.org/liamstask/goose/lib/goose"
 
 	mysql "github.com/go-sql-driver/mysql"
-	"github.com/gophish/gophish/auth"
-	"github.com/gophish/gophish/config"
+	"github.com/AegisAX/Sentinel/auth"
+	"github.com/AegisAX/Sentinel/config"
 
-	log "github.com/gophish/gophish/logger"
+	log "github.com/AegisAX/Sentinel/logger"
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3" // Blank import needed to import sqlite3
 )

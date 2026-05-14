@@ -3,7 +3,7 @@ package models
 import (
 	"errors"
 
-	log "github.com/gophish/gophish/logger"
+	log "github.com/AegisAX/Sentinel/logger"
 )
 
 // Webhook represents the webhook model

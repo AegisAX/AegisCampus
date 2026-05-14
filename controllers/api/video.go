@@ -9,10 +9,10 @@ import (
 	"strconv"
 	"strings"
 
-	ctx "github.com/gophish/gophish/context"
-	log "github.com/gophish/gophish/logger"
-	"github.com/gophish/gophish/models"
-	"github.com/gophish/gophish/util"
+	ctx "github.com/AegisAX/Sentinel/context"
+	log "github.com/AegisAX/Sentinel/logger"
+	"github.com/AegisAX/Sentinel/models"
+	"github.com/AegisAX/Sentinel/util"
 	"github.com/gorilla/mux"
 )
 

@@ -15,10 +15,10 @@ import (
 	"time"
 
 	"github.com/gophish/gomail"
-	"github.com/gophish/gophish/config"
-	log "github.com/gophish/gophish/logger"
-	"github.com/gophish/gophish/mailer"
-	"github.com/gophish/gophish/util/mimeutil"
+	"github.com/AegisAX/Sentinel/config"
+	log "github.com/AegisAX/Sentinel/logger"
+	"github.com/AegisAX/Sentinel/mailer"
+	"github.com/AegisAX/Sentinel/util/mimeutil"
 )
 
 // MaxSendAttempts set to 8 since we exponentially backoff after each failed send

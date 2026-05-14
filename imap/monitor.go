@@ -15,10 +15,10 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/gophish/gophish/logger"
+	log "github.com/AegisAX/Sentinel/logger"
 	"github.com/jordan-wright/email"
 
-	"github.com/gophish/gophish/models"
+	"github.com/AegisAX/Sentinel/models"
 )
 
 // Pattern for GoPhish emails e.g ?rid=AbC1234
