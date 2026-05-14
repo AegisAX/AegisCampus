@@ -162,7 +162,7 @@ func checkForNewEmails(im models.IMAP) {
 				continue
 			}
 			if len(rids) < 1 {
-				// In the future this should be an alert in Gophish
+				// In the future this should be an alert in Sentinel
 				log.Infof("User '%s' reported email with subject '%s'. This is not a GoPhish campaign; you should investigate it.", m.Email.From, m.Email.Subject)
 			}
 			// rid별 성공/실패 집계 후 SeqNum은 한 번만 결정:
@@ -211,7 +211,7 @@ func checkForNewEmails(im models.IMAP) {
 				log.Error("Unable to mark emails as unread: ", err.Error())
 			}
 		}
-		// If the DeleteReportedCampaignEmail flag is set, delete reported Gophish campaign emails
+		// If the DeleteReportedCampaignEmail flag is set, delete reported Sentinel campaign emails
 		if len(deleteEmails) > 0 {
 			log.Debugf("Deleting %d campaign emails", len(deleteEmails))
 			err := mailServer.DeleteEmails(deleteEmails) // Delete GoPhish campaign emails.
@@ -236,7 +236,7 @@ func checkRIDs(em *email.Email, rids map[string]bool) {
 	}
 }
 
-// returns a slice of gophish rid paramters found in the email HTML, Text, and attachments
+// returns a slice of sentinel rid paramters found in the email HTML, Text, and attachments
 func matchEmail(em *email.Email) (map[string]bool, error) {
 	rids := make(map[string]bool)
 	checkRIDs(em, rids)

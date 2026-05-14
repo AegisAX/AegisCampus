@@ -3,10 +3,10 @@ package models
 /*
 Design:
 
-Gophish implements simple Role-Based-Access-Control (RBAC) to control access to
+Sentinel implements simple Role-Based-Access-Control (RBAC) to control access to
 certain resources.
 
-By default, Gophish has two separate roles, with each user being assigned to
+By default, Sentinel has two separate roles, with each user being assigned to
 a single role:
 
 * Admin  - Can modify all objects as well as system-level configuration
@@ -26,26 +26,26 @@ requested permission.
 */
 
 const (
-	// RoleAdmin is used for Gophish system administrators. Users with this
-	// role have the ability to manage all objects within Gophish, as well as
+	// RoleAdmin is used for Sentinel system administrators. Users with this
+	// role have the ability to manage all objects within Sentinel, as well as
 	// system-level configuration, such as users and URLs.
 	RoleAdmin = "admin"
-	// RoleUser is used for standard Gophish users. Users with this role can
-	// create, manage, and view Gophish objects and campaigns.
+	// RoleUser is used for standard Sentinel users. Users with this role can
+	// create, manage, and view Sentinel objects and campaigns.
 	RoleUser = "user"
 
-	// PermissionViewObjects determines if a role can view standard Gophish
+	// PermissionViewObjects determines if a role can view standard Sentinel
 	// objects such as campaigns, groups, landing pages, etc.
 	PermissionViewObjects = "view_objects"
 	// PermissionModifyObjects determines if a role can create and modify
-	// standard Gophish objects.
+	// standard Sentinel objects.
 	PermissionModifyObjects = "modify_objects"
 	// PermissionModifySystem determines if a role can manage system-level
 	// configuration.
 	PermissionModifySystem = "modify_system"
 )
 
-// Role represents a user role within Gophish. Each user has a single role
+// Role represents a user role within Sentinel. Each user has a single role
 // which maps to a set of permissions.
 type Role struct {
 	ID          int64        `json:"-"`

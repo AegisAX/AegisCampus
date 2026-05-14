@@ -147,7 +147,7 @@ func TestModifyUser(t *testing.T) {
 }
 
 // TestUnauthorizedListUsers ensures that users without the ModifySystem
-// permission are unable to list the users registered in Gophish.
+// permission are unable to list the users registered in Sentinel.
 func TestUnauthorizedListUsers(t *testing.T) {
 	testCtx := setupTest(t)
 	// First, let's create a standard user which doesn't

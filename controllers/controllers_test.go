@@ -43,7 +43,7 @@ func setupTest(t *testing.T) *testContext {
 	// Get the API key to use for these tests
 	u, err := models.GetUser(1)
 	// Reset the temporary password for the admin user to a value we control
-	hash, err := auth.GeneratePasswordHash("gophish")
+	hash, err := auth.GeneratePasswordHash("sentinel")
 	u.Hash = hash
 	models.PutUser(&u)
 	if err != nil {

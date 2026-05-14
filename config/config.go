@@ -39,7 +39,7 @@ type Config struct {
 	Logging        *log.Config `json:"logging"`
 }
 
-// Version contains the current gophish version
+// Version contains the current sentinel version
 var Version = ""
 
 // ServerName is the server type that is returned in the transparency response.

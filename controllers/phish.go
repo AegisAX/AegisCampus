@@ -46,7 +46,7 @@ type TransparencyResponse struct {
 	SendDate       time.Time `json:"send_date"`
 }
 
-// TransparencySuffix (when appended to a valid result ID), will cause Gophish
+// TransparencySuffix (when appended to a valid result ID), will cause Sentinel
 // to return a transparency response.
 const TransparencySuffix = "+"
 
