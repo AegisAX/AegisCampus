@@ -29,7 +29,7 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
-	"github.com/jordan-wright/unindexed"
+	"github.com/AegisAX/Sentinel/middleware"
 )
 
 // AdminServerOption is a functional option that is used to configure the
@@ -164,7 +164,7 @@ func (as *AdminServer) registerRoutes() {
 	router.PathPrefix("/api/").Handler(api)
 
 	// Setup static file serving
-	router.PathPrefix("/").Handler(http.FileServer(unindexed.Dir("./static/")))
+	router.PathPrefix("/").Handler(http.FileServer(middleware.NoIndexDir("./static/")))
 
 	// Setup CSRF Protection
 	csrfKey := []byte(as.config.CSRFKey)
