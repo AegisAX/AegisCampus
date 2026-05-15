@@ -24,11 +24,11 @@ _cgo_export.*
 
 _testmain.go
 
-gophish_admin.crt
-gophish_admin.key
+sentinel_admin.crt
+sentinel_admin.key
 
 *.exe
 config.json
-gophish.db*
-gophish
-gophish.log
+sentinel.db*
+sentinel
+sentinel.log
