@@ -21,10 +21,10 @@ import (
 	"github.com/AegisAX/Sentinel/models"
 )
 
-// Pattern for GoPhish emails e.g ?rid=AbC1234
+// Pattern for Sentinel emails e.g ?rid=AbC1234
 // We include the optional quoted-printable 3D at the front, just in case decoding fails. e.g ?rid=3DAbC1234
 // We also include alternative URL encoded representations of '=' and '?' to handle Microsoft ATP URLs e.g %3Frid%3DAbC1234
-var goPhishRegex = regexp.MustCompile("((\\?|%3F)rid(=|%3D)(3D)?([A-Za-z0-9]{7}))")
+var sentinelRidRegex = regexp.MustCompile("((\\?|%3F)rid(=|%3D)(3D)?([A-Za-z0-9]{7}))")
 
 // Monitor is a worker that monitors IMAP servers for reported campaign emails
 type Monitor struct {
@@ -35,32 +35,39 @@ type Monitor struct {
 // As each account can have its own polling frequency set we need to run one Go routine for
 // each, as well as keeping an eye on newly created user accounts.
 func (im *Monitor) start(ctx context.Context) {
-    usermap := make(map[int64]int)
+	usermap := make(map[int64]int)
 
-    for {
-        select {
-        case <-ctx.Done():
-            return
-        default:
-            dbusers, err := models.GetUsers()
-            if err != nil { log.Error(err); break }
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			dbusers, err := models.GetUsers()
+			if err != nil {
+				log.Error(err)
+				break
+			}
 
-            // ↓ 정리 로직은 dbusers 조회 직후, 루프 안으로 이동
-            currentUIDs := map[int64]bool{}
-            for _, u := range dbusers { currentUIDs[u.Id] = true }
-            for uid := range usermap {
-                if !currentUIDs[uid] { delete(usermap, uid) }
-            }
+			// ↓ 정리 로직은 dbusers 조회 직후, 루프 안으로 이동
+			currentUIDs := map[int64]bool{}
+			for _, u := range dbusers {
+				currentUIDs[u.Id] = true
+			}
+			for uid := range usermap {
+				if !currentUIDs[uid] {
+					delete(usermap, uid)
+				}
+			}
 
-            for _, dbuser := range dbusers {
-                if _, ok := usermap[dbuser.Id]; !ok {
-                    usermap[dbuser.Id] = 1
-                    go monitor(dbuser.Id, ctx)
-                }
-            }
-            time.Sleep(10 * time.Second)
-        }
-    }
+			for _, dbuser := range dbusers {
+				if _, ok := usermap[dbuser.Id]; !ok {
+					usermap[dbuser.Id] = 1
+					go monitor(dbuser.Id, ctx)
+				}
+			}
+			time.Sleep(10 * time.Second)
+		}
+	}
 }
 
 // monitor will continuously login to the IMAP settings associated to the supplied user id (if the user account has IMAP settings, and they're enabled.)
@@ -163,7 +170,7 @@ func checkForNewEmails(im models.IMAP) {
 			}
 			if len(rids) < 1 {
 				// In the future this should be an alert in Sentinel
-				log.Infof("User '%s' reported email with subject '%s'. This is not a GoPhish campaign; you should investigate it.", m.Message.From, m.Message.Subject)
+				log.Infof("User '%s' reported email with subject '%s'. This is not a Sentinel campaign; you should investigate it.", m.Message.From, m.Message.Subject)
 			}
 			// rid별 성공/실패 집계 후 SeqNum은 한 번만 결정:
 			successCount, failCount := 0, 0
@@ -182,12 +189,22 @@ func checkForNewEmails(im models.IMAP) {
 				}
 				hdrs := map[string]string{}
 				if m.Message.Headers != nil {
-					if v := m.Message.Headers.Get("Message-ID"); v != "" { rd.MessageID = v }
-					if v := m.Message.Headers.Get("Date"); v != "" { hdrs["Date"] = v }
+					if v := m.Message.Headers.Get("Message-ID"); v != "" {
+						rd.MessageID = v
+					}
+					if v := m.Message.Headers.Get("Date"); v != "" {
+						hdrs["Date"] = v
+					}
 				}
-				if m.Message.From != "" { hdrs["From"] = m.Message.From }
-				if len(m.Message.To) > 0 { hdrs["To"] = strings.Join(m.Message.To, ", ") }
-				if len(hdrs) > 0 { rd.Headers = hdrs }
+				if m.Message.From != "" {
+					hdrs["From"] = m.Message.From
+				}
+				if len(m.Message.To) > 0 {
+					hdrs["To"] = strings.Join(m.Message.To, ", ")
+				}
+				if len(hdrs) > 0 {
+					rd.Headers = hdrs
+				}
 
 				if err = result.HandleEmailReport(models.EventDetails{Report: &rd}); err != nil {
 					log.Error("Error reporting rid ", rid, ": ", err.Error())
@@ -206,7 +223,7 @@ func checkForNewEmails(im models.IMAP) {
 		// Check if any emails were unable to be reported, so we can mark them as unread
 		if len(reportingFailed) > 0 {
 			log.Debugf("Marking %d emails as unread as failed to report", len(reportingFailed))
-			err := mailServer.MarkAsUnread(reportingFailed) // Set emails as unread that we failed to report to GoPhish
+			err := mailServer.MarkAsUnread(reportingFailed) // Set emails as unread that we failed to report to Sentinel
 			if err != nil {
 				log.Error("Unable to mark emails as unread: ", err.Error())
 			}
@@ -214,7 +231,7 @@ func checkForNewEmails(im models.IMAP) {
 		// If the DeleteReportedCampaignEmail flag is set, delete reported Sentinel campaign emails
 		if len(deleteEmails) > 0 {
 			log.Debugf("Deleting %d campaign emails", len(deleteEmails))
-			err := mailServer.DeleteEmails(deleteEmails) // Delete GoPhish campaign emails.
+			err := mailServer.DeleteEmails(deleteEmails) // Delete Sentinel campaign emails.
 			if err != nil {
 				log.Error("Failed to delete emails: ", err.Error())
 			}
@@ -228,7 +245,7 @@ func checkForNewEmails(im models.IMAP) {
 func checkRIDs(em *emailparser.Message, rids map[string]bool) {
 	// Check Text and HTML
 	emailContent := string(em.Text) + string(em.HTML)
-	for _, r := range goPhishRegex.FindAllStringSubmatch(emailContent, -1) {
+	for _, r := range sentinelRidRegex.FindAllStringSubmatch(emailContent, -1) {
 		newrid := r[len(r)-1]
 		if !rids[newrid] {
 			rids[newrid] = true

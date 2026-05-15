@@ -16,7 +16,7 @@ graph TB
         UI_Page["📄 랜딩 및 리다이렉트 관리<br/>🚀 신규: 리다이렉트 페이지 및 랜딩페이지 동영상(Video ID) 매핑"]:::added
     end
 
-    subgraph Backend_Core ["⚙️ Gophish Core & API Engine"]
+    subgraph Backend_Core ["⚙️ Sentinel Core & API Engine"]
         API_Main["🔌 기본 Core REST API<br/>- 캠페인, 유저, 템플릿 처리<br/>✨ 개선: 템플릿 변수 치환 및<br/>이벤트 라벨 정규화"]:::improved
         API_Video["📼 신규 Video REST API<br/>🚀 신규: 동영상 스트리밍 및<br/>수강 진도율 처리"]:::added
         API_Redirect["🔀 신규 Redirect REST API<br/>🚀 신규: 리다이렉트 페이지 처리"]:::added
@@ -35,14 +35,14 @@ graph TB
     end
 
     subgraph Storage ["🗄️ Database & File System"]
-        DB_Base[("🗃️ 기본 Gophish 테이블<br/>- users, campaigns, results, events")]:::storage
+        DB_Base[("🗃️ 기본 Sentinel 테이블<br/>- users, campaigns, results, events")]:::storage
         DB_Ext[("🗂️ 확장 DB 스키마<br/>✨ 개선: report_note, department, redirect_pages, page.video_id 추가")]:::improved
         DB_Video[("🎞️ 신규 동영상 테이블<br/>🚀 신규: Video, VideoProgress 데이터 저장")]:::added
         FS_Video["📁 로컬 파일 시스템<br/>🚀 신규: 동영상 및 썸네일 저장"]:::added
     end
 
     subgraph Legend ["💡 다이어그램 색상 범례"]
-        L_Base["⬜ Gophish 기본 프레임워크 (Default)"]:::base
+        L_Base["⬜ Sentinel 기본 프레임워크 (Default)"]:::base
         L_Improved["🟨 기능 고도화 및 속성 확장 (Improved)"]:::improved
         L_Added["🟩 새롭게 개발된 신규 모듈 (Added)"]:::added
     end

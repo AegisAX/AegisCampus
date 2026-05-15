@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
--- GoPhish 0.12.1 원본 라벨 → Sentinel 축약 라벨로 통일
+-- 원본 라벨 → Sentinel 축약 라벨로 통일
 -- 이미 Sentinel 라벨인 경우 WHERE 조건 불일치로 영향 없음
 
 -- events.message 정규화

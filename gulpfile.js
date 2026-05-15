@@ -1,7 +1,7 @@
 /*
  * gulpfile.js
  *
- * Description: The Gophish gulpfile
+ * Description: The Sentinel gulpfile
  */
 
 var gulp = require('gulp'),
@@ -49,7 +49,7 @@ vendorjs = function () {
 }
 
 scripts = function () {
-    // Gophish app files - non-ES6
+    // Sentinel app files - non-ES6
     return gulp.src([
             app_directory + 'autocomplete.js',
             app_directory + 'campaign_results.js',
