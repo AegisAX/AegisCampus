@@ -92,7 +92,7 @@ func (s *ModelsSuite) TestSMTPGetDialer(ch *check.C) {
 	d, err := smtp.GetDialer()
 	ch.Assert(err, check.Equals, nil)
 
-	dialer := d.(*Dialer).Dialer
+	dialer := d.(*Dialer).SMTPDialer
 	ch.Assert(dialer.Host, check.Equals, host)
 	ch.Assert(dialer.Port, check.Equals, port)
 	ch.Assert(dialer.TLSConfig.ServerName, check.Equals, host)

@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gophish/gomail"
 	"github.com/AegisAX/Sentinel/config"
 	log "github.com/AegisAX/Sentinel/logger"
 	"github.com/AegisAX/Sentinel/mailer"
@@ -166,11 +165,11 @@ func (m *MailLog) GetSmtpFrom() (string, error) {
 	return f.Address, err
 }
 
-// Generate fills in the details of a gomail.Message instance with
+// Generate fills in the details of a mailer.Message instance with
 // the correct headers and body from the campaign and recipient listed in
-// the maillog. We accept the gomail.Message as an argument so that the caller
+// the maillog. We accept the mailer.Message as an argument so that the caller
 // can choose to re-use the message across recipients.
-func (m *MailLog) Generate(msg *gomail.Message) error {
+func (m *MailLog) Generate(msg *mailer.Message) error {
 	r, err := GetResult(m.RId)
 	if err != nil {
 		return err
@@ -418,11 +417,11 @@ func shouldEmbedAttachment(name string) bool {
 	return false
 }
 
-// Add an attachment to a gomail message.
+// Add an attachment to a mailer message.
 // 첨부 파트의 헤더에 RFC2231 filename* / name*을 추가하여
 // 헤더에 비-ASCII가 남지 않도록 처리한다.
-func addAttachment(msg *gomail.Message, a *Attachment, ptx PhishingTemplateContext) {
-	copyFunc := gomail.SetCopyFunc(func(w io.Writer) error {
+func addAttachment(msg *mailer.Message, a *Attachment, ptx PhishingTemplateContext) {
+	copyFunc := mailer.SetCopyFunc(func(w io.Writer) error {
 		reader, err := a.ApplyTemplate(ptx) // a는 원본 포인터 → vanillaFile 반영
 		if err != nil {
 			return err
@@ -432,7 +431,7 @@ func addAttachment(msg *gomail.Message, a *Attachment, ptx PhishingTemplateConte
 	})
 
 	inline := shouldEmbedAttachment(a.Name)
-	// gomail 내부 기본 처리에서 비-ASCII를 건드리지 않도록, 라이브러리 인자도 ASCII로 전달
+	// mailer 내부 기본 처리에서 비-ASCII를 건드리지 않도록, 라이브러리 인자도 ASCII로 전달
 	asciiName := mimeutil.PercentASCIIName(a.Name)
 
 	// Content-Type 추정 (확장자 기반)
@@ -450,17 +449,17 @@ func addAttachment(msg *gomail.Message, a *Attachment, ptx PhishingTemplateConte
 
 	if inline {
 		// inline 이미지는 Content-ID가 필요할 수 있는데,
-		// 여기서는 Content-ID를 지정하지 않으면 gomail이 자동으로 추가한다.
+		// 여기서는 Content-ID를 지정하지 않으면 mailer가 자동으로 추가한다.
 		msg.Embed(
 			asciiName,
-			gomail.SetHeader(hdr),
+			mailer.SetHeader(hdr),
 			copyFunc,
 		)
 	} else {
 		// 일부 클라이언트 호환을 위해 폴백 파일명도 지정
 		msg.Attach(
 			asciiName,
-			gomail.SetHeader(hdr),
+			mailer.SetHeader(hdr),
 			copyFunc,
 		)
 	}

@@ -10,8 +10,7 @@ import (
 	"time"
 
 	"github.com/AegisAX/Sentinel/config"
-
-	"github.com/gophish/gomail"
+	"github.com/AegisAX/Sentinel/mailer"
 	emailparser "github.com/AegisAX/Sentinel/util/email"
 	"gopkg.in/check.v1"
 )
@@ -23,7 +22,7 @@ func (s *ModelsSuite) emailFromFirstMailLog(campaign Campaign, ch *check.C) *ema
 		Find(m).Error
 	ch.Assert(err, check.Equals, nil)
 
-	msg := gomail.NewMessage()
+	msg := mailer.NewMessage()
 	err = m.Generate(msg)
 	ch.Assert(err, check.Equals, nil)
 
@@ -234,7 +233,7 @@ func (s *ModelsSuite) TestMailLogGetSmtpFrom(ch *check.C) {
 		Find(m).Error
 	ch.Assert(err, check.Equals, nil)
 
-	msg := gomail.NewMessage()
+	msg := mailer.NewMessage()
 	err = m.Generate(msg)
 	ch.Assert(err, check.Equals, nil)
 
@@ -266,7 +265,7 @@ func (s *ModelsSuite) TestMailLogGenerate(ch *check.C) {
 func (s *ModelsSuite) TestMailLogGenerateTransparencyHeaders(ch *check.C) {
 	s.config.ContactAddress = "test@test.com"
 	expectedHeaders := map[string]string{
-		"X-Mailer":          config.ServerName,
+		"X-Mailer":           config.ServerName,
 		"X-Sentinel-Contact": s.config.ContactAddress,
 	}
 	campaign := s.createCampaign(ch)
@@ -278,7 +277,7 @@ func (s *ModelsSuite) TestMailLogGenerateTransparencyHeaders(ch *check.C) {
 
 func (s *ModelsSuite) TestMailLogGenerateOverrideTransparencyHeaders(ch *check.C) {
 	expectedHeaders := map[string]string{
-		"X-Mailer":          "",
+		"X-Mailer":           "",
 		"X-Sentinel-Contact": "",
 	}
 	smtp := SMTP{
@@ -414,7 +413,7 @@ func BenchmarkMailLogGenerate100(b *testing.B) {
 	ms[0].CacheCampaign(&campaign)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		msg := gomail.NewMessage()
+		msg := mailer.NewMessage()
 		ms[0].Generate(msg)
 	}
 	tearDownBenchmark(b)
@@ -430,7 +429,7 @@ func BenchmarkMailLogGenerate1000(b *testing.B) {
 	ms[0].CacheCampaign(&campaign)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		msg := gomail.NewMessage()
+		msg := mailer.NewMessage()
 		ms[0].Generate(msg)
 	}
 	tearDownBenchmark(b)
@@ -446,7 +445,7 @@ func BenchmarkMailLogGenerate5000(b *testing.B) {
 	ms[0].CacheCampaign(&campaign)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		msg := gomail.NewMessage()
+		msg := mailer.NewMessage()
 		ms[0].Generate(msg)
 	}
 	tearDownBenchmark(b)
@@ -462,7 +461,7 @@ func BenchmarkMailLogGenerate10000(b *testing.B) {
 	ms[0].CacheCampaign(&campaign)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		msg := gomail.NewMessage()
+		msg := mailer.NewMessage()
 		ms[0].Generate(msg)
 	}
 	tearDownBenchmark(b)

@@ -9,24 +9,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gophish/gomail"
 	"github.com/AegisAX/Sentinel/dialer"
 	log "github.com/AegisAX/Sentinel/logger"
 	"github.com/AegisAX/Sentinel/mailer"
 	"github.com/jinzhu/gorm"
 )
 
-// Dialer is a wrapper around a standard gomail.Dialer in order
-// to implement the mailer.Dialer interface. This allows us to better
-// separate the mailer package as opposed to forcing a connection
-// between mailer and gomail.
+// Dialer is a thin wrapper around mailer.SMTPDialer that preserves
+// the historical models.Dialer type. It implements mailer.Dialer.
 type Dialer struct {
-	*gomail.Dialer
+	*mailer.SMTPDialer
 }
 
-// Dial wraps the gomail dialer's Dial command
+// Dial delegates to the embedded SMTPDialer.
 func (d *Dialer) Dial() (mailer.Sender, error) {
-	return d.Dialer.Dial()
+	return d.SMTPDialer.Dial()
 }
 
 // SMTP contains the attributes needed to handle the sending of campaign emails
@@ -126,7 +123,7 @@ func (s *SMTP) GetDialer() (mailer.Dialer, error) {
 		return nil, err
 	}
 	dialer := dialer.Dialer()
-	d := gomail.NewWithDialer(dialer, host, port, s.Username, s.Password)
+	d := mailer.NewWithDialer(dialer, host, port, s.Username, s.Password)
 	d.TLSConfig = &tls.Config{
 		ServerName:         host,
 		InsecureSkipVerify: s.IgnoreCertErrors,

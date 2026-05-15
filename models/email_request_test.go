@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/gophish/gomail"
 	"github.com/AegisAX/Sentinel/config"
+	"github.com/AegisAX/Sentinel/mailer"
 	emailparser "github.com/AegisAX/Sentinel/util/email"
 	check "gopkg.in/check.v1"
 )
@@ -69,20 +69,20 @@ func (s *ModelsSuite) TestEmailRequestGenerate(ch *check.C) {
 		SMTP:     smtp,
 		Template: template,
 		BaseRecipient: BaseRecipient{
-			Name: "Name",
-			Department:  "Department",
-			Email:     "firstlast@example.com",
+			Name:       "Name",
+			Department: "Department",
+			Email:      "firstlast@example.com",
 		},
 		FromAddress: smtp.FromAddress,
 	}
 
 	s.config.ContactAddress = "test@test.com"
 	expectedHeaders := map[string]string{
-		"X-Mailer":          config.ServerName,
+		"X-Mailer":           config.ServerName,
 		"X-Sentinel-Contact": s.config.ContactAddress,
 	}
 
-	msg := gomail.NewMessage()
+	msg := mailer.NewMessage()
 	err := req.Generate(msg)
 	ch.Assert(err, check.Equals, nil)
 
@@ -121,15 +121,15 @@ func (s *ModelsSuite) TestGetSmtpFrom(ch *check.C) {
 		Template: template,
 		URL:      "http://127.0.0.1/{{.Email}}",
 		BaseRecipient: BaseRecipient{
-			Name: "Name",
-			Department:  "Department",
-			Email:     "firstlast@example.com",
+			Name:       "Name",
+			Department: "Department",
+			Email:      "firstlast@example.com",
 		},
 		FromAddress: smtp.FromAddress,
 		RId:         fmt.Sprintf("%s-foobar", PreviewPrefix),
 	}
 
-	msg := gomail.NewMessage()
+	msg := mailer.NewMessage()
 	err := req.Generate(msg)
 	smtp_from, err := req.GetSmtpFrom()
 
@@ -152,15 +152,15 @@ func (s *ModelsSuite) TestEmailRequestURLTemplating(ch *check.C) {
 		Template: template,
 		URL:      "http://127.0.0.1/{{.Email}}",
 		BaseRecipient: BaseRecipient{
-			Name: "Name",
-			Department:  "Department",
-			Email:     "firstlast@example.com",
+			Name:       "Name",
+			Department: "Department",
+			Email:      "firstlast@example.com",
 		},
 		FromAddress: smtp.FromAddress,
 		RId:         fmt.Sprintf("%s-foobar", PreviewPrefix),
 	}
 
-	msg := gomail.NewMessage()
+	msg := mailer.NewMessage()
 	err := req.Generate(msg)
 	ch.Assert(err, check.Equals, nil)
 
@@ -190,14 +190,14 @@ func (s *ModelsSuite) TestEmailRequestGenerateEmptySubject(ch *check.C) {
 		SMTP:     smtp,
 		Template: template,
 		BaseRecipient: BaseRecipient{
-			Name: "Name",
-			Department:  "Department",
-			Email:     "firstlast@example.com",
+			Name:       "Name",
+			Department: "Department",
+			Email:      "firstlast@example.com",
 		},
 		FromAddress: smtp.FromAddress,
 	}
 
-	msg := gomail.NewMessage()
+	msg := mailer.NewMessage()
 	err := req.Generate(msg)
 	ch.Assert(err, check.Equals, nil)
 
@@ -243,9 +243,9 @@ func (s *ModelsSuite) TestPostSendTestEmailRequest(ch *check.C) {
 		TemplateId: template.Id,
 		PageId:     page.Id,
 		BaseRecipient: BaseRecipient{
-			Name: "Name",
-			Department:  "Department",
-			Email:     "firstlast@example.com",
+			Name:       "Name",
+			Department: "Department",
+			Email:      "firstlast@example.com",
 		},
 	}
 	err = PostEmailRequest(req)

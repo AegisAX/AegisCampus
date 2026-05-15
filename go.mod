@@ -9,7 +9,6 @@ require (
 	github.com/emersion/go-imap v1.0.4
 	github.com/emersion/go-message v0.12.0
 	github.com/go-sql-driver/mysql v1.5.0
-	github.com/gophish/gomail v0.0.0-20200818021916-1f6d0dfd512e
 	github.com/gorilla/context v1.1.1
 	github.com/gorilla/csrf v1.6.2
 	github.com/gorilla/handlers v1.4.2
@@ -41,5 +40,4 @@ require (
 	github.com/ziutek/mymysql v1.5.4 // indirect
 	golang.org/x/net v0.42.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect
-	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 )

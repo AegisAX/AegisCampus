@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/textproto"
 
-	"github.com/gophish/gomail"
 	log "github.com/AegisAX/Sentinel/logger"
 	"github.com/sirupsen/logrus"
 )
@@ -53,7 +52,7 @@ type Mail interface {
 	Backoff(reason error) error
 	Error(err error) error
 	Success() error
-	Generate(msg *gomail.Message) error
+	Generate(msg *Message) error
 	GetDialer() (Dialer, error)
 	GetSmtpFrom() (string, error)
 }
@@ -146,7 +145,7 @@ func sendMail(ctx context.Context, dialer Dialer, ms []Mail) {
 		return
 	}
 	defer sender.Close()
-	message := gomail.NewMessage()
+	message := NewMessage()
 	for i, m := range ms {
 		select {
 		case <-ctx.Done():
@@ -168,7 +167,7 @@ func sendMail(ctx context.Context, dialer Dialer, ms []Mail) {
 			continue
 		}
 
-		err = gomail.SendCustomFrom(sender, smtp_from, message)
+		err = SendCustomFrom(sender, smtp_from, message)
 		if err != nil {
 			if te, ok := err.(*textproto.Error); ok {
 				switch {

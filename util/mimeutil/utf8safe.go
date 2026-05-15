@@ -14,7 +14,7 @@ func EncodeHeaderRFC2047(s string) string {
 	if isASCII(s) {
 		return s
 	}
-	return mime.QEncoding.Encode("utf-8", s)
+	return mime.QEncoding.Encode("UTF-8", s)
 }
 
 // EncodeHeaderRFC2047B: Base64(B) 인코딩으로 encoded-word 생성 (일부 환경에서 더 호환적)
@@ -22,7 +22,7 @@ func EncodeHeaderRFC2047B(s string) string {
 	if isASCII(s) {
 		return s
 	}
-	return mime.BEncoding.Encode("utf-8", s)
+	return mime.BEncoding.Encode("UTF-8", s)
 }
 
 // 표시명이 비-ASCII여도 RFC 2047로 안전하게 문자열화

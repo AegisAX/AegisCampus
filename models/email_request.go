@@ -5,7 +5,6 @@ import (
 	"net/mail"
 	"time"
 
-	"github.com/gophish/gomail"
 	"github.com/AegisAX/Sentinel/config"
 	log "github.com/AegisAX/Sentinel/logger"
 	"github.com/AegisAX/Sentinel/mailer"
@@ -98,9 +97,9 @@ func GetEmailRequestByResultId(id string) (EmailRequest, error) {
 	return s, err
 }
 
-// Generate fills in the details of a gomail.Message with the contents
+// Generate fills in the details of a mailer.Message with the contents
 // from the SendTestEmailRequest.
-func (s *EmailRequest) Generate(msg *gomail.Message) error {
+func (s *EmailRequest) Generate(msg *mailer.Message) error {
 	f, err := mail.ParseAddress(s.getFromAddress())
 	if err != nil {
 		return err

@@ -5,8 +5,6 @@ import (
 	"errors"
 	"io"
 	"time"
-
-	"github.com/gophish/gomail"
 )
 
 // errHostUnreachable is a mock error to represent a host
@@ -49,7 +47,7 @@ func (md *mockDialer) setDial(dial func() (Sender, error)) {
 	md.dial = dial
 }
 
-// mockSender is a mock gomail.Sender used for testing.
+// mockSender is a mock Sender used for testing.
 type mockSender struct {
 	messages    []*mockMessage
 	status      string
@@ -153,7 +151,7 @@ func (mm *mockMessage) Finish() error {
 	return nil
 }
 
-func (mm *mockMessage) Generate(message *gomail.Message) error {
+func (mm *mockMessage) Generate(message *Message) error {
 	message.SetHeaders(map[string][]string{
 		"From": {mm.from},
 		"To":   mm.to,
