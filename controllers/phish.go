@@ -718,7 +718,28 @@ func renderPhishResponse(w http.ResponseWriter, r *http.Request, ptx models.Phis
 		}
 	}
 
+	html = ensureMiniSwal(html)
 	w.Write([]byte(html))
+}
+
+// ensureMiniSwal injects the self-contained Swal polyfill (miniSwalScript)
+// into page HTML only when the page calls Swal.fire(...) but does not define
+// window.Swal. Some Landing/Redirect pages were saved before the page builder
+// JS embedded the polyfill, so their stored HTML invokes Swal without it being
+// defined. The guard makes injection idempotent (정의가 이미 있으면 미주입,
+// Swal 미사용 페이지에도 미주입).
+func ensureMiniSwal(htmlStr string) string {
+	if !strings.Contains(htmlStr, "Swal.fire") || strings.Contains(htmlStr, "window.Swal") {
+		return htmlStr
+	}
+	switch {
+	case strings.Contains(htmlStr, "</head>"):
+		return strings.Replace(htmlStr, "</head>", miniSwalScript+"</head>", 1)
+	case strings.Contains(htmlStr, "</body>"):
+		return strings.Replace(htmlStr, "</body>", miniSwalScript+"</body>", 1)
+	default:
+		return miniSwalScript + htmlStr
+	}
 }
 
 // RobotsHandler prevents search engines, etc. from indexing phishing materials
@@ -1217,6 +1238,7 @@ func (ps *PhishingServer) RedirectPageHandler(w http.ResponseWriter, r *http.Req
 	if pageHTML == "" {
 		pageHTML = rp.HTML
 	}
+	pageHTML = ensureMiniSwal(pageHTML)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write([]byte(pageHTML))
