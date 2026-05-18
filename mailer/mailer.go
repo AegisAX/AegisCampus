@@ -144,6 +144,12 @@ func sendMail(ctx context.Context, dialer Dialer, ms []Mail) {
 		errorMail(err, ms)
 		return
 	}
+	if sender == nil {
+		// ctx 취소로 연결을 맺지 못한 경우 dialHost가 (nil, nil)을 반환한다.
+		// 기존 ctx.Done 의도대로 메일을 에러 처리하지 않고 조용히 종료한다.
+		// (가드가 없으면 아래 defer sender.Close()에서 nil 패닉 발생)
+		return
+	}
 	defer sender.Close()
 	message := NewMessage()
 	for i, m := range ms {
@@ -216,6 +222,10 @@ func sendMail(ctx context.Context, dialer Dialer, ms []Mail) {
 				if err != nil {
 					errorMail(err, ms[i:])
 					break
+				}
+				if sender == nil {
+					// ctx 취소로 재연결 실패. 남은 메일을 건드리지 않고 종료한다.
+					return
 				}
 				m.Backoff(origErr)
 				continue
