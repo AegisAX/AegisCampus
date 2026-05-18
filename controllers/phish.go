@@ -18,16 +18,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/NYTimes/gziphandler"
 	"github.com/AegisAX/Sentinel/config"
 	ctx "github.com/AegisAX/Sentinel/context"
 	"github.com/AegisAX/Sentinel/controllers/api"
 	log "github.com/AegisAX/Sentinel/logger"
+	"github.com/AegisAX/Sentinel/middleware"
 	"github.com/AegisAX/Sentinel/models"
 	"github.com/AegisAX/Sentinel/util"
+	"github.com/NYTimes/gziphandler"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/AegisAX/Sentinel/middleware"
 )
 
 // ErrInvalidRequest is thrown when a request with an invalid structure is
@@ -1056,15 +1056,6 @@ func TrainingCompleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 최소 시청률 검증(90% 이상), 서버가 직접 계산한 pct만 신뢰
-	if req.Duration > 0 {
-		pct := req.Watched / req.Duration
-		if pct < 0.9 { // 단일 조건
-			api.JSONResponse(w, models.Response{Success: false, Message: "insufficient watch time"}, http.StatusBadRequest)
-			return
-		}
-	}
-
 	// rid 투명성 접미사 제거 후 Result 조회
 	id := strings.TrimSuffix(rid, TransparencySuffix)
 	rs, err := models.GetResult(id)
@@ -1073,13 +1064,15 @@ func TrainingCompleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 원격 IP
-	ip, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		ip = r.RemoteAddr
+	// 캠페인 완료 시 수강 완료 기록 차단 (TrackVideo / setupContext 와 동일 정책)
+	if c, cerr := models.GetCampaign(rs.CampaignId, rs.UserId); cerr == nil {
+		if c.Status == models.CampaignComplete {
+			api.JSONResponse(w, models.Response{Success: false, Message: "campaign complete"}, http.StatusGone)
+			return
+		}
 	}
 
-	// 2) video_id를 문자열로 정규화
+	// video_id를 문자열로 정규화 후 정수 검증
 	var vidStr string
 	switch v := req.VideoID.(type) {
 	case string:
@@ -1095,6 +1088,35 @@ func TrainingCompleteHandler(w http.ResponseWriter, r *http.Request) {
 		vidStr = v.String()
 	default:
 		vidStr = fmt.Sprint(v)
+	}
+	vidID, verr := strconv.ParseInt(vidStr, 10, 64)
+	if verr != nil || vidID <= 0 {
+		api.JSONResponse(w, models.Response{Success: false, Message: "invalid video_id"}, http.StatusBadRequest)
+		return
+	}
+
+	// 수강 완료 자격 검증 — (a) 클라 자가증명 OR (b) 서버 권위 기록.
+	//  (a) req.Duration>0 AND req.Watched/req.Duration >= 0.90
+	//  (b) /track/video 로 서버가 누적한 video_progresses 가 완료(또는 90%+)
+	// #10(완료 후 새로고침)은 클라가 0을 보내 (a) 불가하지만 (b)로 통과,
+	// 위조(미시청 직접 POST)는 (a)(b) 모두 실패 → 거부.
+	eligible := req.Duration > 0 && req.Watched/req.Duration >= 0.90
+	if !eligible {
+		if vp, perr := models.GetVideoProgress(rs.UserId, rs.Id, vidID); perr == nil && vp != nil {
+			if vp.Completed || vp.Percent >= 0.90 {
+				eligible = true
+			}
+		}
+	}
+	if !eligible {
+		api.JSONResponse(w, models.Response{Success: false, Message: "insufficient watch time"}, http.StatusBadRequest)
+		return
+	}
+
+	// 원격 IP
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		ip = r.RemoteAddr
 	}
 
 	// EventDetails (Browser=map[string]string, Payload=url.Values)
@@ -1127,7 +1149,7 @@ func TrainingCompleteHandler(w http.ResponseWriter, r *http.Request) {
 	// B-04: VideoProgress.completed 동기화
 	// HandleTrainingCompleted는 events 테이블에 Trained 이벤트만 기록하므로,
 	// video_progresses 테이블의 completed 컬럼을 별도로 갱신해야 합니다.
-	if vidID, err := strconv.ParseInt(vidStr, 10, 64); err == nil && vidID > 0 {
+	{ // vidID 는 위에서 검증됨 (>0)
 		vp, err := models.GetVideoProgress(rs.UserId, rs.Id, vidID)
 		if err == nil {
 			if vp == nil {
