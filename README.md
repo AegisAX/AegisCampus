@@ -66,25 +66,26 @@ go build -ldflags="-s -w" -trimpath -o sentinel .
 ./sentinel
 ```
 
-첫 실행 시 초기 admin 비밀번호가 로그에 출력됩니다 (`SENTINEL_INITIAL_ADMIN_API_TOKEN` 환경변수로 override 가능). 브라우저에서 `https://localhost:3333/` 접속 후 로그인.
+첫 실행 시 초기 admin 비밀번호가 로그에 출력됩니다 (`SENTINEL_INITIAL_ADMIN_PASSWORD` 환경변수로 지정 가능). 브라우저에서 `https://localhost:3333/` 접속 후 로그인.
 
 ## 설정 / Configuration
 
-`config.json` 으로 admin 서버 (`:3333`), phishing 서버 (`:80` / `:443`), DB 드라이버, TLS 설정을 관리합니다. 런타임 환경변수:
+`config.json` 으로 admin 서버 (`:3333`), phishing 서버 (`:8088`), DB 드라이버, TLS 설정을 관리합니다. 런타임 환경변수:
 
 | 변수 / Variable | 기본값 / Default | 설명 / Purpose |
 |---|---|---|
 | `SENTINEL_FFMPEG` | `ffmpeg` | ffmpeg 바이너리 경로 |
 | `SENTINEL_FFPROBE` | `ffprobe` | ffprobe 바이너리 경로 |
-| `SENTINEL_MAX_VIDEO_BYTES` | (built-in) | 영상 업로드 상한 (예: `1073741824` = 1 GB) |
+| `SENTINEL_MAX_VIDEO_BYTES` | `524288000` (500 MB) | 영상 업로드 상한 (예: `1073741824` = 1 GB) |
 | `SENTINEL_MSGID_DOMAIN` | (envelope sender 도메인) | `Message-ID` 헤더용 FQDN (Gmail 발송 시 권장) |
+| `SENTINEL_INITIAL_ADMIN_PASSWORD` | (자동 생성) | 첫 부팅 시 초기 admin 비밀번호 |
 | `SENTINEL_INITIAL_ADMIN_API_TOKEN` | (자동 생성) | 첫 부팅 시 초기 admin API 토큰 |
 
 ## Docker
 
 ```
 docker build -t sentinel .
-docker run -p 3333:3333 -p 8088:80 sentinel
+docker run -p 3333:3333 -p 8088:8088 sentinel
 ```
 
 ## 릴리스 절차 / Release procedure
