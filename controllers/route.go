@@ -14,22 +14,22 @@ import (
 	"strings"
 	"time"
 
-	"github.com/NYTimes/gziphandler"
 	"github.com/AegisAX/Sentinel/auth"
 	"github.com/AegisAX/Sentinel/config"
 	ctx "github.com/AegisAX/Sentinel/context"
 	"github.com/AegisAX/Sentinel/controllers/api"
 	log "github.com/AegisAX/Sentinel/logger"
+	"github.com/AegisAX/Sentinel/middleware"
 	mid "github.com/AegisAX/Sentinel/middleware"
 	"github.com/AegisAX/Sentinel/middleware/ratelimit"
 	"github.com/AegisAX/Sentinel/models"
 	"github.com/AegisAX/Sentinel/util"
 	"github.com/AegisAX/Sentinel/worker"
+	"github.com/NYTimes/gziphandler"
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
-	"github.com/AegisAX/Sentinel/middleware"
 )
 
 // AdminServerOption is a functional option that is used to configure the
@@ -539,6 +539,25 @@ func (as *AdminServer) StreamVideo(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+
+	// 소유권 검증 (Phase 2 #7 의 admin 측 대칭 보강).
+	// 정책: 본인 소유 영상이거나 is_public 인 영상만 접근 가능.
+	// 목록 조회 GetVideosForUser 의 "user_id = ? OR is_public" 규칙과 일치시켜
+	// "목록에 보이는 영상 == 스트리밍 가능한 영상" 불변식을 유지한다.
+	userId := int64(0)
+	if u, ok := ctx.Get(r, "user").(models.User); ok && u.Id != 0 {
+		userId = u.Id
+	} else if uv := ctx.Get(r, "user_id"); uv != nil {
+		if vv, ok := uv.(int64); ok {
+			userId = vv
+		}
+	}
+	if userId == 0 || (v.UserId != userId && !v.IsPublic) {
+		// 존재 여부 노출 방지를 위해 403 대신 404 (phishing Media 핸들러와 동일)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	path := v.FilePath
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(util.VideoStorageDirAbs, filepath.Base(path))
