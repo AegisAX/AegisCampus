@@ -28,11 +28,20 @@ function save(idx) {
     if ($("#use_tracker_checkbox").prop("checked")) {
         if (template.html.indexOf("{{.Tracker}}") == -1 &&
             template.html.indexOf("{{.TrackingUrl}}") == -1) {
-            template.html = template.html.replace("</body>", "{{.Tracker}}</body>")
+            if (template.html.indexOf("</body>") != -1) {
+                template.html = template.html.replace("</body>", "{{.Tracker}}</body>")
+            } else {
+                // </body>가 없으면 본문 끝에 추가 (트래커 누락 방지)
+                template.html += "{{.Tracker}}"
+            }
         }
     } else {
-        // Otherwise, remove the tracker
-        template.html = template.html.replace("{{.Tracker}}</body>", "</body>")
+        // Otherwise, remove the tracker (양쪽 형태 모두 처리)
+        if (template.html.indexOf("{{.Tracker}}</body>") != -1) {
+            template.html = template.html.replace("{{.Tracker}}</body>", "</body>")
+        } else {
+            template.html = template.html.replace("{{.Tracker}}", "")
+        }
     }
     template.text = $("#text_editor").val()
     // Add the attachments
