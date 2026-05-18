@@ -1095,16 +1095,27 @@ func TrainingCompleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 수강 완료 자격 검증 — (a) 클라 자가증명 OR (b) 서버 권위 기록.
-	//  (a) req.Duration>0 AND req.Watched/req.Duration >= 0.90
-	//  (b) /track/video 로 서버가 누적한 video_progresses 가 완료(또는 90%+)
-	// #10(완료 후 새로고침)은 클라가 0을 보내 (a) 불가하지만 (b)로 통과,
-	// 위조(미시청 직접 POST)는 (a)(b) 모두 실패 → 거부.
-	eligible := req.Duration > 0 && req.Watched/req.Duration >= 0.90
-	if !eligible {
-		if vp, perr := models.GetVideoProgress(rs.UserId, rs.Id, vidID); perr == nil && vp != nil {
-			if vp.Completed || vp.Percent >= 0.90 {
-				eligible = true
+	// 수강 완료 자격 — 서버 권위 기록만 신뢰.
+	// 클라가 보낸 duration/watched/percent 는 자격 판단에 일절 사용하지 않는다.
+	// /track/video 가 단조 누적한 video_progresses + videos.duration_seconds 로
+	// 서버가 직접 판정한다. 정상 시청/#10 새로고침은 통과, 미시청 위조는 거부.
+	vp, perr := models.GetVideoProgress(rs.UserId, rs.Id, vidID)
+	if perr != nil {
+		api.JSONResponse(w, models.Response{Success: false, Message: perr.Error()}, http.StatusInternalServerError)
+		return
+	}
+	eligible := false
+	if vp != nil {
+		switch {
+		case vp.Completed || vp.Percent >= 0.90:
+			eligible = true
+		case vp.SecondsWatched > 0:
+			// 레이스 보강: ended 비콘(/track/video) 커밋 전에 완료 클릭이 먼저
+			// 도착한 경우 대비. 클라값이 아닌 서버 보유 videos.duration_seconds 로 재계산.
+			if vd, gverr := models.GetVideo(vidID); gverr == nil && vd != nil && vd.DurationSeconds > 0 {
+				if float64(vp.SecondsWatched)/float64(vd.DurationSeconds) >= 0.90 {
+					eligible = true
+				}
 			}
 		}
 	}
@@ -1146,35 +1157,15 @@ func TrainingCompleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// B-04: VideoProgress.completed 동기화
-	// HandleTrainingCompleted는 events 테이블에 Trained 이벤트만 기록하므로,
-	// video_progresses 테이블의 completed 컬럼을 별도로 갱신해야 합니다.
-	{ // vidID 는 위에서 검증됨 (>0)
-		vp, err := models.GetVideoProgress(rs.UserId, rs.Id, vidID)
-		if err == nil {
-			if vp == nil {
-				vp = &models.VideoProgress{
-					UserId:   rs.UserId,
-					ResultId: rs.Id,
-					VideoId:  vidID,
-				}
-			}
-			// 가장 큰 시청 시간 유지
-			if watched := int64(req.Watched); watched > vp.SecondsWatched {
-				vp.SecondsWatched = watched
-			}
-			if req.Duration > 0 {
-				vp.Duration = int64(req.Duration)
-				vp.Percent = req.Watched / req.Duration
-				if vp.Percent > 1 {
-					vp.Percent = 1
-				}
-			}
-			vp.Completed = true
-			if err := vp.Save(); err != nil {
-				log.Warnf("TrainingComplete: VideoProgress 동기화 실패 (rid=%s, vid=%d): %v", rs.RId, vidID, err)
-				// 동기화 실패는 non-fatal — Trained 이벤트는 이미 기록됨
-			}
+	// B-04: VideoProgress.completed 동기화.
+	// HandleTrainingCompleted 는 events 에 Trained 만 기록하므로 vp.completed 만 맞춘다.
+	// SecondsWatched/Duration/Percent 는 /track/video 가 소유하는 서버 권위값이므로
+	// 클라값으로 덮어쓰지 않는다. 자격 검증에서 vp 는 non-nil 이 보장된다.
+	if vp != nil && !vp.Completed {
+		vp.Completed = true
+		if err := vp.Save(); err != nil {
+			log.Warnf("TrainingComplete: VideoProgress 동기화 실패 (rid=%s, vid=%d): %v", rs.RId, vidID, err)
+			// 동기화 실패는 non-fatal — Trained 이벤트는 이미 기록됨
 		}
 	}
 
