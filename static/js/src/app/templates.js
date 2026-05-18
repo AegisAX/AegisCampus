@@ -53,7 +53,7 @@ function save(idx) {
                 dismiss()
             })
             .error(function (data) {
-                modalError(data.responseJSON.message)
+                modalError(extractErr(data))
             })
     } else {
         // Submit the template
@@ -64,7 +64,7 @@ function save(idx) {
                 dismiss()
             })
             .error(function (data) {
-                modalError(data.responseJSON.message)
+                modalError(extractErr(data))
             })
     }
 }
@@ -97,7 +97,7 @@ var deleteTemplate = function (idx) {
                         resolve()
                     })
                     .error(function (data) {
-                        reject(data.responseJSON.message)
+                        reject(extractErr(data))
                     })
             })
         }
@@ -301,7 +301,7 @@ function importEmail() {
                 $("#importEmailModal").modal("hide")
             })
             .error(function (data) {
-                modalError(data.responseJSON.message)
+                modalError(extractErr(data))
             })
     }
 }

@@ -20,7 +20,7 @@ func (as *Server) RedirectPages(w http.ResponseWriter, r *http.Request) {
 		pages, err := models.GetRedirectPages(uid)
 		if err != nil {
 			log.Error(err)
-			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
+			JSONResponse(w, models.Response{Success: false, Message: "Error retrieving redirect pages"}, http.StatusInternalServerError)
 			return
 		}
 		JSONResponse(w, pages, http.StatusOK)
@@ -28,20 +28,27 @@ func (as *Server) RedirectPages(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		rp := models.RedirectPage{}
 		if err := json.NewDecoder(r.Body).Decode(&rp); err != nil {
-			JSONResponse(w, models.Response{Success: false, Message: "Invalid request"}, http.StatusBadRequest)
+			JSONResponse(w, models.Response{Success: false, Message: "Invalid JSON structure"}, http.StatusBadRequest)
 			return
 		}
 		_, err := models.GetRedirectPageByName(rp.Name, uid)
-		if err == nil {		// 이름 중복
-			JSONResponse(w, models.Response{Success:false, Message: models.ErrRedirectPageNameInUse.Error()}, http.StatusConflict)
+		if err == nil { // 이름 중복
+			JSONResponse(w, models.Response{Success: false, Message: models.ErrRedirectPageNameInUse.Error()}, http.StatusConflict)
 			return
-		} else if err != gorm.ErrRecordNotFound {	// DB 오류
-			JSONResponse(w, models.Response{Success:false, Message: err.Error()}, http.StatusInternalServerError)
+		} else if err != gorm.ErrRecordNotFound { // DB 오류
+			JSONResponse(w, models.Response{Success: false, Message: "Error checking redirect page name"}, http.StatusInternalServerError)
+			log.Error(err)
 			return
 		}
 		rp.UserId = uid
-		if err := models.PostRedirectPage(&rp); err != nil {
-			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
+		err = models.PostRedirectPage(&rp)
+		if err == models.ErrRedirectPageNameNotSpecified {
+			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
+			return
+		}
+		if err != nil {
+			JSONResponse(w, models.Response{Success: false, Message: "Error inserting redirect page into database"}, http.StatusInternalServerError)
+			log.Error(err)
 			return
 		}
 		JSONResponse(w, rp, http.StatusCreated)
@@ -56,7 +63,7 @@ func (as *Server) RedirectPage(w http.ResponseWriter, r *http.Request) {
 	uid := ctx.Get(r, "user_id").(int64)
 	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
 	if err != nil || id <= 0 {
-		JSONResponse(w, models.Response{Success:false, Message:"invalid id"}, http.StatusBadRequest)
+		JSONResponse(w, models.Response{Success: false, Message: "invalid id"}, http.StatusBadRequest)
 		return
 	}
 
@@ -74,7 +81,7 @@ func (as *Server) RedirectPage(w http.ResponseWriter, r *http.Request) {
 		newRP := models.RedirectPage{}
 		if err := json.NewDecoder(r.Body).Decode(&newRP); err != nil {
 			log.Error(err)
-			JSONResponse(w, models.Response{Success: false, Message: "Invalid request"}, http.StatusBadRequest)
+			JSONResponse(w, models.Response{Success: false, Message: "Invalid JSON structure"}, http.StatusBadRequest)
 			return
 		}
 		newRP.Id = id
@@ -85,8 +92,14 @@ func (as *Server) RedirectPage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		newRP.UserId = uid
-		if err := models.PutRedirectPage(&newRP); err != nil {
-			JSONResponse(w, models.Response{Success: false, Message: "Error updating redirect page: " + err.Error()}, http.StatusInternalServerError)
+		err = models.PutRedirectPage(&newRP)
+		if err == models.ErrRedirectPageNameNotSpecified {
+			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
+			return
+		}
+		if err != nil {
+			JSONResponse(w, models.Response{Success: false, Message: "Error updating redirect page in database"}, http.StatusInternalServerError)
+			log.Error(err)
 			return
 		}
 		JSONResponse(w, newRP, http.StatusOK)

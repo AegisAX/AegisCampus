@@ -88,8 +88,17 @@ func (as *Server) Template(w http.ResponseWriter, r *http.Request) {
 		t.ModifiedDate = time.Now().UTC()
 		t.UserId = ctx.Get(r, "user_id").(int64)
 		err = models.PutTemplate(&t)
-		if err != nil {
+		if err == models.ErrTemplateNameNotSpecified {
 			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
+			return
+		}
+		if err == models.ErrTemplateMissingParameter {
+			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
+			return
+		}
+		if err != nil {
+			JSONResponse(w, models.Response{Success: false, Message: "Error updating template in database"}, http.StatusInternalServerError)
+			log.Error(err)
 			return
 		}
 		JSONResponse(w, t, http.StatusOK)

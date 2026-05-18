@@ -28,21 +28,25 @@ func (as *Server) Pages(w http.ResponseWriter, r *http.Request) {
 		// Put the request into a page
 		err := json.NewDecoder(r.Body).Decode(&p)
 		if err != nil {
-			JSONResponse(w, models.Response{Success: false, Message: "Invalid request"}, http.StatusBadRequest)
+			JSONResponse(w, models.Response{Success: false, Message: "Invalid JSON structure"}, http.StatusBadRequest)
 			return
 		}
 		// Check to make sure the name is unique
 		_, err = models.GetPageByName(p.Name, ctx.Get(r, "user_id").(int64))
 		if err != gorm.ErrRecordNotFound {
 			JSONResponse(w, models.Response{Success: false, Message: "Page name already in use"}, http.StatusConflict)
-			log.Error(err)
 			return
 		}
 		p.ModifiedDate = time.Now().UTC()
 		p.UserId = ctx.Get(r, "user_id").(int64)
 		err = models.PostPage(&p)
+		if err == models.ErrPageNameNotSpecified {
+			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
+			return
+		}
 		if err != nil {
-			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
+			JSONResponse(w, models.Response{Success: false, Message: "Error inserting page into database"}, http.StatusInternalServerError)
+			log.Error(err)
 			return
 		}
 		JSONResponse(w, p, http.StatusCreated)
@@ -76,14 +80,19 @@ func (as *Server) Page(w http.ResponseWriter, r *http.Request) {
 			log.Error(err)
 		}
 		if p.Id != id {
-			JSONResponse(w, models.Response{Success: false, Message: "/:id and /:page_id mismatch"}, http.StatusBadRequest)
+			JSONResponse(w, models.Response{Success: false, Message: "Error: /:id and page_id mismatch"}, http.StatusBadRequest)
 			return
 		}
 		p.ModifiedDate = time.Now().UTC()
 		p.UserId = ctx.Get(r, "user_id").(int64)
 		err = models.PutPage(&p)
+		if err == models.ErrPageNameNotSpecified {
+			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
+			return
+		}
 		if err != nil {
-			JSONResponse(w, models.Response{Success: false, Message: "Error updating page: " + err.Error()}, http.StatusInternalServerError)
+			JSONResponse(w, models.Response{Success: false, Message: "Error updating page in database"}, http.StatusInternalServerError)
+			log.Error(err)
 			return
 		}
 		JSONResponse(w, p, http.StatusOK)

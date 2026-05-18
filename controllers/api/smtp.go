@@ -28,21 +28,26 @@ func (as *Server) SendingProfiles(w http.ResponseWriter, r *http.Request) {
 		// Put the request into a page
 		err := json.NewDecoder(r.Body).Decode(&s)
 		if err != nil {
-			JSONResponse(w, models.Response{Success: false, Message: "Invalid request"}, http.StatusBadRequest)
+			JSONResponse(w, models.Response{Success: false, Message: "Invalid JSON structure"}, http.StatusBadRequest)
 			return
 		}
 		// Check to make sure the name is unique
 		_, err = models.GetSMTPByName(s.Name, ctx.Get(r, "user_id").(int64))
 		if err != gorm.ErrRecordNotFound {
 			JSONResponse(w, models.Response{Success: false, Message: "SMTP name already in use"}, http.StatusConflict)
-			log.Error(err)
+			return
+		}
+		err = s.Validate()
+		if err != nil {
+			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
 			return
 		}
 		s.ModifiedDate = time.Now().UTC()
 		s.UserId = ctx.Get(r, "user_id").(int64)
 		err = models.PostSMTP(&s)
 		if err != nil {
-			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
+			JSONResponse(w, models.Response{Success: false, Message: "Error inserting SMTP into database"}, http.StatusInternalServerError)
+			log.Error(err)
 			return
 		}
 		JSONResponse(w, s, http.StatusCreated)
@@ -88,7 +93,7 @@ func (as *Server) SendingProfile(w http.ResponseWriter, r *http.Request) {
 		s.UserId = ctx.Get(r, "user_id").(int64)
 		err = models.PutSMTP(&s)
 		if err != nil {
-			JSONResponse(w, models.Response{Success: false, Message: "Error updating page"}, http.StatusInternalServerError)
+			JSONResponse(w, models.Response{Success: false, Message: "Error updating SMTP"}, http.StatusInternalServerError)
 			return
 		}
 		JSONResponse(w, s, http.StatusOK)

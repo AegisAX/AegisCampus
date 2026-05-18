@@ -36,7 +36,7 @@ function sendTestEmail() {
         })
         .error(function (data) {
             $("#sendTestEmailModal\\.flashes").empty().append("<div style=\"text-align:center\" class=\"alert alert-danger\">\
-	    <i class=\"fa fa-exclamation-circle\"></i> " + escapeHtml(data.responseJSON.message) + "</div>")
+	    <i class=\"fa fa-exclamation-circle\"></i> " + escapeHtml(extractErr(data)) + "</div>")
             $("#sendTestModalSubmit").html(btnHtml)
         })
 }
@@ -68,7 +68,7 @@ function save(idx) {
                 dismiss()
             })
             .error(function (data) {
-                modalError(data.responseJSON.message)
+                modalError(extractErr(data))
             })
     } else {
         // Submit the profile
@@ -79,7 +79,7 @@ function save(idx) {
                 dismiss()
             })
             .error(function (data) {
-                modalError(data.responseJSON.message)
+                modalError(extractErr(data))
             })
     }
 }
@@ -121,7 +121,7 @@ var deleteProfile = function (idx) {
                         resolve()
                     })
                     .error(function (data) {
-                        reject(data.responseJSON.message)
+                        reject(extractErr(data))
                     })
             })
         }

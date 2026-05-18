@@ -44,7 +44,7 @@ function save(idx) {
                 dismiss()
             })
             .error(function (data) {
-                modalError(data.responseJSON.message)
+                modalError(extractErr(data))
             })
     } else {
         // Submit the page
@@ -55,7 +55,7 @@ function save(idx) {
                 dismiss()
             })
             .error(function (data) {
-                modalError(data.responseJSON.message)
+                modalError(extractErr(data))
             })
     }
 }
@@ -92,7 +92,7 @@ var deletePage = function (idx) {
                         resolve()
                     })
                     .error(function (data) {
-                        reject(data.responseJSON.message)
+                        reject(extractErr(data))
                     })
             })
         }
@@ -124,7 +124,7 @@ function importSite() {
                 $("#importSiteModal").modal("hide")
             })
             .error(function (data) {
-                modalError(data.responseJSON.message)
+                modalError(extractErr(data))
             })
     }
 }

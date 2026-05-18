@@ -35,6 +35,46 @@ function modalError(message) {
         <i class=\"fa fa-exclamation-circle\"></i> " + message + "</div>")
 }
 
+function extractErr(xhr) {
+    try {
+        if (xhr && xhr.responseJSON) {
+            if (typeof xhr.responseJSON === "string" && xhr.responseJSON) {
+                return xhr.responseJSON
+            }
+            if (xhr.responseJSON.message) {
+                return xhr.responseJSON.message
+            }
+        }
+        if (xhr && xhr.responseText) {
+            try {
+                var parsed = JSON.parse(xhr.responseText)
+                if (parsed && parsed.message) {
+                    return parsed.message
+                }
+            } catch (e) { /* 본문이 JSON 이 아님 - 상태코드 폴백 */ }
+        }
+        var status = xhr ? xhr.status : 0
+        switch (status) {
+            case 0:   return "서버에 연결할 수 없습니다. 네트워크를 확인하세요."
+            case 400: return "잘못된 요청입니다."
+            case 401: return "인증이 필요합니다. 다시 로그인하세요."
+            case 403: return "권한이 없거나 요청이 차단되었습니다."
+            case 404: return "요청한 리소스를 찾을 수 없습니다."
+            case 409: return "이름이 이미 사용 중입니다."
+            case 413: return "업로드 용량이 너무 큽니다."
+            case 429: return "요청이 너무 많습니다. 잠시 후 다시 시도하세요."
+            case 500: return "서버 내부 오류가 발생했습니다."
+            case 502:
+            case 503:
+            case 504: return "서버가 일시적으로 응답하지 않습니다. 잠시 후 다시 시도하세요."
+        }
+        return "알 수 없는 오류가 발생했습니다. (HTTP " + status + ")"
+    } catch (e) {
+        return "알 수 없는 오류가 발생했습니다."
+    }
+}
+window.extractErr = extractErr
+
 function query(endpoint, method, data, async) {
     return $.ajax({
         url: "/api" + endpoint,
