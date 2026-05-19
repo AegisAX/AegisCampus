@@ -1,0 +1,23 @@
+flowchart LR
+    Admin([관리자]):::actor
+    MW["미들웨어 체인<br/>Login·RBAC·CSRF"]:::base
+    UI["관리 UI<br/>campaigns·videos·redirect_pages"]:::add
+    API["REST API /api/<br/>videos·redirect_pages·video_progress"]:::add
+    PUT["videos/{id} PUT<br/>소유권+화이트리스트"]:::hard
+    STR["StreamVideo<br/>owner/is_public IDOR 가드"]:::hard
+    UP["Upload<br/>ModifyObjects 권한"]:::add
+    WK["Worker → Mailer<br/>dialHost nil 가드"]:::hard
+    GEN["maillog.Generate<br/>FQDN MsgID·RFC2047/5987"]:::add
+    DB[("DB")]:::store
+    FS[("static/videos")]:::store
+    Admin --> MW
+    MW --> UI --> API --> DB
+    MW --> STR --> FS
+    MW --> UP --> FS
+    API --> PUT --> DB
+    API --> WK --> GEN
+    classDef actor fill:#f3e5f5,stroke:#7b1fa2,color:#4a148c
+    classDef base fill:#f8f9fa,stroke:#ced4da,color:#212529
+    classDef add fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
+    classDef hard fill:#fff8e1,stroke:#f57f17,color:#e65100
+    classDef store fill:#e3f2fd,stroke:#1565c0,color:#0d47a1

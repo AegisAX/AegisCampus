@@ -1,0 +1,15 @@
+erDiagram
+    USERS ||--o{ CAMPAIGNS : owns
+    USERS ||--o{ VIDEOS : owns
+    USERS ||--o{ REDIRECT_PAGES : owns
+    USERS ||--o{ PAGES : owns
+    CAMPAIGNS ||--o{ RESULTS : has
+    CAMPAIGNS ||--o{ EVENTS : has
+    CAMPAIGNS }o--|| PAGES : page
+    CAMPAIGNS }o--|| TEMPLATES : template
+    CAMPAIGNS }o--|| SMTP : smtp
+    RESULTS ||--o{ VIDEO_PROGRESSES : tracks
+    VIDEOS ||--o{ VIDEO_PROGRESSES : watched
+    PAGES }o--o| VIDEOS : embeds
+    REDIRECT_PAGES }o--o| VIDEOS : embeds
+    TEMPLATES ||--o{ ATTACHMENTS : has

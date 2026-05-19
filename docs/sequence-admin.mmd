@@ -1,0 +1,13 @@
+sequenceDiagram
+    autonumber
+    actor A as 관리자
+    participant API as Admin API
+    participant WM as Worker/Mailer
+    actor T as 수신자
+    A->>API: POST /api/videos/ (multipart)
+    Note right of API: ModifyObjects 권한<br/>sha256·ffprobe·ffmpeg
+    API-->>A: 201 Video
+    A->>API: LP/RP video_id 연결 + 캠페인 생성
+    API->>WM: 캠페인 발송 큐
+    Note right of WM: maillog.Generate<br/>FQDN MsgID·RFC2047/5987
+    WM->>T: SMTP 피싱 메일

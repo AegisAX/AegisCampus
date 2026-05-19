@@ -1,0 +1,17 @@
+flowchart TB
+    Admin([관리자]):::actor
+    Target([피싱 수신자]):::actor
+    AS["Admin Server :3333<br/>인증 · RBAC · CSRF"]:::svc
+    PS["Phishing Server :8088<br/>rid 검증 (인증 미들웨어 없음)"]:::svc
+    DB[("SQLite / MySQL")]:::store
+    FS[("static/videos (sha256)")]:::store
+    Admin --> AS
+    AS -. 피싱 메일 발송 .-> Target
+    Target --> PS
+    AS --> DB
+    AS --> FS
+    PS --> DB
+    PS --> FS
+    classDef actor fill:#f3e5f5,stroke:#7b1fa2,color:#4a148c
+    classDef svc fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
+    classDef store fill:#fff8e1,stroke:#f57f17,color:#e65100

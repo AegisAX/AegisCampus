@@ -1,0 +1,31 @@
+erDiagram
+    VIDEOS ||--o{ VIDEO_PROGRESSES : watched
+    RESULTS ||--o{ VIDEO_PROGRESSES : tracks
+    PAGES }o--o| VIDEOS : embeds
+    REDIRECT_PAGES }o--o| VIDEOS : embeds
+    VIDEOS {
+        int id PK
+        int duration_seconds "서버 권위값(ffprobe)"
+        bool is_public "타 User 재사용"
+    }
+    VIDEO_PROGRESSES {
+        int id PK
+        int seconds_watched "서버길이 클램프"
+        real percent "서버 기준 계산"
+        bool completed "클라 미신뢰"
+    }
+    REDIRECT_PAGES {
+        int id PK
+        int video_id "nullable 신규"
+        string redirect_url
+    }
+    PAGES {
+        int id PK
+        int video_id "nullable 신규컬럼"
+    }
+    RESULTS {
+        bool executed "신규: Executed"
+        string report_note "신규: 신고메모"
+        string name "구 first_name"
+        string department "구 last_name"
+    }

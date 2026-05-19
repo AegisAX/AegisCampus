@@ -1,0 +1,9 @@
+sequenceDiagram
+    autonumber
+    actor A as 관리자
+    participant API as Admin API
+    participant DB as DB
+    A->>API: GET /api/campaigns/{id}/video_progress
+    API->>DB: JOIN results × video_progresses (uid 검증)
+    DB-->>API: 수신자별 수강 현황
+    API-->>A: percent / completed 보고

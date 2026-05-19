@@ -1,0 +1,24 @@
+flowchart LR
+    T([피싱 수신자]):::actor
+    EN["/ 분기<br/>rid? Phish : report-form"]:::base
+    TR["Track / Report<br/>열람 · 1회성 신고"]:::base
+    FO["FileOpen<br/>Executed · 경로검증(F3)"]:::hard
+    RF["ReportForm<br/>email+subject fallback"]:::add
+    MD["Media /media/{id}<br/>LP/RP 검증 · rid정규화(F4)"]:::hard
+    TV["TrackVideo<br/>서버권위 · 클램프(F1)"]:::hard
+    TC["TrainingComplete<br/>서버권위 판정(#3)"]:::hard
+    RP["RedirectPage<br/>소유자검증 · ensureMiniSwal(#13)"]:::add
+    DB[("results · events<br/>video_progresses")]:::store
+    T --> EN
+    T --> TR --> DB
+    T --> FO --> DB
+    T --> RF --> DB
+    T --> MD
+    T --> TV --> DB
+    T --> TC --> DB
+    T --> RP
+    classDef actor fill:#f3e5f5,stroke:#7b1fa2,color:#4a148c
+    classDef base fill:#f8f9fa,stroke:#ced4da,color:#212529
+    classDef add fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
+    classDef hard fill:#fff8e1,stroke:#f57f17,color:#e65100
+    classDef store fill:#e3f2fd,stroke:#1565c0,color:#0d47a1

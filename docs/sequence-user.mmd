@@ -1,0 +1,24 @@
+sequenceDiagram
+    autonumber
+    actor T as 수신자
+    participant PS as Phishing Server
+    participant DB as DB
+    T->>PS: GET / 또는 /rp/{id} (rid)
+    PS-->>T: HTML(source /media/N?rid=) + ensureMiniSwal
+    T->>PS: GET /media/N?rid=
+    Note right of PS: rid정규화·LP/RP검증·Geo graceful
+    PS-->>T: 200/206 MP4 (Range)
+    loop 시청 비콘
+        T->>PS: POST /track/video
+        Note right of PS: 클라 completed 무시<br/>seconds_watched 서버길이 클램프
+        PS->>DB: video_progresses upsert
+        PS-->>T: 204
+    end
+    T->>PS: POST /api/training/complete
+    Note right of PS: video_progresses + duration_seconds 만 신뢰
+    alt 위조 / 미달 / 완료캠페인
+        PS-->>T: 400 또는 410
+    else 서버 재계산 >= 90%
+        PS->>DB: Trained + completed=true
+        PS-->>T: 200 OK
+    end
