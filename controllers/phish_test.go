@@ -426,3 +426,100 @@ func TestRedirectTemplating(t *testing.T) {
 		t.Fatalf("invalid redirect received. expected %s got %s", expectedURL, gotURL)
 	}
 }
+
+// TestTrackVideoServerAuthoritative is the rc1 F1 regression guard. POST
+// /track/video must NOT trust the client-supplied "completed" boolean (the
+// back door that bypassed the server-authoritative TrainingCompleteHandler),
+// and must cap seconds_watched to the server-known duration. A legitimate
+// watch (>=90% of videos.duration_seconds) must still complete so the
+// reload / keep-completed flow (#10/#11) is not regressed.
+func TestTrackVideoServerAuthoritative(t *testing.T) {
+	ctx := setupTest(t)
+	defer tearDown(t, ctx)
+
+	// Server-authoritative duration = 100s (as ffprobe would set at upload).
+	v := &models.Video{
+		UserId:          1,
+		Name:            "F1 Video",
+		FileName:        "f1.mp4",
+		FilePath:        "f1.mp4",
+		DurationSeconds: 100,
+	}
+	if err := models.CreateVideo(v); err != nil {
+		t.Fatalf("CreateVideo: %v", err)
+	}
+
+	smtp, _ := models.GetSMTP(1, 1)
+	template, _ := models.GetTemplate(1, 1)
+	page, _ := models.GetPage(1, 1)
+	group, _ := models.GetGroup(1, 1)
+	campaign := models.Campaign{Name: "F1 campaign"}
+	campaign.UserId = 1
+	campaign.Template = template
+	campaign.Page = page
+	campaign.SMTP = smtp
+	campaign.Groups = []models.Group{group}
+	if err := models.PostCampaign(&campaign, campaign.UserId); err != nil {
+		t.Fatalf("PostCampaign: %v", err)
+	}
+	rid := campaign.Results[0].RId
+
+	post := func(path string, body interface{}) int {
+		b, _ := json.Marshal(body)
+		resp, err := http.Post(ctx.phishServer.URL+path, "application/json", bytes.NewReader(b))
+		if err != nil {
+			t.Fatalf("POST %s: %v", path, err)
+		}
+		defer resp.Body.Close()
+		return resp.StatusCode
+	}
+
+	// Forgery: client claims completed:true with ~0 watch time.
+	post("/track/video", map[string]interface{}{
+		"rid": rid, "video_id": v.Id, "event": "ended",
+		"seconds_watched": 0, "duration": 1, "completed": true,
+	})
+	vp, err := models.GetVideoProgress(1, campaign.Results[0].Id, v.Id)
+	if err != nil {
+		t.Fatalf("GetVideoProgress: %v", err)
+	}
+	if vp != nil && vp.Completed {
+		t.Fatalf("forged completed:true was honored (vp.Completed=true)")
+	}
+	if code := post("/api/training/complete", map[string]interface{}{
+		"rid": rid, "video_id": v.Id, "duration": 1, "watched": 0, "percent": 100,
+	}); code == http.StatusOK {
+		t.Fatalf("training complete accepted a forged record (200)")
+	}
+
+	// Legit watch: 95/100s = 95% >= 90% (server-computed).
+	if code := post("/track/video", map[string]interface{}{
+		"rid": rid, "video_id": v.Id, "event": "progress",
+		"seconds_watched": 95, "duration": 100,
+	}); code != http.StatusNoContent {
+		t.Fatalf("legit /track/video expected 204, got %d", code)
+	}
+	vp, err = models.GetVideoProgress(1, campaign.Results[0].Id, v.Id)
+	if err != nil || vp == nil {
+		t.Fatalf("GetVideoProgress after legit watch: vp=%v err=%v", vp, err)
+	}
+	if !vp.Completed {
+		t.Fatalf("legit 95%% watch did not complete server-side (regression for #10/#11)")
+	}
+	if code := post("/api/training/complete", map[string]interface{}{
+		"rid": rid, "video_id": v.Id, "duration": 100, "watched": 95, "percent": 95,
+	}); code != http.StatusOK {
+		t.Fatalf("legit training complete expected 200, got %d", code)
+	}
+
+	// Cap: client over-reports seconds_watched beyond real duration.
+	post("/track/video", map[string]interface{}{
+		"rid": rid, "video_id": v.Id, "event": "progress",
+		"seconds_watched": 999999, "duration": 100,
+	})
+	vp, _ = models.GetVideoProgress(1, campaign.Results[0].Id, v.Id)
+	if vp != nil && vp.SecondsWatched > v.DurationSeconds {
+		t.Fatalf("seconds_watched not capped to server duration (got %d > %d)",
+			vp.SecondsWatched, v.DurationSeconds)
+	}
+}

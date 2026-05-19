@@ -235,6 +235,12 @@ func (ps *PhishingServer) FileOpenHandler(w http.ResponseWriter, r *http.Request
 
 // 내부 경로만 허용하도록 필터 기능 강화
 func isSafeInternalPath(u string) bool {
+	// F3: 백슬래시는 일부 브라우저가 '/' 로 정규화하여 protocol-relative
+	// (//evil.com) 우회 → 오픈 리다이렉트가 된다. 제어문자도 헤더 분리/
+	// 우회에 악용될 수 있어 함께 차단한다. 정상 내부경로/파일명에는 포함되지 않음.
+	if strings.ContainsAny(u, "\\\x00\r\n\t") {
+		return false
+	}
 	lu := strings.ToLower(u)
 	// 1) 외부 스킴 명시적 차단
 	for _, scheme := range []string{"http://", "https://", "data:", "javascript:", "vbscript:", "file://"} {
@@ -847,6 +853,8 @@ func (ps *PhishingServer) Media(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	// F4: 다른 핸들러(FileOpen/TrainingComplete)와 동일하게 투명성 접미사 제거.
+	rid = strings.TrimSuffix(rid, TransparencySuffix)
 	result, err := models.GetResult(rid)
 	if err != nil {
 		log.Errorf("media: invalid rid (id=%s, rid=%s)", idStr, rid)
@@ -976,23 +984,41 @@ func (ps *PhishingServer) TrackVideo(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// 갱신 로직: 가장 큰 시청 초수(최대값) 유지
-	if p.SecondsWatched > vp.SecondsWatched {
-		vp.SecondsWatched = p.SecondsWatched
-	}
-	if p.Duration > 0 {
-		vp.Duration = p.Duration
-		if vp.SecondsWatched > 0 {
-			vp.Percent = float64(vp.SecondsWatched) / float64(vp.Duration)
-			if vp.Percent > 1 {
-				vp.Percent = 1
-			}
-		}
+	// F1: 서버 권위 갱신.
+	// 클라가 보낸 completed 불리언은 신뢰하지 않는다(1필드 위조 차단).
+	// 완료 판정은 서버 보유 videos.duration_seconds 기준 percent 로만 결정한다.
+	// duration_seconds 가 0(ffprobe 실패) 인 경우에만 클라 duration 으로 폴백하되,
+	// 이때도 클라 completed 는 무시하고 percent>=0.90 계산으로만 완료 처리한다.
+	// (TrainingCompleteHandler 의 서버 권위 모델과 일관)
+	var effDur int64
+	if vd, gverr := models.GetVideo(p.VideoID); gverr == nil && vd != nil && vd.DurationSeconds > 0 {
+		effDur = vd.DurationSeconds
+	} else if p.Duration > 0 {
+		effDur = p.Duration
 	}
 
-	// 완료 판정: ended 이벤트거나 90% 이상 시청 시 완료로 표시
-	if p.Completed || (vp.Duration > 0 && vp.Percent >= 0.90) {
-		vp.Completed = true
+	sw := p.SecondsWatched
+	if sw < 0 {
+		sw = 0
+	}
+	if effDur > 0 && sw > effDur {
+		sw = effDur // 서버 길이 상한으로 클램프 → percent 부풀리기 차단
+	}
+	// 단조 증가: 최댓값만 유지 (이어보기 / #10 새로고침)
+	if sw > vp.SecondsWatched {
+		vp.SecondsWatched = sw
+	}
+
+	if effDur > 0 {
+		vp.Duration = effDur
+		vp.Percent = float64(vp.SecondsWatched) / float64(effDur)
+		if vp.Percent > 1 {
+			vp.Percent = 1
+		}
+		// 완료 판정: 서버 길이 기준 90% 이상만. 한 번 true 면 유지.
+		if vp.Percent >= 0.90 {
+			vp.Completed = true
+		}
 	}
 
 	if err := vp.Save(); err != nil {

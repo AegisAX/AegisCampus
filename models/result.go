@@ -7,7 +7,6 @@ import (
 	"net"
 	"time"
 
-	log "github.com/AegisAX/Sentinel/logger"
 	"github.com/jinzhu/gorm"
 	"github.com/oschwald/maxminddb-golang"
 )
@@ -187,7 +186,10 @@ func (r *Result) UpdateGeo(addr string) error {
 	// Open a connection to the maxmind db
 	mmdb, err := maxminddb.Open("static/db/geolite2-city.mmdb")
 	if err != nil {
-		log.Fatal(err)
+		// F2: 과거 log.Fatal 은 os.Exit 로 피싱+어드민 서버를 동시에 종료시켰다.
+		// GeoIP 보강은 비필수이므로 에러만 반환하고, 호출부(setupContext)의
+		// 기존 graceful 처리(log.Error 후 계속 진행)에 위임한다.
+		return err
 	}
 	defer mmdb.Close()
 	ip := net.ParseIP(addr)
