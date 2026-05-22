@@ -214,16 +214,22 @@ func (ps *PhishingServer) FileOpenHandler(w http.ResponseWriter, r *http.Request
 	// '유효한 rid' + '프리뷰가 아닐 때'만 이벤트/업데이트 시도
 	if rid != "" && !strings.HasPrefix(id, models.PreviewPrefix) {
 		if rs, err := models.GetResult(id); err == nil {
-			// EventDetails 구성(간단 버전)
-			d := models.EventDetails{
-				Payload: r.Form,
-				Browser: map[string]string{
-					"user-agent": r.Header.Get("User-Agent"),
-					"address":    r.RemoteAddr, // 필요하면 SplitHostPort 적용
-				},
-			}
-			if err := rs.HandleAttachmentExecuted(d); err != nil {
-				log.Errorf("fileopen: handle attachment open failed (rid=%s): %v", id, err)
+			// (#26) 완료된 캠페인은 이벤트 기록 차단 (redirect 은 그대로 진행)
+			campaign, cerr := models.GetCampaign(rs.CampaignId, rs.UserId)
+			if cerr == nil && campaign.Status == models.CampaignComplete {
+				log.Infof("fileopen: campaign complete (rid=%s, campaign_id=%d) — event skipped", id, campaign.Id)
+			} else {
+				// EventDetails 구성(간단 버전)
+				d := models.EventDetails{
+					Payload: r.Form,
+					Browser: map[string]string{
+						"user-agent": r.Header.Get("User-Agent"),
+						"address":    r.RemoteAddr, // 필요하면 SplitHostPort 적용
+					},
+				}
+				if err := rs.HandleAttachmentExecuted(d); err != nil {
+					log.Errorf("fileopen: handle attachment open failed (rid=%s): %v", id, err)
+				}
 			}
 		} else {
 			log.Infof("fileopen: no result for rid=%s; redirecting to %s", id, target)
@@ -867,6 +873,12 @@ func (ps *PhishingServer) Media(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	// (#21) 완료된 캠페인은 영상 송출 차단 — 410 Gone
+	if campaign.Status == models.CampaignComplete {
+		log.Infof("media: campaign complete (id=%s, rid=%s, campaign_id=%d)", idStr, rid, campaign.Id)
+		http.Error(w, "Campaign complete", http.StatusGone)
+		return
+	}
 	// Phase 2 #7: 영상이 result 소유자의 LandingPage 또는 RedirectPage 중
 	// 어느 한 곳에라도 연결되어 있으면 통과시킨다.
 	// RedirectPage 안에만 영상이 임베드된 시나리오 (campaign.Page.VideoId == nil)
@@ -1254,6 +1266,12 @@ func (ps *PhishingServer) RedirectPageHandler(w http.ResponseWriter, r *http.Req
 			// Result → Campaign을 통해 TemplateContext 구성
 			campaign, err := models.GetCampaign(result.CampaignId, result.UserId)
 			if err == nil {
+				// (#29) 완료된 캠페인은 RP 본문 송출 차단 — 410 Gone
+				if campaign.Status == models.CampaignComplete {
+					log.Infof("rp: campaign complete (rp_id=%d, rid=%s, campaign_id=%d)", id, rid, campaign.Id)
+					http.Error(w, "Campaign complete", http.StatusGone)
+					return
+				}
 				ptx, err := models.NewPhishingTemplateContext(&campaign, result.BaseRecipient, rid)
 				if err == nil {
 					pageHTML, _ = models.ExecuteTemplate(rp.HTML, ptx)
