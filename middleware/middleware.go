@@ -183,6 +183,8 @@ func ApplySecurityHeaders(next http.Handler) http.HandlerFunc {
 		csp := "frame-ancestors 'none';"
 		w.Header().Set("Content-Security-Policy", csp)
 		w.Header().Set("X-Frame-Options", "DENY")
+		// (#18) Referrer-Policy 코드측 명시화 — nginx 우회 경로에서도 동일 정책 보장
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		next.ServeHTTP(w, r)
 	}
 }

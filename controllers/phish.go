@@ -446,6 +446,8 @@ func (ps *PhishingServer) ReportFormGet(w http.ResponseWriter, r *http.Request) 
 
 // POST /report-form
 func (ps *PhishingServer) ReportFormPost(w http.ResponseWriter, r *http.Request) {
+	// (#32) body 크기 64KB 제한 — DoS 완화
+	r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "bad form", http.StatusBadRequest)
 		return
@@ -909,7 +911,8 @@ func (ps *PhishingServer) Media(w http.ResponseWriter, r *http.Request) {
 
 	// path traversal 방어 (이제 base/target 모두 절대경로)
 	if !util.IsUnderBaseDir(util.VideoStorageDirAbs, path) {
-		http.Error(w, "forbidden", http.StatusForbidden)
+		// (#22) path traversal 차단은 404 로 통일 — 정보 노출 최소화
+		http.NotFound(w, r)
 		return
 	}
 

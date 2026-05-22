@@ -37,6 +37,13 @@ func (rp *RedirectPage) Validate() error {
 	if rp.VideoId != nil && *rp.VideoId == 0 {
 		rp.VideoId = nil
 	}
+	// (#39) page.go 와 비대칭이던 템플릿 검증 누락 보강
+	if err := ValidateTemplate(rp.HTML); err != nil {
+		return err
+	}
+	if err := ValidateTemplate(rp.RedirectURL); err != nil {
+		return err
+	}
 	return nil
 }
 

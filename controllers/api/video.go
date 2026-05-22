@@ -217,18 +217,8 @@ func (as *Server) HandleVideoByID(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if inUse {
-			JSONResponse(w, models.Response{Success: false, Message: "Redirect Page에서 사용 중인 동영상은 삭제할 수 없습니다"}, http.StatusConflict)
-			return
-		}
-
-		// 다른 사용자 사용 중 확인 (소유권은 deleteVideoAndFiles 내부에서 처리)
-		inUseByOthers, err := models.IsVideoUsedByOthers(id, currentUserID)
-		if err != nil {
-			JSONResponse(w, models.Response{Success: false, Message: "lookup error"}, http.StatusInternalServerError)
-			return
-		}
-		if inUseByOthers {
-			JSONResponse(w, models.Response{Success: false, Message: "다른 사용자가 사용 중인 동영상은 삭제할 수 없습니다"}, http.StatusConflict)
+			// (#37) IsVideoInUse 가 LP/RP 양쪽 + 모든 user 검사로 충분 → 메시지 일반화
+			JSONResponse(w, models.Response{Success: false, Message: "사용 중인 동영상은 삭제할 수 없습니다"}, http.StatusConflict)
 			return
 		}
 

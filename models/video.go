@@ -96,21 +96,8 @@ func CountVideosByFileName(fileName string) (int64, error) {
 	return cnt, nil
 }
 
-// IsVideoUsedByOthers returns true if any other user's RedirectPage references this video.
-// ownerUserId is excluded from the check (owner can always modify their own references).
-func IsVideoUsedByOthers(videoId int64, ownerUserId int64) (bool, error) {
-	var count int64
-	err := db.Model(&RedirectPage{}).
-		Where("video_id = ? AND user_id != ?", videoId, ownerUserId).
-		Count(&count).Error
-	if err != nil {
-		return false, err
-	}
-	return count > 0, nil
-}
-
-// IsVideoInUse returns true if any RedirectPage references this video.
-// 소유자 포함 전체 참조를 확인하므로 삭제 전 사용 여부 체크에 사용합니다.
+// IsVideoInUse returns true if any RedirectPage or LandingPage references this video.
+// 소유자/타사용자 + LP/RP 양쪽 참조를 모두 확인하므로 삭제 전 사용 여부 체크에 사용합니다.
 func IsVideoInUse(videoId int64) (bool, error) {
 	var count int64
 
