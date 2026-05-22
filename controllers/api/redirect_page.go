@@ -41,6 +41,19 @@ func (as *Server) RedirectPages(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		rp.UserId = uid
+		// (#38) 비디오 임베드 권한 검사 — 자기 영상 또는 IsPublic 영상만 허용
+		if rp.VideoId != nil && *rp.VideoId > 0 {
+			can, err := models.CanUserUseVideo(*rp.VideoId, uid)
+			if err != nil {
+				JSONResponse(w, models.Response{Success: false, Message: "Error checking video access"}, http.StatusInternalServerError)
+				log.Error(err)
+				return
+			}
+			if !can {
+				JSONResponse(w, models.Response{Success: false, Message: "선택한 동영상에 접근 권한이 없습니다."}, http.StatusForbidden)
+				return
+			}
+		}
 		err = models.PostRedirectPage(&rp)
 		if err == models.ErrRedirectPageNameNotSpecified {
 			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
@@ -92,6 +105,19 @@ func (as *Server) RedirectPage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		newRP.UserId = uid
+		// (#38) 비디오 임베드 권한 검사 — 자기 영상 또는 IsPublic 영상만 허용
+		if newRP.VideoId != nil && *newRP.VideoId > 0 {
+			can, err := models.CanUserUseVideo(*newRP.VideoId, uid)
+			if err != nil {
+				JSONResponse(w, models.Response{Success: false, Message: "Error checking video access"}, http.StatusInternalServerError)
+				log.Error(err)
+				return
+			}
+			if !can {
+				JSONResponse(w, models.Response{Success: false, Message: "선택한 동영상에 접근 권한이 없습니다."}, http.StatusForbidden)
+				return
+			}
+		}
 		err = models.PutRedirectPage(&newRP)
 		if err == models.ErrRedirectPageNameNotSpecified {
 			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)

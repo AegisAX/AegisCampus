@@ -135,10 +135,33 @@ func IsVideoInUse(videoId int64) (bool, error) {
 	return count > 0, nil
 }
 
+// CanUserUseVideo 는 user 가 video 를 자기 페이지(LP/RP)에 임베드할 권한이 있는지 검사한다.
+// owner 본인의 영상이거나 IsPublic=true 인 영상이면 true. (#38)
+// video 가 존재하지 않거나 권한이 없으면 false 를 반환 (구분 노출 차단을 위해 동일 반환).
+func CanUserUseVideo(videoId int64, userId int64) (bool, error) {
+	if videoId <= 0 {
+		return false, nil
+	}
+	v, err := GetVideo(videoId)
+	if err != nil {
+		if err == ErrVideoNotFound {
+			return false, nil
+		}
+		return false, err
+	}
+	if v.UserId == userId || v.IsPublic {
+		return true, nil
+	}
+	return false, nil
+}
+
 // IsVideoLinkedToUser returns true if any LandingPage OR RedirectPage owned by
-// userId references this video. Used by the public Media handler (Phase 2 #7)
-// to authorize rid-based access where the video may be embedded in either the
-// campaign's LandingPage (pages.video_id) or its RedirectPage (redirect_pages.video_id).
+// userId references this video AND the user has permission to use the video.
+// Used by the public Media handler (Phase 2 #7 + #38) to authorize rid-based
+// access. The video must be embedded in either the campaign's LandingPage
+// (pages.video_id) or its RedirectPage (redirect_pages.video_id), and the user
+// must own the video or the video must be IsPublic (defense-in-depth against
+// operators storing other users' private video IDs in their own pages).
 func IsVideoLinkedToUser(videoId int64, userId int64) (bool, error) {
 	var count int64
 
@@ -149,16 +172,19 @@ func IsVideoLinkedToUser(videoId int64, userId int64) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if count > 0 {
-		return true, nil
+	if count == 0 {
+		// 2) LandingPage 검사
+		err = db.Model(&Page{}).
+			Where("video_id = ? AND user_id = ?", videoId, userId).
+			Count(&count).Error
+		if err != nil {
+			return false, err
+		}
+		if count == 0 {
+			return false, nil
+		}
 	}
 
-	// 2) LandingPage 검사
-	err = db.Model(&Page{}).
-		Where("video_id = ? AND user_id = ?", videoId, userId).
-		Count(&count).Error
-	if err != nil {
-		return false, err
-	}
-	return count > 0, nil
+	// 3) (#38) Video 자체의 접근 권한 검사 — owner 또는 IsPublic
+	return CanUserUseVideo(videoId, userId)
 }
