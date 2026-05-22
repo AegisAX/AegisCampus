@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -13,6 +14,32 @@ import (
 	"strings"
 	"time"
 )
+
+// ErrUnsupportedVideoExt 는 업로드 시 화이트리스트에 없는 확장자를 받았을 때 반환된다.
+// 호출자는 errors.Is(err, util.ErrUnsupportedVideoExt) 로 식별하여 HTTP 415 응답에 사용한다.
+var ErrUnsupportedVideoExt = errors.New("unsupported video extension")
+
+// AllowedVideoExt 는 업로드 가능한 영상 확장자 화이트리스트 (소문자, 점 포함). (#23)
+var AllowedVideoExt = map[string]bool{
+	".mp4":  true,
+	".webm": true,
+}
+
+// ExtToMimeType 는 확장자 → Content-Type 매핑. (#23)
+var ExtToMimeType = map[string]string{
+	".mp4":  "video/mp4",
+	".webm": "video/webm",
+}
+
+// MimeTypeForFileName 은 파일명의 확장자를 보고 Content-Type 을 반환한다. (#23)
+// 알 수 없는 확장자면 "video/mp4" fallback (DB 기존 영상 호환).
+func MimeTypeForFileName(fileName string) string {
+	ext := strings.ToLower(filepath.Ext(fileName))
+	if mime, ok := ExtToMimeType[ext]; ok {
+		return mime
+	}
+	return "video/mp4"
+}
 
 // VideoStorageDir은 영상 파일 저장 기본 경로입니다.
 var VideoStorageDir = "static/videos"
@@ -210,6 +237,10 @@ func ProcessVideoUpload(
 	ext := ""
 	if originalFilename != "" {
 		ext = strings.ToLower(filepath.Ext(originalFilename))
+	}
+	// (#23) 확장자 화이트리스트 검사 — Allowed 외 거부
+	if !AllowedVideoExt[ext] {
+		return nil, fmt.Errorf("%w: %q", ErrUnsupportedVideoExt, ext)
 	}
 	finalName := sumHex + ext
 	finalPath := filepath.Join(VideoStorageDirAbs, finalName)

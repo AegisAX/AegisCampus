@@ -928,7 +928,7 @@ func (ps *PhishingServer) Media(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "video/mp4")
+	w.Header().Set("Content-Type", util.MimeTypeForFileName(v.FileName))
 	w.Header().Set("Content-Disposition", "inline")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Content-Type-Options", "nosniff")

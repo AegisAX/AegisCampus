@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -127,6 +128,11 @@ func (as *Server) HandleVideoByID(w http.ResponseWriter, r *http.Request) {
 				})
 				if err != nil {
 					log.Error(err)
+					// (#23) 허용 외 확장자는 415 Unsupported Media Type
+					if errors.Is(err, util.ErrUnsupportedVideoExt) {
+						JSONResponse(w, models.Response{Success: false, Message: "지원되지 않는 동영상 형식입니다. (.mp4 / .webm 만 허용)"}, http.StatusUnsupportedMediaType)
+						return
+					}
 					JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
 					return
 				}
@@ -318,6 +324,11 @@ func (as *Server) handleVideoUpload(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		log.Error(err)
+		// (#23) 허용 외 확장자는 415 Unsupported Media Type
+		if errors.Is(err, util.ErrUnsupportedVideoExt) {
+			JSONResponse(w, models.Response{Success: false, Message: "지원되지 않는 동영상 형식입니다. (.mp4 / .webm 만 허용)"}, http.StatusUnsupportedMediaType)
+			return
+		}
 		JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
 		return
 	}
