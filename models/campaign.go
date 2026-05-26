@@ -69,8 +69,8 @@ type CampaignStats struct {
 	Submitted int64 `json:"submitted"`
 	Reported  int64 `json:"reported"`
 	Error     int64 `json:"error"`
-        Executed  int64 `json:"executed"`
-        Trained   int64 `json:"trained"`
+	Executed  int64 `json:"executed"`
+	Trained   int64 `json:"trained"`
 }
 
 // Event contains the fields for an event
@@ -87,18 +87,18 @@ type Event struct {
 // EventDetails wraps optional details we store per event type.
 // Backwards compatible: new fields are optional.
 type EventDetails struct {
-    Payload url.Values        `json:"payload,omitempty"` // Submitted Data
-    Browser map[string]string `json:"browser,omitempty"` // UA parsed info
-    Report  *ReportDetails    `json:"report,omitempty"`  // Email Reported
+	Payload url.Values        `json:"payload,omitempty"` // Submitted Data
+	Browser map[string]string `json:"browser,omitempty"` // UA parsed info
+	Report  *ReportDetails    `json:"report,omitempty"`  // Email Reported
 }
 
 // ReportDetails captures context when a user reports the phishing email.
 type ReportDetails struct {
-    Method    string            `json:"method,omitempty"`     // "imap" | "api" | "manual"
-    Reporter  string            `json:"reporter,omitempty"`   // mailbox or user that reported
-    Subject   string            `json:"subject,omitempty"`
-    MessageID string            `json:"message_id,omitempty"`
-    Headers   map[string]string `json:"headers,omitempty"`    // selected headers if available
+	Method    string            `json:"method,omitempty"`   // "imap" | "api" | "manual"
+	Reporter  string            `json:"reporter,omitempty"` // mailbox or user that reported
+	Subject   string            `json:"subject,omitempty"`
+	MessageID string            `json:"message_id,omitempty"`
+	Headers   map[string]string `json:"headers,omitempty"` // selected headers if available
 }
 
 // EventError is a struct that wraps an error that occurs when sending an
@@ -296,15 +296,13 @@ func getCampaignStats(cid int64) (CampaignStats, error) {
 	if err = query.Where("executed = ?", true).Count(&s.Executed).Error; err != nil {
 		return s, err
 	}
-	// 추가: Trained 집계 (해당 이벤트가 존재하는 수신자 수)
-	subq := db.Table("events").
-		Select("email").
-		Where("campaign_id = ? AND message = ?", cid, EventTrainingCompleted).
-		SubQuery()
-	if err := db.Table("results").
-		Where("campaign_id = ?", cid).
-		Where("email IN (?)", subq).
-		Count(&s.Trained).Error; err != nil {
+	// (#42) Trained 수신자 수 = 캠페인 내 Trained 이벤트의 distinct email 수.
+	// 기존 SubQuery() + email IN (?) 패턴이 GORM v1 + SQLite 에서 의도된 결과를
+	// 반환하지 않아 카운트가 1로 잘못 표시되던 결함 차단. raw SQL 로 명시.
+	if err = db.Raw(
+		"SELECT COUNT(DISTINCT email) FROM events WHERE campaign_id = ? AND message = ?",
+		cid, EventTrainingCompleted,
+	).Row().Scan(&s.Trained); err != nil {
 		return s, err
 	}
 	// Every submitted data event implies they clicked the link
