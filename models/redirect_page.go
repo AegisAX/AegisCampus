@@ -2,6 +2,8 @@ package models
 
 import (
 	"errors"
+	"regexp"
+	"strconv"
 	"time"
 
 	log "github.com/AegisAX/Sentinel/logger"
@@ -166,4 +168,21 @@ func GetRedirectPageByID(id int64) (RedirectPage, error) {
 	}
 	rp.attachVideo()
 	return rp, nil
+}
+
+// #41: rid↔campaign↔asset 매핑 무결성 검증용 헬퍼.
+// LandingPage.RedirectUrl 의 `/rp/{id}` 패턴에서 RP ID 를 추출한다.
+// 패턴이 일치하지 않으면 0 을 반환 — 호출자는 "이 캠페인엔 자체 RP 없음"
+// 으로 해석한다 (외부 redirect URL 케이스 등).
+var redirectPageURLPattern = regexp.MustCompile(`/rp/(\d+)`)
+
+// ExtractRedirectPageID returns the RP ID embedded in a `/rp/{id}` URL,
+// or 0 if the URL does not match that pattern.
+func ExtractRedirectPageID(redirectURL string) int64 {
+	m := redirectPageURLPattern.FindStringSubmatch(redirectURL)
+	if len(m) != 2 {
+		return 0
+	}
+	rpID, _ := strconv.ParseInt(m[1], 10, 64)
+	return rpID
 }

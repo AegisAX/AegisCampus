@@ -141,37 +141,3 @@ func CanUserUseVideo(videoId int64, userId int64) (bool, error) {
 	}
 	return false, nil
 }
-
-// IsVideoLinkedToUser returns true if any LandingPage OR RedirectPage owned by
-// userId references this video AND the user has permission to use the video.
-// Used by the public Media handler (Phase 2 #7 + #38) to authorize rid-based
-// access. The video must be embedded in either the campaign's LandingPage
-// (pages.video_id) or its RedirectPage (redirect_pages.video_id), and the user
-// must own the video or the video must be IsPublic (defense-in-depth against
-// operators storing other users' private video IDs in their own pages).
-func IsVideoLinkedToUser(videoId int64, userId int64) (bool, error) {
-	var count int64
-
-	// 1) RedirectPage 검사
-	err := db.Model(&RedirectPage{}).
-		Where("video_id = ? AND user_id = ?", videoId, userId).
-		Count(&count).Error
-	if err != nil {
-		return false, err
-	}
-	if count == 0 {
-		// 2) LandingPage 검사
-		err = db.Model(&Page{}).
-			Where("video_id = ? AND user_id = ?", videoId, userId).
-			Count(&count).Error
-		if err != nil {
-			return false, err
-		}
-		if count == 0 {
-			return false, nil
-		}
-	}
-
-	// 3) (#38) Video 자체의 접근 권한 검사 — owner 또는 IsPublic
-	return CanUserUseVideo(videoId, userId)
-}

@@ -881,17 +881,25 @@ func (ps *PhishingServer) Media(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Campaign complete", http.StatusGone)
 		return
 	}
-	// Phase 2 #7: 영상이 result 소유자의 LandingPage 또는 RedirectPage 중
-	// 어느 한 곳에라도 연결되어 있으면 통과시킨다.
-	// RedirectPage 안에만 영상이 임베드된 시나리오 (campaign.Page.VideoId == nil)
-	// 도 정상 처리되도록 함.
-	linked, lerr := models.IsVideoLinkedToUser(id, result.UserId)
-	if lerr != nil {
-		log.Errorf("media: video link lookup failed (id=%s, rid=%s): %v", idStr, rid, lerr)
-		http.NotFound(w, r)
-		return
+	// (#41) rid↔campaign↔asset 매핑 무결성 검증.
+	// rid 의 캠페인이 실제로 이 영상을 사용하는지 확인한다.
+	// 1) LandingPage 자체 임베드 영상이거나
+	// 2) LandingPage.RedirectUrl 이 가리키는 RedirectPage 의 영상이어야 통과.
+	// 같은 user 의 다른 캠페인 자산에 cross-access 되던 #38 후속 결함을 차단.
+	authorized := false
+	if campaign.Page.VideoId != nil && *campaign.Page.VideoId == id {
+		authorized = true
 	}
-	if !linked {
+	if !authorized {
+		if rpID := models.ExtractRedirectPageID(campaign.Page.RedirectURL); rpID > 0 {
+			if rp, rerr := models.GetRedirectPageByID(rpID); rerr == nil &&
+				rp.UserId == result.UserId &&
+				rp.VideoId != nil && *rp.VideoId == id {
+				authorized = true
+			}
+		}
+	}
+	if !authorized {
 		log.Errorf("media: rid %s (campaign=%d, user=%d) does not authorize video %d", rid, campaign.Id, result.UserId, id)
 		http.NotFound(w, r)
 		return
@@ -1244,45 +1252,67 @@ func (ps *PhishingServer) RedirectPageHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// (#41) rid 없는 RP 접근 차단. 정상 수신자는 LP.RedirectUrl 이
+	// 항상 ?rid={{.RId}} 로 렌더되므로 영향 없음.
+	rid := r.URL.Query().Get("rid")
+	if rid == "" {
+		rid = r.URL.Query().Get("RId")
+	}
+	if rid == "" {
+		log.Errorf("rp: rid missing (id=%s, ip=%s)", idStr, r.RemoteAddr)
+		http.NotFound(w, r)
+		return
+	}
+	// Media 핸들러와 동일하게 투명성 접미사 제거
+	rid = strings.TrimSuffix(rid, TransparencySuffix)
+
+	result, err := models.GetResult(rid)
+	if err != nil {
+		log.Errorf("rp: invalid rid (id=%s, rid=%s)", idStr, rid)
+		http.NotFound(w, r)
+		return
+	}
+	campaign, err := models.GetCampaign(result.CampaignId, result.UserId)
+	if err != nil {
+		log.Errorf("rp: campaign lookup failed (id=%s, rid=%s, campaign_id=%d)", idStr, rid, result.CampaignId)
+		http.NotFound(w, r)
+		return
+	}
+	// (#29) 완료된 캠페인은 RP 본문 송출 차단 — 410 Gone
+	if campaign.Status == models.CampaignComplete {
+		log.Infof("rp: campaign complete (rp_id=%d, rid=%s, campaign_id=%d)", id, rid, campaign.Id)
+		http.Error(w, "Campaign complete", http.StatusGone)
+		return
+	}
+	// (#41) rid↔campaign↔asset 매핑 무결성 검증.
+	// rid 의 캠페인이 실제로 이 RedirectPage 를 사용하는지 확인.
+	// LP.RedirectUrl 의 /rp/{id} 가 요청 id 와 일치해야 통과.
+	// 같은 user 의 다른 캠페인 RP 에 cross-access 되던 결함을 차단.
+	if rpID := models.ExtractRedirectPageID(campaign.Page.RedirectURL); rpID != id {
+		log.Errorf("rp: rid %s (campaign=%d, user=%d) does not authorize redirect page %d", rid, campaign.Id, result.UserId, id)
+		http.NotFound(w, r)
+		return
+	}
 	rp, err := models.GetRedirectPageByID(id)
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
-
-	// rid가 있으면 PhishingTemplateContext 구성
-	rid := r.URL.Query().Get("rid")
-	if rid == "" {
-		rid = r.URL.Query().Get("RId")
+	// defense-in-depth: 매핑 검증 통과 후에도 user_id 일치 재확인
+	if result.UserId != rp.UserId {
+		http.NotFound(w, r)
+		return
 	}
 
-	var pageHTML string
-	if rid != "" {
-		result, err := models.GetResult(rid)
-		if err == nil {
-			// I-07: rid와 RedirectPage 소유자가 동일한지 검증
-			// 다른 사용자의 rid로 개인정보(이름/부서/이메일)가 렌더링되는 것을 방지
-			if result.UserId != rp.UserId {
-				http.NotFound(w, r)
-				return
-			}
-			// Result → Campaign을 통해 TemplateContext 구성
-			campaign, err := models.GetCampaign(result.CampaignId, result.UserId)
-			if err == nil {
-				// (#29) 완료된 캠페인은 RP 본문 송출 차단 — 410 Gone
-				if campaign.Status == models.CampaignComplete {
-					log.Infof("rp: campaign complete (rp_id=%d, rid=%s, campaign_id=%d)", id, rid, campaign.Id)
-					http.Error(w, "Campaign complete", http.StatusGone)
-					return
-				}
-				ptx, err := models.NewPhishingTemplateContext(&campaign, result.BaseRecipient, rid)
-				if err == nil {
-					pageHTML, _ = models.ExecuteTemplate(rp.HTML, ptx)
-				}
-			}
-		}
+	ptx, perr := models.NewPhishingTemplateContext(&campaign, result.BaseRecipient, rid)
+	if perr != nil {
+		log.Errorf("rp: template context failed (id=%s, rid=%s): %v", idStr, rid, perr)
+		http.NotFound(w, r)
+		return
 	}
-	if pageHTML == "" {
+	pageHTML, terr := models.ExecuteTemplate(rp.HTML, ptx)
+	if terr != nil {
+		log.Errorf("rp: template execution failed (id=%s, rid=%s): %v", idStr, rid, terr)
 		pageHTML = rp.HTML
 	}
 	pageHTML = ensureMiniSwal(pageHTML)
