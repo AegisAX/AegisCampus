@@ -814,16 +814,27 @@ function poll() {
             })
 
             /* Update the datatable */
+            // (#44) Refresh 시 Details 의 시간 컬럼 (Sent/Opened/Clicked/Submitted/
+            // Executed/Trained) 이 미갱신되던 결함 차단. campaign.timeline 을
+            // 재인덱싱해서 신규 이벤트의 시각을 행 데이터에 반영한다.
             resultsTable = $("#resultsTable").DataTable()
+            var evIdx = indexEventTimesByEmail(campaign.timeline || {})
             resultsTable.rows().every(function (i, tableLoop, rowLoop) {
                 var row = this.row(i)
                 var rowData = row.data()
                 var rid = rowData[0]
                 $.each(campaign.results, function (j, result) {
                     if (result.id == rid) {
-                        rowData[14] = moment(result.send_date).format('MMMM Do YYYY, h:mm:ss a')
+                        var evRec = evIdx[result.email] || {}
+                        rowData[6]  = normalizeStatus(result.status)
+                        rowData[7]  = evRec.sent   || ""
+                        rowData[8]  = evRec.open   || ""
+                        rowData[9]  = evRec.click  || ""
+                        rowData[10] = evRec.submit || ""
+                        rowData[11] = evRec.exec   || ""
                         rowData[12] = result.reported
-                        rowData[6] = normalizeStatus(result.status)
+                        rowData[13] = evRec.train  || ""
+                        rowData[14] = moment(result.send_date).format('MMMM Do YYYY, h:mm:ss a')
                         resultsTable.row(i).data(rowData)
                         if (row.child.isShown()) {
                             $(row.node()).find("#caret").removeClass("fa-caret-right")
