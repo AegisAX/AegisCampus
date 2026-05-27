@@ -14,6 +14,52 @@
 
 ---
 
+## [1.0.0-rc2] - 2026-05-27
+
+v1.0.0-rc1 운영 검증 중 발견된 보안 결함 1건 + 결함 4건 + UX 개선 1건을
+수정한 RC 패치 릴리스. 신규 기능 추가 없음, 마이그레이션 추가 없음.
+
+### Security (보안 결함 차단)
+
+- **#41** Media·RedirectPage 핸들러의 cross-campaign 자산 접근 차단.
+  기존엔 rid 의 `result.UserId` 만 검증해, 같은 운영자가 보유한 다른
+  캠페인의 영상/RP 자산이 cross-access 가능하던 결함이 있었다.
+  이제 LandingPage.RedirectUrl 의 `/rp/{id}` 패턴으로 캠페인↔RP 매핑을
+  유도해 `rid → Result → Campaign → LP 또는 RP 의 자산 ID 일치`
+  여부까지 검증. `ExtractRedirectPageID` 헬퍼 신규, RP 핸들러는 rid
+  필수화. (rc1 #38 의 후속 강화)
+
+### Fixed (안정성 / 동작 결함)
+
+- **#42** Dashboard pie chart 의 Trained 카운트가 1로만 표시되던 결함.
+  `getCampaignStats` 의 SubQuery + `email IN (?)` 패턴이 GORM v1 +
+  SQLite 조합에서 1을 반환하던 결함을 `COUNT(DISTINCT email)` raw SQL
+  로 교체. Campaigns 페이지의 정상 카운트와 일치.
+- **#44** 캠페인 상세 페이지 Refresh 시 Details 행의 시간 컬럼
+  (Sent/Opened/Clicked/Submitted/Executed/Reported/Trained at) 이
+  새 이벤트로 갱신되지 않던 결함. `poll()` 의 update 루프 진입 전
+  `indexEventTimesByEmail` 1회 인덱싱 후 행마다 시간 컬럼 갱신.
+- **#45** 도넛 차트 가운데 숫자가 좌측 정렬되거나 리사이즈 후 stale
+  좌표로 그려지던 결함. `load` 콜백에 `dominant-baseline: central`,
+  `render` 콜백에 `plotLeft/plotTop` 기반 좌표 재계산 추가.
+- **#46** 도넛 차트 7개 중 마지막 하나(Trained)만 둘째 줄 첫 column
+  으로 튀던 결함. Bootstrap 3 `.row::before` 의 clearfix `display:
+  table` 이 grid container 의 첫 cell 을 점유하던 것이 root cause.
+  `.donut-row` 클래스 신규로 `display:grid; repeat(7, minmax(0, 1fr))`
+  + `::before/::after` 무력화. viewport 640px / 400px 임계점에서
+  4열 / 3열로 재배치.
+
+### Changed (UX 개선)
+
+- **#47** 도넛 차트 가운데 숫자 + 위 라벨 (Sent/Opened/...) 폰트가
+  cell width 무관하게 16px 로 고정되어 좁은 grid 에서 도넛과 겹치던
+  UX 결함 개선. `pickFontSizes(chartWidth)` 헬퍼로 ≥160px → 16px,
+  ≥120px → 14px, ≥90px → 12px, 그 외 10px 의 단계별 폰트 적용.
+  `main.css` 의 `.highcharts-title` 가 `!important` 로 인라인 override
+  를 차단하던 것도 제거.
+
+---
+
 ## [1.0.0-rc1] - 2026-05-19
 
 v1.0.0-beta2 운영 검증 후, 출시 후보(rc) 승격을 위한 기능 안정화 릴리스.
@@ -66,7 +112,8 @@ v1.0.0-beta2 운영 검증 후, 출시 후보(rc) 승격을 위한 기능 안정
 
 ---
 
-[Unreleased]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-rc1...HEAD
+[Unreleased]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-rc2...HEAD
+[1.0.0-rc2]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-rc1...v1.0.0-rc2
 [1.0.0-rc1]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-beta2...v1.0.0-rc1
 [1.0.0-beta2]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-beta1...v1.0.0-beta2
 [1.0.0-beta1]: https://github.com/AegisAX/Sentinel/releases/tag/v1.0.0-beta1
