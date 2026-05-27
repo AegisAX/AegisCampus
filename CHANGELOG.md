@@ -20,6 +20,19 @@
   series 에서 제외해 X축이 실제 발송 구간으로 자동 잡혔으나, `poll()` 은
   제외하지 않아 Refresh 후 X축이 캠페인 생성 시각까지 펼쳐졌다. `poll()`
   도 `load()` 와 동일하게 `Campaign Created` skip 추가.
+- **#49** Dashboard 의 기존 "Phishing Success Overview" 차트 (캠페인당 점 1개,
+  X축 = 캠페인 생성일, Y축 = 클릭률) 가 캠페인 비교에는 적합하지 않고
+  Recent Campaigns 표와 정보 중복이라 사실상 추세 의미가 없던 결함 보강.
+  캠페인별 누적 클릭률 라인 차트로 교체 — X축 = launch 후 경과 시간
+  (`Xh Ym`), Y축 = 누적 클릭률 (`ceiling: 100`, `softMax: 10`). 백엔드
+  `CampaignSummary` 응답에 `click_timeline` 필드 추가 (`getCampaignClickTimeline`
+  헬퍼 — distinct 클릭자 시각 시리즈, SQLite `MIN(time)` 의 string affinity
+  파싱). legend 토글 시 series 색 ↔ 회색 전환, hover tooltip 에 캠페인명 +
+  절대 시각 (로컬) + 경과 시간 + 클릭률 4줄 병기.
+- **#50** 도넛 차트 비율이 `Math.floor` 로 정수 잘림되어 16.5% 가 16% 로
+  표시되고 누적합이 100% 가 안 맞던 정밀도 결함 보강. `Math.round(... * 1000) / 10`
+  로 소수점 1자리 유지. Dashboard 와 캠페인 상세 페이지 양쪽 동일 적용,
+  tooltip 에 `Highcharts.numberFormat(value, 1)` 적용.
 
 ### Phase 5+ — 출시 후 (v1.1 영역)
 - TestAttachment 사전 결함 (testdata 옛 변수)
