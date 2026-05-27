@@ -988,9 +988,11 @@ function load() {
                 Object.keys(statusMapping).forEach(function (k) {
                     email_series_data[k] = 0
                 });
+                // (#43) indexEventTimesByEmail 은 timeline 전체를 순회하므로 results 루프
+                // 밖으로 hoist. 824 results × 1661 events 환경에서 페이지 로드 ~20초 → ~1초.
+                var evIdx = indexEventTimesByEmail(campaign.timeline || {});
                 $.each(campaign.results, function (i, result) {
                     var st = normalizeStatus(result.status)
-                    var evIdx = indexEventTimesByEmail(campaign.timeline || {});
                     var evRec = evIdx[result.email] || {};
                     resultsTable.row.add([
                         result.id,
