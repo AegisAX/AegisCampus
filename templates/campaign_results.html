@@ -85,8 +85,7 @@
 
             <!-- 결과 목록 탭 (기존) -->
             <div role="tabpanel" class="tab-pane active" id="tab-results">
-                <div class="row">
-                    <h2>Details</h2>
+                <div class="row" style="margin-top:15px">
                     <table id="resultsTable" class="table">
                         <thead>
                             <tr>
@@ -116,28 +115,24 @@
             <!-- 수강 현황 탭 (신규) -->
             <div role="tabpanel" class="tab-pane" id="tab-video-progress">
                 <div class="row" style="margin-top:15px">
-                    <div class="col-md-12">
-                        <p id="video-progress-empty" class="text-muted" style="display:none">
-                            <i class="fa fa-info-circle"></i> 수강 기록이 없습니다.
-                        </p>
-                        <table id="video-progress-table"
-                               class="table table-condensed table-bordered table-hover"
-                               style="display:none">
-                            <thead>
-                                <tr>
-                                    <th class="text-center">이름</th>
-                                    <th class="text-center">부서</th>
-                                    <th class="text-center">이메일</th>
-                                    <th class="text-center">시청 시간</th>
-                                    <th class="text-center">전체 시간</th>
-                                    <th class="text-center" style="min-width:120px">진행률</th>
-                                    <th class="text-center">완료</th>
-                                    <th class="text-center">마지막 업데이트</th>
-                                </tr>
-                            </thead>
-                            <tbody id="video-progress-tbody"></tbody>
-                        </table>
-                    </div>
+                    <p id="video-progress-empty" class="text-muted" style="display:none">
+                        <i class="fa fa-info-circle"></i> 수강 기록이 없습니다.
+                    </p>
+                    <table id="video-progress-table" class="table" style="display:none">
+                        <thead>
+                            <tr>
+                                <th class="text-center">이름</th>
+                                <th class="text-center">부서</th>
+                                <th class="text-center">이메일</th>
+                                <th class="text-center">시청 시간</th>
+                                <th class="text-center">전체 시간</th>
+                                <th class="text-center" style="min-width:120px">진행률</th>
+                                <th class="text-center">완료</th>
+                                <th class="text-center">마지막 업데이트</th>
+                            </tr>
+                        </thead>
+                        <tbody id="video-progress-tbody"></tbody>
+                    </table>
                 </div>
             </div><!-- /tab-pane#tab-video-progress -->
 

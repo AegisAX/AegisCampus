@@ -162,6 +162,7 @@ var progressListing = [
 
 var campaign = {}
 var bubbles = []
+var videoProgressTable = null
 
 function dismiss() {
     $("#modal\\.flashes").empty()
@@ -1384,49 +1385,96 @@ function loadVideoProgress() {
     var cid = campaign.id;
     if (!cid) return;
 
-    // 초기화
-    $('#video-progress-tbody').empty();
-    $('#video-progress-table').hide();
-    $('#video-progress-empty').hide().text('수강 기록이 없습니다.');
-
     api.campaignId.videoProgress(cid)
         .success(function (data) {
-            if (!data || data.length === 0) {
-                $('#video-progress-empty').show();
+            data = data || [];
+
+            // 빈 상태: 테이블 숨기고 안내 메시지 노출
+            if (data.length === 0) {
+                if (videoProgressTable) {
+                    videoProgressTable.clear().draw();
+                }
+                $('#video-progress-table').hide();
+                $('#video-progress-empty')
+                    .text('수강 기록이 없습니다.')
+                    .show();
                 return;
             }
 
-            $.each(data, function (i, row) {
-                var pct     = (row.percent * 100).toFixed(1);
-                var watched = formatSeconds(row.seconds_watched);
-                var dur     = formatSeconds(row.duration);
-                var pctBar  = '<div class="progress" style="margin-bottom:0;min-width:80px">' +
-                              '<div class="progress-bar" style="width:' + pct + '%">' +
-                              pct + '%</div></div>';
-                var badge   = row.completed
-                    ? '<span class="label label-success"><i class="fa fa-check"></i> 완료</span>'
-                    : '<span class="label label-default">미완료</span>';
-                var updated = row.modified_date
-                    ? moment.utc(row.modified_date).local().format('YYYY-MM-DD HH:mm')
-                    : '-';
-
-                $('#video-progress-tbody').append(
-                    '<tr style="vertical-align:middle">' +
-                    '<td>' + escapeHtml(row.name || '')       + '</td>' +
-                    '<td>' + escapeHtml(row.department || '') + '</td>' +
-                    '<td>' + escapeHtml(row.email || '')      + '</td>' +
-                    '<td class="text-center">' + watched  + '</td>' +
-                    '<td class="text-center">' + dur      + '</td>' +
-                    '<td style="vertical-align:middle">' + pctBar   + '</td>' +
-                    '<td style="vertical-align:middle;text-align:center">' + badge + '</td>' +
-                    '<td class="text-center">' + updated  + '</td>' +
-                    '</tr>'
-                );
-            });
-
+            $('#video-progress-empty').hide();
             $('#video-progress-table').show();
+
+            // 첫 호출 시 DataTable 초기화 (결과 목록과 동일 패턴)
+            if (!videoProgressTable) {
+                videoProgressTable = $('#video-progress-table').DataTable({
+                    destroy: true,
+                    order: [[0, 'asc']],
+                    columnDefs: [
+                        { className: 'text-center', targets: [3, 4, 5, 6, 7] },
+                        {
+                            // 시청 시간 / 전체 시간 (초 → m:ss)
+                            render: function (data, type) {
+                                if (type !== 'display') return data;
+                                return formatSeconds(data);
+                            },
+                            targets: [3, 4]
+                        },
+                        {
+                            // 진행률 (% → progress bar)
+                            render: function (data, type) {
+                                if (type !== 'display') return data;
+                                return '<div class="progress" style="margin-bottom:0;min-width:80px">' +
+                                       '<div class="progress-bar" style="width:' + data + '%">' +
+                                       data + '%</div></div>';
+                            },
+                            targets: [5]
+                        },
+                        {
+                            // 완료 (1/0 → badge)
+                            render: function (data, type) {
+                                if (type !== 'display') return data;
+                                return data
+                                    ? '<span class="label label-success"><i class="fa fa-check"></i> 완료</span>'
+                                    : '<span class="label label-default">미완료</span>';
+                            },
+                            targets: [6]
+                        },
+                        {
+                            // 마지막 업데이트 (ISO → YYYY-MM-DD HH:mm)
+                            render: function (data, type) {
+                                if (type !== 'display') return data;
+                                return data
+                                    ? moment.utc(data).local().format('YYYY-MM-DD HH:mm')
+                                    : '-';
+                            },
+                            targets: [7]
+                        }
+                    ]
+                });
+            }
+
+            // 데이터 갱신 (clear + row.add + draw(false))
+            videoProgressTable.clear();
+            $.each(data, function (i, row) {
+                var pct = +(row.percent * 100).toFixed(1);
+                videoProgressTable.row.add([
+                    escapeHtml(row.name || ''),
+                    escapeHtml(row.department || ''),
+                    escapeHtml(row.email || ''),
+                    row.seconds_watched || 0,
+                    row.duration || 0,
+                    pct,
+                    row.completed ? 1 : 0,
+                    row.modified_date || ''
+                ]);
+            });
+            videoProgressTable.draw(false);
         })
         .error(function () {
+            if (videoProgressTable) {
+                videoProgressTable.clear().draw();
+            }
+            $('#video-progress-table').hide();
             $('#video-progress-empty')
                 .text('수강 현황을 불러오는 중 오류가 발생했습니다.')
                 .show();
