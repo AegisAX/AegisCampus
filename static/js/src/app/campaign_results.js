@@ -828,14 +828,16 @@ function poll() {
 
                 var email_data = []
                 var total = campaign.results.length || 1; // avoid NaN when 0 results
+                // 소수점 1자리 정밀도 유지 (예: 16.5%). tooltip 의 Highcharts.numberFormat 과 일치.
+                var pct = Math.round((count / total) * 1000) / 10
                 email_data.push({
                     name: status,
-                    y: Math.floor((count / total) * 100),
+                    y: pct,
                     count: count
                 })
                 email_data.push({
                     name: '',
-                    y: 100 - Math.floor((count / total) * 100)
+                    y: 100 - pct
                 })
                 chart.series[0].update({
                     data: email_data
@@ -1090,14 +1092,16 @@ function load() {
 
                     var email_data = []
                     var total = campaign.results.length || 1; // avoid NaN
+                    // 소수점 1자리 정밀도 유지 (예: 16.5%). tooltip 의 Highcharts.numberFormat 과 일치.
+                    var pct = Math.round((count / total) * 1000) / 10
                     email_data.push({
                         name: status,
-                        y: Math.floor((count / total) * 100),
+                        y: pct,
                         count: count
                     })
                     email_data.push({
                         name: '',
-                        y: 100 - Math.floor((count / total) * 100)
+                        y: 100 - pct
                     })
                     var meta = getStatusMeta(status)
                     renderPieChart({

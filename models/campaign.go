@@ -50,14 +50,24 @@ type CampaignSummaries struct {
 
 // CampaignSummary is a struct representing the overview of a single camaign
 type CampaignSummary struct {
-	Id            int64         `json:"id"`
-	CreatedDate   time.Time     `json:"created_date"`
-	LaunchDate    time.Time     `json:"launch_date"`
-	SendByDate    time.Time     `json:"send_by_date"`
-	CompletedDate time.Time     `json:"completed_date"`
-	Status        string        `json:"status"`
-	Name          string        `json:"name"`
-	Stats         CampaignStats `json:"stats"`
+	Id            int64                `json:"id"`
+	CreatedDate   time.Time            `json:"created_date"`
+	LaunchDate    time.Time            `json:"launch_date"`
+	SendByDate    time.Time            `json:"send_by_date"`
+	CompletedDate time.Time            `json:"completed_date"`
+	Status        string               `json:"status"`
+	Name          string               `json:"name"`
+	Stats         CampaignStats        `json:"stats"`
+	ClickTimeline []ClickTimelinePoint `json:"click_timeline"`
+}
+
+// ClickTimelinePoint is a single point in a campaign's cumulative click timeline.
+// Each point marks the time at which a distinct recipient first clicked the
+// phishing link (or submitted credentials, which implies a click). Count is
+// monotonically increasing across the slice.
+type ClickTimelinePoint struct {
+	Time  time.Time `json:"time"`
+	Count int64     `json:"count"`
 }
 
 // CampaignStats is a struct representing the statistics for a single campaign
@@ -323,6 +333,70 @@ func getCampaignStats(cid int64) (CampaignStats, error) {
 	return s, err
 }
 
+// getCampaignClickTimeline returns the distinct-recipient click timeline for
+// the given campaign. Each row is { first click time, cumulative distinct
+// clicker count }. Submitted is treated as Clicked (same backfill as
+// getCampaignStats). Used by the dashboard's "Click Rate Over Time" chart.
+func getCampaignClickTimeline(cid int64) ([]ClickTimelinePoint, error) {
+	timeline := []ClickTimelinePoint{}
+	rows, err := db.Raw(
+		"SELECT MIN(time) AS first_time, email FROM events "+
+			"WHERE campaign_id = ? AND (message = ? OR message = ?) AND email != '' "+
+			"GROUP BY email ORDER BY first_time ASC",
+		cid, EventClicked, EventDataSubmit,
+	).Rows()
+	if err != nil {
+		return timeline, err
+	}
+	defer rows.Close()
+	// SQLite 가 MIN(time) 결과를 string 으로 반환하므로 (집계 함수 통과 시
+	// column affinity 가 사라짐), string 으로 받아서 직접 파싱한다.
+	// GORM 이 평소에 쓰는 두 포맷을 모두 시도해 호환성 확보.
+	var count int64
+	for rows.Next() {
+		var firstTimeStr string
+		var email string
+		if err := rows.Scan(&firstTimeStr, &email); err != nil {
+			return timeline, err
+		}
+		firstTime, perr := parseSQLiteTime(firstTimeStr)
+		if perr != nil {
+			log.Errorf("getCampaignClickTimeline: parse time %q: %v", firstTimeStr, perr)
+			continue
+		}
+		count++
+		timeline = append(timeline, ClickTimelinePoint{
+			Time:  firstTime,
+			Count: count,
+		})
+	}
+	return timeline, rows.Err()
+}
+
+// parseSQLiteTime parses a time string returned by SQLite's MIN(time)
+// aggregate. SQLite 는 datetime 컬럼의 affinity 를 집계함수 통과 후 잃어
+// 문자열로 돌려준다. go-sqlite3 가 컬럼을 직접 스캔할 때 쓰는 포맷을 차례로 시도.
+func parseSQLiteTime(s string) (time.Time, error) {
+	layouts := []string{
+		"2006-01-02 15:04:05.999999999-07:00",
+		"2006-01-02 15:04:05.999999999+00:00",
+		"2006-01-02 15:04:05-07:00",
+		"2006-01-02T15:04:05.999999999Z07:00",
+		time.RFC3339Nano,
+		time.RFC3339,
+		"2006-01-02 15:04:05",
+	}
+	var lastErr error
+	for _, layout := range layouts {
+		if t, err := time.Parse(layout, s); err == nil {
+			return t, nil
+		} else {
+			lastErr = err
+		}
+	}
+	return time.Time{}, lastErr
+}
+
 // GetCampaigns returns the campaigns owned by the given user.
 func GetCampaigns(uid int64) ([]Campaign, error) {
 	cs := []Campaign{}
@@ -359,6 +433,13 @@ func GetCampaignSummaries(uid int64) (CampaignSummaries, error) {
 			return overview, err
 		}
 		cs[i].Stats = s
+		// Dashboard 의 "Click Rate Over Time" 차트용 누적 클릭 시리즈.
+		// 실패해도 summary 전체를 막지 않도록 에러는 로그만.
+		if tl, terr := getCampaignClickTimeline(cs[i].Id); terr != nil {
+			log.Error(terr)
+		} else {
+			cs[i].ClickTimeline = tl
+		}
 	}
 	overview.Total = int64(len(cs))
 	overview.Campaigns = cs
