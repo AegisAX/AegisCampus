@@ -762,8 +762,14 @@ function poll() {
             );
 
             /* Update the timeline */
+            // (#48) load() 와 동일하게 Campaign Created 는 series 에서 제외.
+            // 포함 시 캠페인 생성 시각이 series min 이 되어 X축이 발송 시작 전까지
+            // 펼쳐지는 비대칭 결함 (load 직후엔 좁고, Refresh 후엔 넓어짐) 차단.
             var timeline_series_data = []
             $.each(campaign.timeline, function (i, event) {
+                if (event.message == "Campaign Created") {
+                    return true
+                }
                 var event_date = moment.utc(event.time).local()
                 var meta = getStatusMeta(event.message);
                 timeline_series_data.push({
