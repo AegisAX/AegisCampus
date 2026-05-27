@@ -108,6 +108,15 @@ function deleteCampaign(idx) {
     }
 }
 
+// (#47) 도넛 차트 cell 폭에 따라 폰트 크기 단계 결정.
+// title = 차트 위 라벨 (Sent/Opened/...), center = 도넛 가운데 숫자.
+function pickFontSizes(w) {
+    if (w >= 160) return { title: 16, center: 16 };
+    if (w >= 120) return { title: 14, center: 14 };
+    if (w >= 90)  return { title: 12, center: 12 };
+    return { title: 10, center: 10 };
+}
+
 /* Renders a pie chart using the provided chartops */
 function renderPieChart(chartopts) {
     // 컨테이너 없으면 렌더 스킵
@@ -121,20 +130,34 @@ function renderPieChart(chartopts) {
                         rend = chart.renderer,
                         pie = chart.series[0],
                         left = chart.plotLeft + pie.center[0],
-                        top = chart.plotTop + pie.center[1];
+                        top = chart.plotTop + pie.center[1],
+                        sizes = pickFontSizes(chart.chartWidth);
+                    // (#47) 차트 타이틀 (Sent/Opened/...) 도 cell 크기에 맞춰 축소
+                    chart.title && chart.title.css({ fontSize: sizes.title + 'px' });
                     this.innerText = rend.text(chartopts['data'][0].count, left, top).
                     attr({
                         'text-anchor': 'middle',
-                        'font-size': '16px',
+                        'dominant-baseline': 'central',
+                        'font-size': sizes.center + 'px',
                         'font-weight': 'bold',
                         'fill': chartopts['colors'][0],
                         'font-family': 'Helvetica,Arial,sans-serif'
-                    }).add();
+                    }).add()
                 },
                 render: function () {
+                    // (#45) 창 리사이즈 시 pie.center 가 변하므로 좌표 재계산.
+                    // (#47) 리사이즈/Refresh 후 cell 폭에 맞춰 폰트도 함께 축소.
+                    if (!this.innerText) return;
+                    var pie = this.series[0];
+                    if (!pie || !pie.center) return;
+                    var sizes = pickFontSizes(this.chartWidth);
+                    this.title && this.title.css({ fontSize: sizes.title + 'px' });
                     this.innerText.attr({
-                        text: chartopts['data'][0].count
-                    })
+                        text: chartopts['data'][0].count,
+                        x: this.plotLeft + pie.center[0],
+                        y: this.plotTop + pie.center[1],
+                        'font-size': sizes.center + 'px'
+                    });
                 }
             }
         },
