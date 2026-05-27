@@ -34,6 +34,18 @@
   로 소수점 1자리 유지. Dashboard 와 캠페인 상세 페이지 양쪽 동일 적용,
   tooltip 에 `Highcharts.numberFormat(value, 1)` 적용.
 
+### Changed (UX / 일관성)
+
+- **#51** 캠페인 상세 페이지의 '결과 목록' / '수강 현황' 탭 시각적 통일.
+  중복 헤딩 `<h2>Details</h2>` 제거 (탭 라벨과 의미 중복). 수강 현황
+  테이블에 DataTable 적용 (Show entries / Search / 페이징 / 정렬). 두
+  탭 상단 여백 (`margin-top:15px`) 일치. 수강 현황 테이블 class 를 결과
+  목록과 동일하게 통일 (`table-condensed table-bordered table-hover` →
+  `table`). `col-md-12` 래퍼 제거로 테이블 가로 폭 일치.
+
+### Phase 4 — Low (코드 정리, 미정)
+- (예정)
+
 ### Phase 5+ — 출시 후 (v1.1 영역)
 - TestAttachment 사전 결함 (testdata 옛 변수)
 - `/videos/upload` 제거 + JS 를 `/api/videos/` 로 이전
