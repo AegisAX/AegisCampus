@@ -7,6 +7,20 @@
 
 ## [Unreleased]
 
+### Fixed (운영 검증 — rc2 후 발견)
+
+- **#43** 캠페인 상세 페이지 (`/campaigns/{id}`) 초기 로드 성능 결함 보강.
+  `static/js/src/app/campaign_results.js` 의 `load()` 가
+  `indexEventTimesByEmail` (timeline 전체 순회) 을 results 루프 안에서 매
+  iteration 호출하던 O(N×M) 구조 차단. 루프 밖으로 hoist. 824 results ×
+  1661 events 환경에서 페이지 로드 ~20s → ~1s. `poll()` 의 동일 패턴과
+  일관성 확보.
+- **#48** 캠페인 상세 페이지 Timeline 차트 X축 범위가 첫 로드와 Refresh
+  사이에서 달라지던 결함 보강. `load()` 는 `Campaign Created` 이벤트를
+  series 에서 제외해 X축이 실제 발송 구간으로 자동 잡혔으나, `poll()` 은
+  제외하지 않아 Refresh 후 X축이 캠페인 생성 시각까지 펼쳐졌다. `poll()`
+  도 `load()` 와 동일하게 `Campaign Created` skip 추가.
+
 ### Phase 5+ — 출시 후 (v1.1 영역)
 - TestAttachment 사전 결함 (testdata 옛 변수)
 - `/videos/upload` 제거 + JS 를 `/api/videos/` 로 이전
