@@ -452,6 +452,13 @@ func TestTrackVideoServerAuthoritative(t *testing.T) {
 	smtp, _ := models.GetSMTP(1, 1)
 	template, _ := models.GetTemplate(1, 1)
 	page, _ := models.GetPage(1, 1)
+	// F1 시나리오 = "LandingPage 임베드 영상 시청". #59 의 videoActionAllowed LP
+	// 분기를 통과하도록 영상을 캠페인 LP 에 연결한다. 요청 시점 GetCampaign 이
+	// page 를 PageId 로 DB 재로드하므로 video_id 를 영속화해야 한다.
+	page.VideoId = &v.Id
+	if err := models.PutPage(&page); err != nil {
+		t.Fatalf("PutPage(link video to LP): %v", err)
+	}
 	group, _ := models.GetGroup(1, 1)
 	campaign := models.Campaign{Name: "F1 campaign"}
 	campaign.UserId = 1
@@ -463,6 +470,13 @@ func TestTrackVideoServerAuthoritative(t *testing.T) {
 		t.Fatalf("PostCampaign: %v", err)
 	}
 	rid := campaign.Results[0].RId
+
+	// 실제 LP 영상 시청은 링크 클릭(Clicked) 이후에 일어난다. 결과를 Clicked 로
+	// 진전시켜 시나리오를 현실과 일치시킨다(LP 분기는 status 무관하나 의미 명확화).
+	clicked := campaign.Results[0]
+	if err := clicked.HandleClickedLink(models.EventDetails{}); err != nil {
+		t.Fatalf("HandleClickedLink: %v", err)
+	}
 
 	post := func(path string, body interface{}) int {
 		b, _ := json.Marshal(body)
