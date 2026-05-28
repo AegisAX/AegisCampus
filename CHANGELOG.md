@@ -110,6 +110,29 @@
   `TrainingCompleteHandler` 는 403 반환. 두 핸들러 모두 캠페인 조회 실패 시
   중단하도록 보강(게이트가 campaign 에 의존). 정상 흐름·#58 통과 케이스는
   회귀 없음.
+- **#61** 단건 GET `/api/videos/{id}` 와 썸네일 `/videos/thumb/{id}` 에
+  own-or-public 불변식 적용 (#2 follow-up). `/videos/stream`·`/media` 는 #2
+  에서 소유자 아님 + 비공개면 404 로 막았으나, 단건 메타데이터 GET 과 썸네일
+  핸들러는 `models.GetVideo(id)` 결과를 소유권 검사 없이 반환해, 로그인한 다른
+  사용자가 ID 추측으로 남의 영상 메타데이터(`file_path` 서버 경로 포함)·썸네일을
+  조회할 수 있던 cross-tenant IDOR 잔여 경로가 있었다. 두 핸들러에 목록
+  (`GetVideosForUser` 의 `user_id = ? OR is_public`)·StreamVideo 와 동일한
+  게이트(본인 소유 또는 is_public, 그 외 존재 노출 방지 위해 404)를 추가.
+- **#62** Admin 응답에 `X-Content-Type-Options: nosniff` 추가
+  (`ApplySecurityHeaders`). MIME 스니핑 기반 공격 표면을 축소하는
+  defense-in-depth. `/media`·`/videos/stream` 등 개별 핸들러는 이미 nosniff
+  를 설정했으나 admin 공통 미들웨어에는 누락돼 있었다 (#18 Referrer-Policy 와
+  동일 위치).
+
+### Tested (회귀 방지)
+
+- `TestVideoGetCrossTenant` 추가 (#61) — 단건 GET 이 비소유·비공개 영상은
+  404, 소유자·is_public 영상은 200 임을 검증.
+- `TestTrackVideoServerAuthoritative` (rc1 F1 가드) 셋업 복구 — #59 의
+  `videoActionAllowed` 게이트 도입 이후, 캠페인 LP/RP 에 연결되지 않은 영상으로
+  `/track/video` 를 호출하던 기존 테스트 셋업이 게이트에 막혀 실패하게 되었다.
+  영상을 캠페인 LandingPage 에 연결(+결과를 Clicked 로 진전)하도록 시나리오를
+  현실화. 테스트 전용 변경, 제품 동작 영향 없음.
 
 ### Phase 4 — Low (코드 정리, 미정)
 - (예정)
@@ -118,6 +141,8 @@
 - TestAttachment 사전 결함 (testdata 옛 변수)
 - `/videos/upload` 제거 + JS 를 `/api/videos/` 로 이전
 - Email Template / Landing Page / Redirect Page 권한 체계 통일
+
+---
 
 ---
 
