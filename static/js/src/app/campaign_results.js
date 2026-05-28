@@ -163,6 +163,7 @@ var progressListing = [
 var campaign = {}
 var bubbles = []
 var videoProgressTable = null
+var mapZoomBehavior = null
 
 function dismiss() {
     $("#modal\\.flashes").empty()
@@ -717,7 +718,9 @@ var updateMap = function (results) {
             })
         }
     })
+    detachBubblesFromWrapper()
     map.bubbles(bubbles)
+    attachBubblesToWrapper()
 }
 
 /**
@@ -884,11 +887,17 @@ function poll() {
             $("#refresh_message").hide()
             $("#refresh_btn").show()
 
+            // Top 10 도 갱신 (지도 표시 중일 때만)
+            if (map) {
+                loadCountryTop10();
+            }
+
             // 수강 현황 탭이 열려 있으면 함께 갱신
             if ($("#tab-video-progress").hasClass("active")) {
                 loadVideoProgress();
             }
-        })
+        }
+    )
 }
 
 function load() {
@@ -1121,16 +1130,19 @@ function load() {
                         responsive: true,
                         fills: {
                             defaultFill: "#ffffff",
-                            point: "#283F50"
+                            point: "#F39C12"
                         },
                         geographyConfig: {
                             highlightFillColor: "#1abc9c",
-                            borderColor: "#283F50"
+                            borderColor: "#bdc3c7"
                         },
                         bubblesConfig: {
-                            borderColor: "#283F50"
+                            borderColor: "#d35400",
+                            fillOpacity: 0.85
                         }
                     });
+                    setupMapZoom();
+                    loadCountryTop10();
                 }
                 updateMap(campaign.results)
             }
@@ -1478,6 +1490,135 @@ function loadVideoProgress() {
             $('#video-progress-empty')
                 .text('수강 현황을 불러오는 중 오류가 발생했습니다.')
                 .show();
+        });
+}
+
+/* ============================================================
+ * Targets Map — d3.zoom 부착 (휠 줌 + 드래그 pan)
+ * ============================================================ */
+
+// Datamaps 의 map.bubbles() 는 svg "직속"의 g.bubbles 만 찾는다.
+// zoom-wrapper 안에 들어있으면 못 찾아 svg 직속에 새 g 를 만들어 누적되므로,
+// 호출 직전에 잠시 wrapper 밖으로 꺼냈다가 호출 직후에 다시 안으로 넣는다.
+function detachBubblesFromWrapper() {
+    var svgEl = document.querySelector("#resultsMap svg");
+    if (!svgEl) return;
+    var wrapper = svgEl.querySelector(":scope > g.zoom-wrapper");
+    if (!wrapper) return;
+    var inside = wrapper.querySelector(":scope > g.bubbles");
+    if (inside) svgEl.appendChild(inside);
+}
+
+function attachBubblesToWrapper() {
+    var svgEl = document.querySelector("#resultsMap svg");
+    if (!svgEl) return;
+    var wrapper = svgEl.querySelector(":scope > g.zoom-wrapper");
+    if (!wrapper) return;
+    var stray = svgEl.querySelector(":scope > g.bubbles");
+    if (stray) wrapper.appendChild(stray);
+}
+
+function setupMapZoom() {
+    var svg = d3.select("#resultsMap svg");
+    if (svg.empty()) return;
+
+    var svgNode = svg.node();
+    var subunits = svg.select("g.datamaps-subunits");
+    var bubbles = svg.select("g.bubbles");
+
+    if (subunits.empty()) return;
+
+    // Datamaps 가 만든 datamaps-subunits 와 bubbles 그룹을
+    // 하나의 wrapper g 로 묶는다. wrapper 에만 zoom transform 을 적용해서
+    // 원본 transform (datamaps-subunits 의 자체 translate) 을 보존한다.
+    var wrapper = svg.select("g.zoom-wrapper");
+    if (wrapper.empty()) {
+        // wrapper 신규 생성 + 기존 g 들 이동
+        var wrapperNode = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        wrapperNode.setAttribute("class", "zoom-wrapper");
+        svgNode.appendChild(wrapperNode);
+
+        // 기존 g 들을 wrapper 안으로 이동
+        if (!subunits.empty()) wrapperNode.appendChild(subunits.node());
+        if (!bubbles.empty()) wrapperNode.appendChild(bubbles.node());
+
+        wrapper = d3.select(wrapperNode);
+    }
+
+    mapZoomBehavior = d3.behavior.zoom()
+        .scaleExtent([1, 8])
+        .on("zoom", function () {
+            var t = "translate(" + d3.event.translate + ") scale(" + d3.event.scale + ")";
+            wrapper.attr("transform", t);
+        });
+
+    svg.call(mapZoomBehavior);
+
+    // 줌 버튼 핸들러
+    $("#mapZoomIn").off("click").on("click", function () {
+        zoomByFactor(1.5);
+    });
+    $("#mapZoomOut").off("click").on("click", function () {
+        zoomByFactor(1 / 1.5);
+    });
+    $("#mapZoomReset").off("click").on("click", function () {
+        if (!mapZoomBehavior) return;
+        svg.transition().duration(300)
+           .call(mapZoomBehavior.translate([0, 0]).scale(1).event);
+    });
+}
+
+function zoomByFactor(factor) {
+    if (!mapZoomBehavior) return;
+    var svg = d3.select("#resultsMap svg");
+    var g = svg.select("g");
+    var center = [
+        $("#resultsMap").width() / 2,
+        $("#resultsMap").height() / 2
+    ];
+    var translate = mapZoomBehavior.translate();
+    var scale = mapZoomBehavior.scale();
+    var newScale = Math.max(1, Math.min(8, scale * factor));
+
+    // 중심점 기준 줌
+    var x = center[0] - (center[0] - translate[0]) * (newScale / scale);
+    var y = center[1] - (center[1] - translate[1]) * (newScale / scale);
+
+    svg.transition().duration(200).call(
+        mapZoomBehavior.translate([x, y]).scale(newScale).event
+    );
+}
+
+/* ============================================================
+ * 국가별 접속 Top 10
+ * ============================================================ */
+function loadCountryTop10() {
+    api.campaignId.countryStats(campaign.id)
+        .success(function (stats) {
+            var $list = $("#countryTopList");
+            $list.empty();
+
+            if (!stats || stats.length === 0) {
+                $list.html('<p class="text-muted text-center" style="margin-top:30px;">' +
+                           '<i class="fa fa-info-circle"></i> 접속 기록이 없습니다.</p>');
+                return;
+            }
+
+            $.each(stats, function (i, s) {
+                var row = '<div class="country-row">' +
+                    '<span class="country-rank">' + (i + 1) + '</span>' +
+                    '<span class="country-flag">' + escapeHtml(s.iso) + '</span>' +
+                    '<span class="country-name">' + escapeHtml(s.country) + '</span>' +
+                    '<span class="country-count">' + s.count + '</span>' +
+                    '</div>';
+                $list.append(row);
+            });
+        })
+        .error(function () {
+            $("#countryTopList").html(
+                '<p class="text-muted text-center" style="margin-top:30px;">' +
+                '<i class="fa fa-exclamation-circle"></i> 국가 통계를 불러올 수 없습니다.</p>'
+            );
         });
 }
 

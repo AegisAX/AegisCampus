@@ -151,6 +151,10 @@ var api = {
         // videoProgress() - 수신자별 수강 현황 GET /campaigns/:id/video_progress
         videoProgress: function (id) {
             return query("/campaigns/" + id + "/video_progress", "GET", {}, true)
+        },
+        // countryStats() - 국가별 접속 Top 10 GET /campaigns/:id/country_stats
+        countryStats: function (id) {
+            return query("/campaigns/" + id + "/country_stats", "GET", {}, true)
         }
     },
     // groups contains the endpoints for /groups

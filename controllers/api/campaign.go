@@ -181,3 +181,25 @@ func (as *Server) CampaignVideoProgress(w http.ResponseWriter, r *http.Request) 
 	}
 	JSONResponse(w, items, http.StatusOK)
 }
+
+// GET /api/campaigns/{id}/country_stats
+// 캠페인 결과의 국가별 접속 Top 10
+func (as *Server) CampaignCountryStats(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	cid, _ := strconv.ParseInt(vars["id"], 10, 64)
+	uid := ctx.Get(r, "user_id").(int64)
+
+	// 캠페인 소유권 확인
+	if _, err := models.GetCampaign(cid, uid); err != nil {
+		JSONResponse(w, models.Response{Success: false, Message: "Campaign not found"}, http.StatusNotFound)
+		return
+	}
+
+	stats, err := models.GetCountryStatsByCampaign(uid, cid)
+	if err != nil {
+		log.Error(err)
+		JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
+		return
+	}
+	JSONResponse(w, stats, http.StatusOK)
+}

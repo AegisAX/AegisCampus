@@ -432,7 +432,12 @@ p {
 }
 
 #resultsMap {
-    margin-top: -30px;
+    margin-top: 0;
+    /* datamaps responsive 가 inline 으로 박는 padding-bottom: 60% 가 실제
+       지도 projection 비율보다 커서 위아래 여백이 크게 생긴다. 30% 로 줄여
+       컨테이너 자체를 납작하게 만든다. !important 는 datamaps inline style
+       을 override 하기 위함. */
+    padding-bottom: 40% !important;
 }
 
 /* Handle the navbar collapse at < 1300px */
@@ -795,4 +800,61 @@ table.dataTable {
 .donut-row::before,
 .donut-row::after {
     display: none;
+}
+/* Targets Map - 점 (bubble) 스타일 */
+#resultsMap .datamaps-bubble {
+    fill: #F39C12;
+    fill-opacity: 0.85;
+    stroke: #d35400;
+    stroke-width: 1.5;
+    filter: drop-shadow(0 0 4px rgba(243, 156, 18, 0.7));
+    transition: fill-opacity 0.2s;
+}
+#resultsMap .datamaps-bubble:hover {
+    fill: #e67e22;
+    fill-opacity: 1;
+}
+
+/* Targets Map - 줌 컨테이너 */
+#resultsMap {
+    cursor: grab;
+}
+#resultsMap:active {
+    cursor: grabbing;
+}
+
+/* 국가별 Top 10 리스트 */
+#countryTopList .country-row {
+    display: flex;
+    align-items: center;
+    padding: 6px 6px;
+    border-bottom: 1px solid #eee;
+    font-size: 15px;
+}
+#countryTopList .country-row:last-child {
+    border-bottom: none;
+}
+#countryTopList .country-rank {
+    width: 18px;
+    color: #999;
+    font-weight: bold;
+}
+#countryTopList .country-flag {
+    width: 30px;
+    font-family: monospace;
+    color: #666;
+    font-size: 13px;
+}
+#countryTopList .country-name {
+    margin-right: auto;
+    padding-right: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+#countryTopList .country-count {
+    font-weight: bold;
+    color: #F39C12;
+    min-width: 24px;
+    text-align: right;
 }

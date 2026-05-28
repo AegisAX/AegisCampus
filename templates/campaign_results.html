@@ -55,9 +55,33 @@
                     <div id="trained_chart"></div>
                 </div>
                 <div class="row" id="resultsMapContainer">
-                    <div class="col-md-6">
+                    <div class="col-md-9">
                         <p style="text-align:center;">Targets Map</p>
-                        <div id="resultsMap"></div>
+                        <div id="resultsMapWrap" style="position:relative;">
+                            <div id="resultsMap"></div>
+                            <div id="mapZoomControls" style="position:absolute;top:8px;right:8px;display:flex;flex-direction:column;gap:4px;z-index:10;">
+                                <button type="button" class="btn btn-default btn-sm" id="mapZoomIn"
+                                        style="width:32px;padding:2px 0;font-weight:bold;" title="확대">
+                                    <i class="fa fa-plus"></i>
+                                </button>
+                                <button type="button" class="btn btn-default btn-sm" id="mapZoomOut"
+                                        style="width:32px;padding:2px 0;font-weight:bold;" title="축소">
+                                    <i class="fa fa-minus"></i>
+                                </button>
+                                <button type="button" class="btn btn-default btn-sm" id="mapZoomReset"
+                                        style="width:32px;padding:2px 0;" title="원래 크기">
+                                    <i class="fa fa-refresh"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <p style="text-align:center;">국가별 접속 Top 10</p>
+                        <div id="countryTopList">
+                            <p class="text-muted text-center" style="margin-top:30px;">
+                                <i class="fa fa-spinner fa-spin"></i> 로딩 중...
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
