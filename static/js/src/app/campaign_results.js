@@ -251,62 +251,78 @@ function completeCampaign() {
 function exportAsCSV(scope) {
     exportHTML = $("#exportButton").html()
 
-    // ▼ 새 분기: Events (CSV) — 첨부 Events.csv 포맷을 프런트에서 생성
+    // Events (CSV) — 정리된 per-수신자 포맷 (buildEventsFlatCSVData)
     if (scope === "events_flat") {
-        var payload = buildEventsFlatCSVData(campaign); // {fields, data}
         $("#exportButton").html('<i class="fa fa-spinner fa-spin"></i>')
-        var csvString = Papa.unparse(payload, { 'escapeFormulae': true })
-        var bom = new Uint8Array([0xEF, 0xBB, 0xBF])
-        var csvData = new Blob([bom, csvString], { type: 'text/csv;charset=utf-8;' });
-        var filename = (campaign.name || 'Campaign') + ' - Events.csv'
-        if (navigator.msSaveBlob) {
-            navigator.msSaveBlob(csvData, filename);
-        } else {
-            var csvURL = window.URL.createObjectURL(csvData);
-            var dlLink = document.createElement('a');
-            dlLink.href = csvURL;
-            dlLink.setAttribute('download', filename)
-            document.body.appendChild(dlLink)
-            dlLink.click();
-            document.body.removeChild(dlLink)
-        }
+        var payload = buildEventsFlatCSVData(campaign); // {fields, data}
+        downloadCSV(payload, (campaign.name || 'Campaign') + ' - Events.csv')
         $("#exportButton").html(exportHTML)
         return;
     }
 
-    var csvScope = null
-    var filename = campaign.name + ' - ' + capitalize(scope) + '.csv'
-    switch (scope) {
-        case "results":
-            csvScope = campaign.results
-            break;
-        case "events":
-            csvScope = campaign.timeline
-            break;
+    // Raw Events — 타임라인 원본 덤프. 파일명을 Events(events_flat)와 분리.
+    if (scope === "events") {
+        $("#exportButton").html('<i class="fa fa-spinner fa-spin"></i>')
+        downloadCSV(campaign.timeline, (campaign.name || 'Campaign') + ' - Raw Events.csv')
+        $("#exportButton").html(exportHTML)
+        return;
     }
-    if (!csvScope) {
-        return
+
+    // Results — result 원본 덤프에 Trained / Watch Time 두 컬럼을 덧붙인다.
+    // Trained 는 status 를 바꾸지 않고 timeline 에만 기록되고, 시청 시간은
+    // /api/campaigns/{id}/video_progress 에만 있으므로 별도 수집 후 merge.
+    if (scope === "results") {
+        $("#exportButton").html('<i class="fa fa-spinner fa-spin"></i>')
+
+        // timeline 의 Trained 이벤트 → 수강 완료 email 집합
+        var trainedSet = new Set(
+            (campaign.timeline || [])
+                .filter(function (ev) { return normalizeStatus(ev.message) === "Trained"; })
+                .map(function (ev) { return ev.email; })
+        );
+
+        var finish = function (vp) {
+            // email → seconds_watched (수신자 1인 = 영상 1개 전제, 1:1 매핑)
+            var watchByEmail = {};
+            $.each(vp || [], function (i, row) {
+                if (row && row.email) {
+                    watchByEmail[row.email] = row.seconds_watched || 0;
+                }
+            });
+            var rows = (campaign.results || []).map(function (r) {
+                var sec = watchByEmail[r.email]; // 진행 기록 없으면 undefined
+                return $.extend({}, r, {
+                    "Trained": trainedSet.has(r.email) ? "Yes" : "",
+                    "Watch Time": (sec === undefined) ? "" : formatSeconds(sec)
+                });
+            });
+            downloadCSV(rows, (campaign.name || 'Campaign') + ' - Results.csv')
+            $("#exportButton").html(exportHTML)
+        };
+
+        api.campaignId.videoProgress(campaign.id)
+            .success(function (data) { finish(data || []) })
+            .error(function () { finish([]) }); // 수강 데이터 실패해도 결과는 내보냄
+        return;
     }
-    $("#exportButton").html('<i class="fa fa-spinner fa-spin"></i>')
-    var csvString = Papa.unparse(csvScope, {
-        'escapeFormulae': true
-    })
+}
+
+// CSV blob 생성 + 다운로드 (UTF-8 BOM 포함). payload 는 배열 또는 {fields,data}.
+function downloadCSV(payload, filename) {
+    var csvString = Papa.unparse(payload, { 'escapeFormulae': true })
     var bom = new Uint8Array([0xEF, 0xBB, 0xBF])
-    var csvData = new Blob([bom, csvString], {
-        type: 'text/csv;charset=utf-8;'
-    });
+    var csvData = new Blob([bom, csvString], { type: 'text/csv;charset=utf-8;' });
     if (navigator.msSaveBlob) {
         navigator.msSaveBlob(csvData, filename);
-    } else {
-        var csvURL = window.URL.createObjectURL(csvData);
-        var dlLink = document.createElement('a');
-        dlLink.href = csvURL;
-        dlLink.setAttribute('download', filename)
-        document.body.appendChild(dlLink)
-        dlLink.click();
-        document.body.removeChild(dlLink)
+        return;
     }
-    $("#exportButton").html(exportHTML)
+    var csvURL = window.URL.createObjectURL(csvData);
+    var dlLink = document.createElement('a');
+    dlLink.href = csvURL;
+    dlLink.setAttribute('download', filename)
+    document.body.appendChild(dlLink)
+    dlLink.click();
+    document.body.removeChild(dlLink)
 }
 
 function replay(event_idx) {
