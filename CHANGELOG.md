@@ -7,6 +7,22 @@
 
 ## [Unreleased]
 
+### Added (신규 기능)
+
+- **#54** 캠페인 결과 목록에 접속 국가(Country) 컬럼 + 컬럼 표시 토글 신규.
+  `result.ip` 기준으로 Top10 / 결과 목록 Country / Targets Map bubble 의
+  국가 판정을 단일 기준으로 통일. `models/result.go` 에 `resolveCountry`
+  (mmdb, ip)→(name, iso), `AttachCountries` (results IP 캐시 in-place),
+  `GetCountryStatsByCampaign` (result.ip distinct 집계) 추가. GeoIP DB 는
+  `static/db/geolite2-city.mmdb`. Country 컬럼은 국기 아이콘 + 국가명을
+  한 줄(`white-space:nowrap`)로 표시. '컬럼 ▾' 드롭다운으로 컬럼 표시
+  토글 (localStorage `sentinel.resultCols`, 전 캠페인 공통, 기본 숨김
+  Email/Position/Status).
+- **#55** flag-icons 7.5.0 로컬 vendor 포함 (사내망/오프라인 운영 원칙).
+  `static/css/flag-icons/` (CSS + 4x3/1x1 flags, 542 SVG). `templates/
+  base.html` 에 별도 `<link>` 로 로드, `sentinel.css` 에 concat 하지
+  않음 (상대경로 깨짐 방지). 외부 CDN 의존 제거의 첫 적용.
+
 ### Fixed (운영 검증 — rc2 후 발견)
 
 - **#43** 캠페인 상세 페이지 (`/campaigns/{id}`) 초기 로드 성능 결함 보강.
@@ -48,6 +64,9 @@
   (`events.message = 'Trained'` EXISTS 서브쿼리). 프론트는 `row.completed`
   대신 `row.trained` 로 배지 렌더. 컬럼 헤더 '완료' → '수강 완료' 로
   의미 명확화. 시청 완료 여부는 기존 진행률 컬럼으로 충분히 식별 가능.
+- **#53** Targets Map (캠페인 결과 지도) 시각/상호작용 개선. 점 색을
+  주황 그라데이션 + 그림자로 변경, 줌 동작 추가 (wrapper `g` + bubble
+  detach/attach), 국가별 Top10 표시, 하단 여백 보정 (`padding-bottom:40%`).
 
 ### Phase 4 — Low (코드 정리, 미정)
 - (예정)
