@@ -2,6 +2,7 @@
 package models
 
 import (
+	"strings"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -19,20 +20,59 @@ type VideoProgress struct {
 	ModifiedDate   time.Time `json:"modified_date"`
 }
 
+// Save는 (user_id, result_id, video_id) 자연키로 upsert 한다.
+// First→Save 사이의 race 로 동시 INSERT 가 발생할 수 있어
+// (DB 의 UNIQUE 인덱스 idx_video_progresses_unique_urv 가 차단),
+// INSERT 가 UNIQUE 위반으로 실패하면 직전에 다른 요청이 만든 행을
+// 다시 찾아 그 ID 로 UPDATE 재시도한다.
 func (vp *VideoProgress) Save() error {
 	vp.ModifiedDate = time.Now().UTC()
-	if vp.Id == 0 {
+
+	findExisting := func() (int64, error) {
 		var existing VideoProgress
 		err := db.Where("user_id = ? AND result_id = ? AND video_id = ?",
 			vp.UserId, vp.ResultId, vp.VideoId).First(&existing).Error
 		if err != nil && err != gorm.ErrRecordNotFound {
+			return 0, err
+		}
+		return existing.Id, nil
+	}
+
+	if vp.Id == 0 {
+		id, err := findExisting()
+		if err != nil {
 			return err
 		}
-		if existing.Id != 0 {
-			vp.Id = existing.Id
+		if id != 0 {
+			vp.Id = id
 		}
 	}
-	return db.Save(vp).Error // FirstOrCreate 제거, 원래대로
+
+	err := db.Save(vp).Error
+	if err != nil && vp.Id == 0 && isUniqueConstraintErr(err) {
+		// race: 다른 요청이 같은 자연키 행을 먼저 INSERT 함.
+		// 그 행을 찾아 ID 를 채우고 UPDATE 로 재시도.
+		id, ferr := findExisting()
+		if ferr != nil {
+			return ferr
+		}
+		if id != 0 {
+			vp.Id = id
+			return db.Save(vp).Error
+		}
+	}
+	return err
+}
+
+// isUniqueConstraintErr 는 SQLite/MySQL 의 UNIQUE 제약 위반 에러를
+// 문자열로 식별한다 (드라이버 구조체 타입 의존 회피).
+func isUniqueConstraintErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "unique constraint") || // sqlite: "UNIQUE constraint failed"
+		strings.Contains(msg, "duplicate entry") // mysql: "Error 1062: Duplicate entry"
 }
 
 func GetVideoProgress(userId, resultId, videoId int64) (*VideoProgress, error) {
