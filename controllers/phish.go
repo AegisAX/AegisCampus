@@ -984,12 +984,29 @@ func (ps *PhishingServer) TrackVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 캠페인 로드 (완료 체크 + 영상 자격 게이트에서 공유)
+	campaign, cerr := models.GetCampaign(res.CampaignId, res.UserId)
+	if cerr != nil {
+		log.Error(cerr)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	// I-06: 완료된 캠페인은 비디오 트래킹 기록 중단
-	if campaign, err := models.GetCampaign(res.CampaignId, res.UserId); err == nil {
-		if campaign.Status == models.CampaignComplete {
-			w.WriteHeader(http.StatusGone) // 410 Gone — 완료된 캠페인
-			return
-		}
+	if campaign.Status == models.CampaignComplete {
+		w.WriteHeader(http.StatusGone) // 410 Gone — 완료된 캠페인
+		return
+	}
+
+	// (#58 follow-up) 영상 수강 추적 선행 행동 게이트.
+	// 정상 브라우저 흐름을 우회한 직접 POST 로 RP 영상 progress 를 위조하는 것을
+	// 차단한다. LP 영상은 Clicked 단계 통과, RP 영상은 Submitted||Executed 요구,
+	// 캠페인 무관 video_id 는 거부. (videoActionAllowed 참고)
+	if !videoActionAllowed(*res, campaign, p.VideoID) {
+		log.Errorf("track/video: rid %s (campaign=%d, user=%d) not eligible for video %d — status=%q executed=%v",
+			res.RId, campaign.Id, res.UserId, p.VideoID, res.Status, res.Executed)
+		w.WriteHeader(http.StatusNotFound)
+		return
 	}
 
 	// 기존 진행 기록 조회/생성
@@ -1134,12 +1151,16 @@ func TrainingCompleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 캠페인 로드 (완료 체크 + 영상 자격 게이트에서 공유)
+	campaign, cerr := models.GetCampaign(rs.CampaignId, rs.UserId)
+	if cerr != nil {
+		api.JSONResponse(w, models.Response{Success: false, Message: cerr.Error()}, http.StatusNotFound)
+		return
+	}
 	// 캠페인 완료 시 수강 완료 기록 차단 (TrackVideo / setupContext 와 동일 정책)
-	if c, cerr := models.GetCampaign(rs.CampaignId, rs.UserId); cerr == nil {
-		if c.Status == models.CampaignComplete {
-			api.JSONResponse(w, models.Response{Success: false, Message: "campaign complete"}, http.StatusGone)
-			return
-		}
+	if campaign.Status == models.CampaignComplete {
+		api.JSONResponse(w, models.Response{Success: false, Message: "campaign complete"}, http.StatusGone)
+		return
 	}
 
 	// video_id를 문자열로 정규화 후 정수 검증
@@ -1162,6 +1183,17 @@ func TrainingCompleteHandler(w http.ResponseWriter, r *http.Request) {
 	vidID, verr := strconv.ParseInt(vidStr, 10, 64)
 	if verr != nil || vidID <= 0 {
 		api.JSONResponse(w, models.Response{Success: false, Message: "invalid video_id"}, http.StatusBadRequest)
+		return
+	}
+
+	// (#58 follow-up) 수강 완료 기록 선행 행동 게이트.
+	// TrackVideo 와 동일한 자격 판정을 공유한다. 직접 POST 로 Trained 이벤트를
+	// 위조하는 경로를 차단한다. LP 영상은 Clicked 단계 통과, RP 영상은
+	// Submitted||Executed 요구, 캠페인 무관 video_id 는 거부.
+	if !videoActionAllowed(rs, campaign, vidID) {
+		log.Errorf("training/complete: rid %s (campaign=%d, user=%d) not eligible for video %d — status=%q executed=%v",
+			rs.RId, campaign.Id, rs.UserId, vidID, rs.Status, rs.Executed)
+		api.JSONResponse(w, models.Response{Success: false, Message: "not eligible"}, http.StatusForbidden)
 		return
 	}
 
@@ -1193,13 +1225,11 @@ func TrainingCompleteHandler(w http.ResponseWriter, r *http.Request) {
 		api.JSONResponse(w, models.Response{Success: false, Message: "insufficient watch time"}, http.StatusBadRequest)
 		return
 	}
-
 	// 원격 IP
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		ip = r.RemoteAddr
 	}
-
 	// EventDetails (Browser=map[string]string, Payload=url.Values)
 	payload := url.Values{}
 	payload.Set("video_id", vidStr)
@@ -1213,7 +1243,6 @@ func TrainingCompleteHandler(w http.ResponseWriter, r *http.Request) {
 		payload.Set("percent", strconv.FormatFloat(req.Percent, 'f', -1, 64))
 	}
 	payload.Set("address", ip)
-
 	details := models.EventDetails{
 		Browser: map[string]string{
 			"user-agent": r.UserAgent(),
@@ -1221,12 +1250,10 @@ func TrainingCompleteHandler(w http.ResponseWriter, r *http.Request) {
 		},
 		Payload: payload,
 	}
-
 	if err := rs.HandleTrainingCompleted(details); err != nil {
 		api.JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
 		return
 	}
-
 	// B-04: VideoProgress.completed 동기화.
 	// HandleTrainingCompleted 는 events 에 Trained 만 기록하므로 vp.completed 만 맞춘다.
 	// SecondsWatched/Duration/Percent 는 /track/video 가 소유하는 서버 권위값이므로
@@ -1238,8 +1265,38 @@ func TrainingCompleteHandler(w http.ResponseWriter, r *http.Request) {
 			// 동기화 실패는 non-fatal — Trained 이벤트는 이미 기록됨
 		}
 	}
-
 	api.JSONResponse(w, models.Response{Success: true}, http.StatusOK)
+}
+
+// videoActionAllowed 는 (result, campaign, videoID) 조합이 수강 추적/완료
+// 기록을 남길 자격이 있는지 판정한다. TrackVideo 와 TrainingCompleteHandler 가
+// 공유한다 (한쪽만 고쳐지는 #58 류 사고 방지).
+//
+// 판정:
+//  1. videoID 가 캠페인 LandingPage 의 임베드 영상이면 → 통과.
+//     LP 영상은 Clicked 단계(랜딩 도착)에서 보는 정상 흐름이므로 선행 게이트 없음.
+//  2. videoID 가 캠페인 RedirectPage 의 영상이면 → #58 과 동일하게
+//     Submitted(폼 제출) 또는 Executed(첨부 실행)한 수신자에게만 허용.
+//     status 는 Submitted 이후 낮아지지 않고, Executed 는 별도 불리언이며,
+//     Trained 수신자는 이미 게이트를 통과한 사람이라 재방문도 통과한다.
+//  3. 둘 다 아니면 → 이 캠페인에 연결되지 않은 video_id (위조) → 거부.
+//
+// 영상이 LP/RP 어디에도 안 붙은 캠페인(영상 미사용)은 어떤 video_id 든 3)으로
+// 거부된다 — 정상 흐름이면 애초에 비콘이 발생하지 않으므로 회귀 없음.
+func videoActionAllowed(result models.Result, campaign models.Campaign, videoID int64) bool {
+	// 1) LandingPage 임베드 영상 — Clicked 단계 정상 시청
+	if campaign.Page.VideoId != nil && *campaign.Page.VideoId == videoID {
+		return true
+	}
+	// 2) RedirectPage 영상 — 선행 행동(Submitted || Executed) 요구
+	if rpID := models.ExtractRedirectPageID(campaign.Page.RedirectURL); rpID > 0 {
+		if rp, err := models.GetRedirectPageByID(rpID); err == nil &&
+			rp.VideoId != nil && *rp.VideoId == videoID {
+			return result.Status == models.EventDataSubmit || result.Executed
+		}
+	}
+	// 3) 캠페인에 연결되지 않은 video_id
+	return false
 }
 
 // RedirectPageHandler serves a registered Redirect Page by its ID.

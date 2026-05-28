@@ -91,6 +91,17 @@
   status 를 건드리지 않으므로, 정상 Submitted/Executed → RP 흐름과 Trained
   수신자의 RP 재방문은 회귀 없이 통과한다. (#41 cross-campaign 자산 접근
   차단의 자매 결함)
+- **#59** `/track/video`·`/api/training/complete` 직접 호출 우회 차단 (#58
+  follow-up). #58 은 RP '렌더'만 막을 뿐, 두 핸들러는 rid + video_id 만으로
+  직접 POST 호출이 가능해, 정상 브라우저 흐름(LP/RP 렌더)을 거치지 않고도
+  RP 전용 영상의 수강 progress·Trained 이벤트를 위조할 수 있었다. 두 핸들러
+  공유 헬퍼 `videoActionAllowed(result, campaign, videoID)` 신규 — (1) 요청
+  video_id 가 캠페인 LandingPage 임베드 영상이면 통과(Clicked 단계 정상 시청),
+  (2) 캠페인 RedirectPage 영상이면 #58 과 동일하게 `Submitted || Executed`
+  요구, (3) 캠페인에 연결되지 않은 video_id 는 거부. `TrackVideo` 는 404,
+  `TrainingCompleteHandler` 는 403 반환. 두 핸들러 모두 캠페인 조회 실패 시
+  중단하도록 보강(게이트가 campaign 에 의존). 정상 흐름·#58 통과 케이스는
+  회귀 없음.
 
 ### Phase 4 — Low (코드 정리, 미정)
 - (예정)
