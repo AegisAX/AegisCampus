@@ -67,6 +67,10 @@
 - **#53** Targets Map (캠페인 결과 지도) 시각/상호작용 개선. 점 색을
   주황 그라데이션 + 그림자로 변경, 줌 동작 추가 (wrapper `g` + bubble
   detach/attach), 국가별 Top10 표시, 하단 여백 보정 (`padding-bottom:40%`).
+- **#56** 캠페인 상세 페이지 '국가별 접속 Top 10' 리스트의 국가명과
+  접속 수 사이 여백이 컬럼 폭에 따라 과하게 벌어지던 UX 결함 보정.
+  `#countryTopList` 폭을 컨테이너의 80% 로 제한 (`width: 80%`). 숫자는
+  `margin-right: auto` 유지로 우측 정렬 그대로.
 
 ### Phase 4 — Low (코드 정리, 미정)
 - (예정)
