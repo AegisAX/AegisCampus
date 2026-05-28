@@ -58,6 +58,14 @@ func (as *Server) HandleVideoByID(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
+		// 소유권/공개 검증 (#2 의 own-or-public 불변식을 단건 GET 에도 적용).
+		// 목록(GetVideosForUser)의 "user_id = ? OR is_public" 및 StreamVideo 와
+		// 동일 정책. 비소유·비공개 영상은 존재 노출 방지를 위해 404.
+		currentUserID := getCurrentUserID(r)
+		if currentUserID == 0 || (v.UserId != currentUserID && !v.IsPublic) {
+			JSONResponse(w, models.Response{Success: false, Message: "video not found"}, http.StatusNotFound)
+			return
+		}
 		JSONResponse(w, v, http.StatusOK)
 
 	case http.MethodPut:

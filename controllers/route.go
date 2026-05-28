@@ -600,6 +600,20 @@ func (as *AdminServer) HandleVideoThumb(w http.ResponseWriter, r *http.Request) 
 		http.NotFound(w, r)
 		return
 	}
+	// 소유권/공개 검증 (#2 의 own-or-public 불변식을 썸네일에도 적용).
+	// StreamVideo 와 동일 정책: 본인 소유 또는 is_public 만 접근, 그 외 404.
+	userId := int64(0)
+	if u, ok := ctx.Get(r, "user").(models.User); ok && u.Id != 0 {
+		userId = u.Id
+	} else if uv := ctx.Get(r, "user_id"); uv != nil {
+		if vv, ok := uv.(int64); ok {
+			userId = vv
+		}
+	}
+	if userId == 0 || (v.UserId != userId && !v.IsPublic) {
+		http.NotFound(w, r)
+		return
+	}
 	if v.ThumbnailPath == "" {
 		http.NotFound(w, r)
 		return
