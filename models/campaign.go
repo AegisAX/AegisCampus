@@ -719,8 +719,19 @@ func DeleteCampaign(id int64) error {
 	log.WithFields(logrus.Fields{
 		"campaign_id": id,
 	}).Info("Deleting campaign")
+	// Delete video progress rows first. video_progresses 에는 campaign_id 가
+	// 없고 result_id 로만 연결되므로, results 를 지우기 전에 삭제해야 한다.
+	// (순서가 바뀌면 result_id 링크가 끊겨 고아 행이 남는다.)
+	err := db.Where(
+		"result_id IN (SELECT id FROM results WHERE campaign_id = ?)",
+		id,
+	).Delete(&VideoProgress{}).Error
+	if err != nil {
+		log.Error(err)
+		return err
+	}
 	// Delete all the campaign results
-	err := db.Where("campaign_id=?", id).Delete(&Result{}).Error
+	err = db.Where("campaign_id=?", id).Delete(&Result{}).Error
 	if err != nil {
 		log.Error(err)
 		return err

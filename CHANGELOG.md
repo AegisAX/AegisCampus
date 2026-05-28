@@ -55,6 +55,14 @@
   되던 결함 차단. UNIQUE 인덱스 `idx_video_progresses_unique_urv` 추가
   (SQLite/MySQL 마이그레이션) + `Save()` 가 UNIQUE 위반 시 기존 행
   재조회 후 UPDATE 재시도. 기존 중복 행은 운영 DB 에서 정리.
+- **#60** 캠페인 삭제 시 `video_progresses` 가 함께 삭제되지 않아 고아 행이
+  남던 결함 보강. `video_progresses` 에는 `campaign_id` 가 없고 `result_id`
+  로만 results 와 연결되는데, `DeleteCampaign` 이 results/events/maillogs 만
+  지우고 video_progresses 를 누락해, 캠페인을 지울 때마다 result 와 끊긴
+  고아 progress 가 누적되었다. `DeleteCampaign` 에 `result_id IN (SELECT id
+  FROM results WHERE campaign_id = ?)` 서브쿼리 삭제를 results 삭제 *앞*
+  단계로 추가 (순서가 바뀌면 result_id 링크가 끊겨 삭제 불가). 기존 고아
+  행은 운영 DB 에서 정리.
 
 ### Changed (UX / 일관성)
 
