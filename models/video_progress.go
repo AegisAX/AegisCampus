@@ -55,6 +55,7 @@ type VideoProgressSummary struct {
 	Duration       int64     `json:"duration"`
 	Percent        float64   `json:"percent"`
 	Completed      bool      `json:"completed"`
+	Trained        bool      `json:"trained"`
 	ModifiedDate   time.Time `json:"modified_date"`
 }
 
@@ -65,7 +66,14 @@ func GetVideoProgressByCampaign(uid, campaignId int64) ([]VideoProgressSummary, 
 	err := db.Table("video_progresses AS vp").
 		Select(`r.r_id, r.email, r.name, r.department,
                 vp.video_id, vp.seconds_watched, vp.duration,
-                vp.percent, vp.completed, vp.modified_date`).
+                vp.percent, vp.completed,
+                EXISTS(
+                    SELECT 1 FROM events AS e
+                    WHERE e.campaign_id = r.campaign_id
+                      AND e.email = r.email
+                      AND e.message = 'Trained'
+                ) AS trained,
+                vp.modified_date`).
 		Joins("JOIN results AS r ON r.id = vp.result_id").
 		Where("r.campaign_id = ? AND r.user_id = ?", campaignId, uid).
 		Order("r.email ASC, vp.video_id ASC").

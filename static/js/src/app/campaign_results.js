@@ -1464,7 +1464,7 @@ function loadVideoProgress() {
                     row.seconds_watched || 0,
                     row.duration || 0,
                     pct,
-                    row.completed ? 1 : 0,
+                    row.trained ? 1 : 0,         // ← row.completed → row.trained
                     row.modified_date || ''
                 ]);
             });
