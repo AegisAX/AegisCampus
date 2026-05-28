@@ -49,6 +49,12 @@
   표시되고 누적합이 100% 가 안 맞던 정밀도 결함 보강. `Math.round(... * 1000) / 10`
   로 소수점 1자리 유지. Dashboard 와 캠페인 상세 페이지 양쪽 동일 적용,
   tooltip 에 `Highcharts.numberFormat(value, 1)` 적용.
+  - **#57** 수강 현황에 동일 수신자가 중복 표시되던 결함 보강.
+  `VideoProgress.Save()` 의 자연키 (user_id, result_id, video_id) upsert
+  가 First→Save 사이 race 로 동시 `/track/video` 비콘에서 중복 INSERT
+  되던 결함 차단. UNIQUE 인덱스 `idx_video_progresses_unique_urv` 추가
+  (SQLite/MySQL 마이그레이션) + `Save()` 가 UNIQUE 위반 시 기존 행
+  재조회 후 UPDATE 재시도. 기존 중복 행은 운영 DB 에서 정리.
 
 ### Changed (UX / 일관성)
 
