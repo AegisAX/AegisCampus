@@ -824,6 +824,9 @@ table.dataTable {
 }
 
 /* 국가별 Top 10 리스트 */
+#countryTopList {
+    max-width: 80%;
+}
 #countryTopList .country-row {
     display: flex;
     align-items: center;
