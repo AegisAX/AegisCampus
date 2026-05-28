@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"net"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -40,6 +39,10 @@ type Result struct {
 	ReportNote string `json:"report_note"`
 	// 새로 추가: 첨부파일 열람 여부
 	Executed bool `json:"executed" sql:"not null"`
+	// 결과 목록 / Top 10 표시용 국가 정보. result.ip 를 GeoIP 룩업해
+	// 응답 시점에 채우며 DB 컬럼은 아니다 (gorm:"-").
+	Country    string `json:"country" gorm:"-"`
+	CountryISO string `json:"country_iso" gorm:"-"`
 	BaseRecipient
 }
 
@@ -299,71 +302,70 @@ type mmCountry struct {
 	Names   map[string]string `maxminddb:"names"`
 }
 
-// Opened 이벤트의 Details JSON 에서 IP (browser.address) 만 뽑기 위한 구조체.
-type openedEventDetails struct {
-	Browser struct {
-		Address string `json:"address"`
-	} `json:"browser"`
+// resolveCountry 는 IP 문자열을 GeoIP 룩업해 (국가명, ISO) 를 반환합니다.
+// 룩업 실패/미등록 IP 면 빈 문자열을 돌려줍니다.
+func resolveCountry(mmdb *maxminddb.Reader, ipStr string) (string, string) {
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return "", ""
+	}
+	var rec mmCountryRecord
+	if err := mmdb.Lookup(ip, &rec); err != nil {
+		return "", ""
+	}
+	if rec.Country.ISOCode == "" {
+		return "", ""
+	}
+	name := rec.Country.Names["en"]
+	if name == "" {
+		name = rec.Country.ISOCode
+	}
+	return name, rec.Country.ISOCode
 }
 
-// GetCountryStatsByCampaign 은 캠페인의 "Opened" 이벤트를 기반으로
-// 수신자별 첫 번째 Opened IP 를 GeoIP 룩업해 국가별 카운트 Top 10 을 반환합니다.
-// 한 수신자가 여러 번 메일을 열어도 1회만 카운트되며, Opened 이벤트가 없거나
-// Opened 의 IP 가 없는 수신자는 집계에서 제외됩니다.
+// AttachCountries 는 result.ip 를 GeoIP 룩업해 각 Result 의 Country/CountryISO
+// 를 in-place 로 채웁니다. GeoIP DB 가 없으면 (비필수) 조용히 넘어갑니다.
+// 같은 IP 는 캐시해 중복 룩업을 피합니다.
+func AttachCountries(results []Result) {
+	mmdb, err := maxminddb.Open("static/db/geolite2-city.mmdb")
+	if err != nil {
+		return
+	}
+	defer mmdb.Close()
+
+	type cc struct{ name, iso string }
+	cache := make(map[string]cc)
+	for i := range results {
+		ipStr := results[i].IP
+		if ipStr == "" {
+			continue
+		}
+		if c, ok := cache[ipStr]; ok {
+			results[i].Country = c.name
+			results[i].CountryISO = c.iso
+			continue
+		}
+		name, iso := resolveCountry(mmdb, ipStr)
+		cache[ipStr] = cc{name, iso}
+		results[i].Country = name
+		results[i].CountryISO = iso
+	}
+}
+
+// GetCountryStatsByCampaign 은 캠페인 결과의 result.ip 를 GeoIP 룩업해
+// 국가별 카운트 Top 10 을 반환합니다. ip 가 있는 result 를 국가 단위로
+// 집계하므로, 결과 목록의 국가 컬럼 및 map bubble 과 동일한 기준입니다.
+// (ip 가 없거나 GeoIP 미등록 IP 인 result 는 제외 — 합계는 그만큼 작아짐)
 func GetCountryStatsByCampaign(uid, campaignId int64) ([]CountryStat, error) {
-	// 1. user 소유 검증 겸 email 화이트리스트 수집.
-	//    events 테이블에는 user_id 가 없으므로, results 의 user_id 매칭으로
-	//    해당 캠페인 소유자의 수신자 email 만 추리고 그 이메일의 Opened 만 본다.
 	var results []Result
-	if err := db.Select("email").
-		Where("campaign_id = ? AND user_id = ?", campaignId, uid).
+	if err := db.Where("campaign_id = ? AND user_id = ? AND ip != ''", campaignId, uid).
 		Find(&results).Error; err != nil {
 		return nil, err
 	}
 	if len(results) == 0 {
 		return []CountryStat{}, nil
 	}
-	emailSet := make(map[string]bool, len(results))
-	for _, r := range results {
-		emailSet[r.Email] = true
-	}
 
-	// 2. Opened 이벤트만 시간순으로 조회.
-	var events []Event
-	if err := db.Where("campaign_id = ? AND message = ?", campaignId, EventOpened).
-		Order("time ASC").
-		Find(&events).Error; err != nil {
-		return nil, err
-	}
-
-	// 3. email 별 첫 번째 Opened 의 IP (browser.address) 추출.
-	firstIP := make(map[string]string) // email -> IP
-	for _, ev := range events {
-		if !emailSet[ev.Email] {
-			continue
-		}
-		if _, exists := firstIP[ev.Email]; exists {
-			continue
-		}
-		if ev.Details == "" {
-			continue
-		}
-		var d openedEventDetails
-		if err := json.Unmarshal([]byte(ev.Details), &d); err != nil {
-			continue
-		}
-		addr := d.Browser.Address
-		if addr == "" {
-			continue
-		}
-		// XFF 등 ", " 로 이어진 다중 IP 는 첫 번째만.
-		if idx := strings.Index(addr, ","); idx >= 0 {
-			addr = strings.TrimSpace(addr[:idx])
-		}
-		firstIP[ev.Email] = addr
-	}
-
-	// 4. GeoIP 룩업 + 국가별 집계.
 	mmdb, err := maxminddb.Open("static/db/geolite2-city.mmdb")
 	if err != nil {
 		return nil, err
@@ -376,26 +378,15 @@ func GetCountryStatsByCampaign(uid, campaignId int64) ([]CountryStat, error) {
 	}
 	agg := make(map[string]*countryAgg) // key: ISO
 
-	for _, ipStr := range firstIP {
-		ip := net.ParseIP(ipStr)
-		if ip == nil {
+	for _, r := range results {
+		name, iso := resolveCountry(mmdb, r.IP)
+		if iso == "" {
 			continue
 		}
-		var rec mmCountryRecord
-		if err := mmdb.Lookup(ip, &rec); err != nil {
-			continue
-		}
-		if rec.Country.ISOCode == "" {
-			continue
-		}
-		name := rec.Country.Names["en"]
-		if name == "" {
-			name = rec.Country.ISOCode
-		}
-		if a, ok := agg[rec.Country.ISOCode]; ok {
+		if a, ok := agg[iso]; ok {
 			a.Count++
 		} else {
-			agg[rec.Country.ISOCode] = &countryAgg{Name: name, Count: 1}
+			agg[iso] = &countryAgg{Name: name, Count: 1}
 		}
 	}
 

@@ -841,9 +841,13 @@ table.dataTable {
 }
 #countryTopList .country-flag {
     width: 30px;
-    font-family: monospace;
-    color: #666;
-    font-size: 13px;
+    text-align: center;
+}
+#countryTopList .country-flag .fi {
+    font-size: 18px;
+    line-height: 1;
+    border-radius: 2px;
+    box-shadow: 0 0 1px rgba(0, 0, 0, 0.35);
 }
 #countryTopList .country-name {
     margin-right: auto;
@@ -857,4 +861,19 @@ table.dataTable {
     color: #F39C12;
     min-width: 24px;
     text-align: right;
+}
+
+/* 결과 목록 컬럼 토글 드롭다운 */
+#columnToggleMenu {
+    max-height: 400px;
+    overflow-y: auto;
+}
+#columnToggleMenu > li > a {
+    padding: 4px 16px;
+    cursor: pointer;
+}
+
+/* 접속 국가 셀 줄바꿈 방지 (autoWidth 초기 계산으로 인한 2줄 표시 차단) */
+#resultsTable td.country-cell {
+    white-space: nowrap;
 }

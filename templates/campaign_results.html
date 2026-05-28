@@ -106,10 +106,16 @@
         </div>
 
         <div class="tab-content">
-
             <!-- 결과 목록 탭 (기존) -->
             <div role="tabpanel" class="tab-pane active" id="tab-results">
                 <div class="row" style="margin-top:15px">
+                    <div class="btn-group" id="columnToggleContainer" style="margin-bottom:10px">
+                        <button type="button" id="columnToggleButton" class="btn btn-default dropdown-toggle"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fa fa-columns"></i> 컬럼 <i class="fa fa-caret-down"></i>
+                        </button>
+                        <ul class="dropdown-menu" id="columnToggleMenu" aria-labelledby="columnToggleButton"></ul>
+                    </div>
                     <table id="resultsTable" class="table">
                         <thead>
                             <tr>
@@ -119,6 +125,7 @@
                                 <th>Department</th>
                                 <th>Email</th>
                                 <th>Position</th>
+                                <th class="text-center">Country</th>
                                 <th>Status</th>
                                 <th class="text-center">Sent</th>
                                 <th class="text-center">Opened</th>

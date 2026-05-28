@@ -449,9 +449,9 @@ function renderTimeline(data) {
         "department": data[3],
         "email": data[4],
         "position": data[5],
-        "status": data[6],
-        "reported": data[12],
-        "send_date": data[14]
+        "status": data[7],
+        "reported": data[13],
+        "send_date": data[15]
     }
     results = '<div class="timeline col-sm-12 well well-lg">' +
         '<h6>Timeline for ' + escapeHtml(record.name) + ' ' + escapeHtml(record.department) +
@@ -861,15 +861,16 @@ function poll() {
                 $.each(campaign.results, function (j, result) {
                     if (result.id == rid) {
                         var evRec = evIdx[result.email] || {}
-                        rowData[6]  = normalizeStatus(result.status)
-                        rowData[7]  = evRec.sent   || ""
-                        rowData[8]  = evRec.open   || ""
-                        rowData[9]  = evRec.click  || ""
-                        rowData[10] = evRec.submit || ""
-                        rowData[11] = evRec.exec   || ""
-                        rowData[12] = result.reported
-                        rowData[13] = evRec.train  || ""
-                        rowData[14] = moment(result.send_date).format('MMMM Do YYYY, h:mm:ss a')
+                        rowData[6]  = renderCountryCell(result)
+                        rowData[7]  = normalizeStatus(result.status)
+                        rowData[8]  = evRec.sent   || ""
+                        rowData[9]  = evRec.open   || ""
+                        rowData[10] = evRec.click  || ""
+                        rowData[11] = evRec.submit || ""
+                        rowData[12] = evRec.exec   || ""
+                        rowData[13] = result.reported
+                        rowData[14] = evRec.train  || ""
+                        rowData[15] = moment(result.send_date).format('MMMM Do YYYY, h:mm:ss a')
                         resultsTable.row(i).data(rowData)
                         if (row.child.isShown()) {
                             $(row.node()).find("#caret").removeClass("fa-caret-right")
@@ -940,33 +941,34 @@ function load() {
                     columnDefs: [
                         { orderable: false, targets: "no-sort" },
                         { className: "details-control", targets: [1] },
-                        { visible: false, targets: [0, 6, 14] },
+                        { visible: false, targets: computeHiddenTargets() },
+                        { className: "text-center country-cell", targets: [6] },  // 접속 국가 (HTML 은 row.add 에서 생성)
                         {
-                            // Status 컬럼 렌더링
+                            // Status 컬럼 렌더링 (국가 컬럼 삽입으로 6 → 7)
                             render: function(data, type, row) {
-                                return createStatusLabel(data, row[14]);
+                                return createStatusLabel(data, row[15]);
                             },
-                            targets: [6]
+                            targets: [7]
                         },
                         {
                             className: "text-center",
                             render: function(data, type, row, meta) {
                                 if (type !== "display") return data;
-                                // 컬럼 인덱스 → 차트 색상 매핑
+                                // 컬럼 인덱스 → 차트 색상 매핑 (전부 +1 시프트)
                                 var colColors = {
-                                    7:  statuses["Sent"].color,
-                                    8:  statuses["Opened"].color,
-                                    9:  statuses["Clicked"].color,
-                                    10: statuses["Submitted"].color,
-                                    11: statuses["Executed"].color,
-                                    13: statuses["Trained"].color
+                                    8:  statuses["Sent"].color,
+                                    9:  statuses["Opened"].color,
+                                    10: statuses["Clicked"].color,
+                                    11: statuses["Submitted"].color,
+                                    12: statuses["Executed"].color,
+                                    14: statuses["Trained"].color
                                 };
                                 var color = colColors[meta.col] || "#1abc9c";
                                 return data
                                     ? "<i class='fa fa-check-circle' style='color:" + color + "' title='" + data + "'></i>"
                                     : "<span class='text-muted'>-</span>";
                             },
-                            targets: [7, 8, 9, 10, 11, 13]
+                            targets: [8, 9, 10, 11, 12, 14]
                         },
                         {
                             className: "text-center",
@@ -983,10 +985,11 @@ function load() {
                                     "title='클릭하여 신고 처리' " +
                                     "onclick='toggle_report(\"" + row[0] + "\", \"" + campaign.id + "\", false);'></i>";
                             },
-                            targets: [12]
+                            targets: [13]
                         }
                     ]
                 });
+                buildColumnToggle(resultsTable);
                 resultsTable.clear();
 
                 var executedEmails = new Set(
@@ -1019,6 +1022,7 @@ function load() {
                         escapeHtml(result.department) || "",
                         escapeHtml(result.email) || "",
                         escapeHtml(result.position) || "",
+                        renderCountryCell(result),
                         st,
                         evRec.sent   || "",
                         evRec.open   || "",
@@ -1590,6 +1594,107 @@ function zoomByFactor(factor) {
 }
 
 /* ============================================================
+ * 결과 목록 컬럼 표시/숨김 토글 (localStorage 전 캠페인 공통)
+ * ============================================================ */
+
+// 토글 가능한 컬럼 (index → 라벨). 0/1(caret)/15(send_date) 는 내부용이라 제외.
+var TOGGLEABLE_COLUMNS = [
+    { idx: 2,  label: "Name" },
+    { idx: 3,  label: "Department" },
+    { idx: 4,  label: "Email" },
+    { idx: 5,  label: "Position" },
+    { idx: 6,  label: "Country" },
+    { idx: 7,  label: "Status" },
+    { idx: 8,  label: "Sent" },
+    { idx: 9,  label: "Opened" },
+    { idx: 10, label: "Clicked" },
+    { idx: 11, label: "Submitted" },
+    { idx: 12, label: "Executed" },
+    { idx: 13, label: "Reported" },
+    { idx: 14, label: "Trained" }
+];
+// 기본 숨김 컬럼 (Email, Position, Status)
+var DEFAULT_HIDDEN_COLUMNS = [4, 5, 7];
+var COLUMN_PREFS_KEY = "sentinel.resultCols";
+
+// 저장된 컬럼 표시 설정 로드 → { colIdx: bool } 맵.
+// 기본값(미저장 컬럼)은 DEFAULT_HIDDEN_COLUMNS 기준으로 결정.
+function loadColumnPrefs() {
+    var prefs = {};
+    TOGGLEABLE_COLUMNS.forEach(function (c) {
+        prefs[c.idx] = DEFAULT_HIDDEN_COLUMNS.indexOf(c.idx) === -1;
+    });
+    try {
+        var saved = JSON.parse(localStorage.getItem(COLUMN_PREFS_KEY));
+        if (saved && typeof saved === "object") {
+            TOGGLEABLE_COLUMNS.forEach(function (c) {
+                if (typeof saved[c.idx] === "boolean") {
+                    prefs[c.idx] = saved[c.idx];
+                }
+            });
+        }
+    } catch (e) { /* 파싱 실패 시 기본값 사용 */ }
+    return prefs;
+}
+
+function saveColumnPrefs(prefs) {
+    try {
+        localStorage.setItem(COLUMN_PREFS_KEY, JSON.stringify(prefs));
+    } catch (e) { /* 저장 실패는 무시 */ }
+}
+
+// columnDefs 의 visible:false targets 계산 (내부 숨김 0/15 + 사용자가 끈 컬럼).
+function computeHiddenTargets() {
+    var prefs = loadColumnPrefs();
+    var hidden = [0, 15]; // 내부용 항상 숨김
+    TOGGLEABLE_COLUMNS.forEach(function (c) {
+        if (!prefs[c.idx]) hidden.push(c.idx);
+    });
+    return hidden;
+}
+
+// 드롭다운 메뉴 구성 + 체크박스 토글 핸들러 연결.
+function buildColumnToggle(table) {
+    var prefs = loadColumnPrefs();
+    var $menu = $("#columnToggleMenu");
+    $menu.empty();
+    TOGGLEABLE_COLUMNS.forEach(function (c) {
+        var checked = prefs[c.idx] ? "checked" : "";
+        $menu.append(
+            '<li><a href="#" class="column-toggle-item" data-col="' + c.idx + '">' +
+            '<input type="checkbox" ' + checked + ' style="margin-right:8px;pointer-events:none;">' +
+            escapeHtml(c.label) + '</a></li>'
+        );
+    });
+    // 항목 클릭 시 해당 컬럼 토글 (메뉴는 닫지 않음)
+    $menu.off("click", ".column-toggle-item").on("click", ".column-toggle-item", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var colIdx = parseInt($(this).data("col"), 10);
+        var col = table.column(colIdx);
+        var newVisible = !col.visible();
+        col.visible(newVisible);
+        $(this).find("input").prop("checked", newVisible);
+        var saved = loadColumnPrefs();
+        saved[colIdx] = newVisible;
+        saveColumnPrefs(saved);
+    });
+
+    // "컬럼" 버튼을 DataTables 의 "Show ... entries" (length) 줄로 이동.
+    var $length = $("#resultsTable_wrapper .dataTables_length");
+    if ($length.length) {
+        $("#columnToggleContainer")
+            .css({
+                "display": "inline-block",
+                "margin-left": "12px",
+                "margin-bottom": "0",
+                "vertical-align": "middle"
+            })
+            .appendTo($length);
+    }
+}
+
+/* ============================================================
  * 국가별 접속 Top 10
  * ============================================================ */
 function loadCountryTop10() {
@@ -1605,9 +1710,10 @@ function loadCountryTop10() {
             }
 
             $.each(stats, function (i, s) {
+                var flag = flagIconSpan(s.iso) || escapeHtml(s.iso);
                 var row = '<div class="country-row">' +
                     '<span class="country-rank">' + (i + 1) + '</span>' +
-                    '<span class="country-flag">' + escapeHtml(s.iso) + '</span>' +
+                    '<span class="country-flag">' + flag + '</span>' +
                     '<span class="country-name">' + escapeHtml(s.country) + '</span>' +
                     '<span class="country-count">' + s.count + '</span>' +
                     '</div>';
@@ -1620,6 +1726,23 @@ function loadCountryTop10() {
                 '<i class="fa fa-exclamation-circle"></i> 국가 통계를 불러올 수 없습니다.</p>'
             );
         });
+}
+
+// ISO 2글자 국가코드 → flag-icons 아이콘 <span>. 오프라인 로컬 에셋 사용.
+// 코드가 비거나 형식이 안 맞으면 빈 문자열.
+function flagIconSpan(iso) {
+    if (!iso) return '';
+    var cc = ('' + iso).toLowerCase();
+    if (!/^[a-z]{2}$/.test(cc)) return '';
+    return '<span class="fi fi-' + cc + '"></span>';
+}
+
+// 결과 목록 "접속 국가" 셀 HTML (국기 아이콘 + 국가명). IP/국가 없으면 "-"
+function renderCountryCell(result) {
+    var name = result.country || '';
+    if (!name) return '<span class="text-muted">-</span>';
+    var flag = flagIconSpan(result.country_iso || '');
+    return (flag ? flag + ' ' : '') + escapeHtml(name);
 }
 
 // 초(second)를 m:ss 형식으로 변환

@@ -525,6 +525,8 @@ func GetCampaignResults(id int64, uid int64) (CampaignResults, error) {
 		log.Errorf("%s: results not found for campaign", err)
 		return cr, err
 	}
+	// result.ip → 국가 정보 채우기 (결과 목록 국가 컬럼 + Top 10 일관성)
+	AttachCountries(cr.Results)
 	err = db.Table("events").Where("campaign_id=?", cr.Id).Find(&cr.Events).Error
 	if err != nil {
 		log.Errorf("%s: events not found for campaign", err)
