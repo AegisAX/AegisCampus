@@ -63,6 +63,12 @@
   FROM results WHERE campaign_id = ?)` 서브쿼리 삭제를 results 삭제 *앞*
   단계로 추가 (순서가 바뀌면 result_id 링크가 끊겨 삭제 불가). 기존 고아
   행은 운영 DB 에서 정리.
+- **#63** 캠페인 결과 Export 의 'Raw Events' 가 'Events(CSV)' 와 동일한
+  파일명(`{캠페인명} - Events.csv`)으로 저장되어 두 파일이 구분되지 않던
+  결함 보강. Raw Events(타임라인 원본 덤프) 의 파일명을 `{캠페인명} -
+  Raw Events.csv` 로 분리. Events(CSV, 정리된 per-수신자) 는 기존 파일명
+  유지. `static/js/src/app/campaign_results.js` 의 `exportAsCSV` 정리 +
+  공통 다운로드 헬퍼 `downloadCSV` 로 추출.
 
 ### Changed (UX / 일관성)
 
@@ -85,6 +91,13 @@
   접속 수 사이 여백이 컬럼 폭에 따라 과하게 벌어지던 UX 결함 보정.
   `#countryTopList` 폭을 컨테이너의 80% 로 제한 (`width: 80%`). 숫자는
   `margin-right: auto` 유지로 우측 정렬 그대로.
+- **#63** 캠페인 결과 Export 의 'Results' CSV 에 `Trained`·`Watch Time`
+  두 컬럼 추가. Trained 는 status 를 바꾸지 않고 timeline 에만 기록되어
+  기존 Results CSV(result 원본 덤프)에서 누락되었고, 영상 시청 시간은
+  `/api/campaigns/{id}/video_progress` 에만 있어 포함되지 않았다. timeline
+  의 Trained 이벤트로 수강 완료(`Yes`)를 판정하고, video_progress 의
+  `seconds_watched` 를 email 1:1 매핑해 `Watch Time`(`m:ss`)으로 출력.
+  수강 데이터 조회 실패 시에도 결과는 정상 내보냄.
 
 ### Security (보안 결함 차단)
 
@@ -141,8 +154,6 @@
 - TestAttachment 사전 결함 (testdata 옛 변수)
 - `/videos/upload` 제거 + JS 를 `/api/videos/` 로 이전
 - Email Template / Landing Page / Redirect Page 권한 체계 통일
-
----
 
 ---
 
