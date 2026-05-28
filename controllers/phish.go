@@ -1293,6 +1293,23 @@ func (ps *PhishingServer) RedirectPageHandler(w http.ResponseWriter, r *http.Req
 		http.NotFound(w, r)
 		return
 	}
+	// (#58) RP 접근 선행 행동 게이트.
+	// RedirectPage(교육 영상)는 캠페인 설계 의도상 Submitted(폼 제출) 또는
+	// Executed(첨부 실행)한 수신자에게만 노출한다. Opened/Clicked 단계이거나,
+	// 메일 클라이언트/보안 게이트웨이의 링크 프리페치로 rid 만 유효한 채
+	// /rp/{id} 에 직접 도달하는 접근을 차단한다.
+	//
+	// status 는 Sent→Opened→Clicked→Submitted 로 단조 증가하며 Submitted 이후
+	// 낮아지지 않으므로(HandleEmailOpened/HandleClickedLink 의 뒤단계 가드),
+	// status=="Submitted" 검사는 재방문에도 안정적이다. Executed/Trained/Reported
+	// 는 status 를 건드리지 않으므로 Executed 는 별도 불리언으로 확인한다.
+	// Trained 수신자는 정의상 이미 이 게이트를 통과해 영상을 본 사람이라
+	// 재방문도 그대로 통과한다.
+	if !(result.Status == models.EventDataSubmit || result.Executed) {
+		log.Errorf("rp: rid %s (campaign=%d, user=%d) not eligible for RP — status=%q executed=%v", rid, campaign.Id, result.UserId, result.Status, result.Executed)
+		http.NotFound(w, r)
+		return
+	}
 	rp, err := models.GetRedirectPageByID(id)
 	if err != nil {
 		http.NotFound(w, r)

@@ -49,7 +49,7 @@
   표시되고 누적합이 100% 가 안 맞던 정밀도 결함 보강. `Math.round(... * 1000) / 10`
   로 소수점 1자리 유지. Dashboard 와 캠페인 상세 페이지 양쪽 동일 적용,
   tooltip 에 `Highcharts.numberFormat(value, 1)` 적용.
-  - **#57** 수강 현황에 동일 수신자가 중복 표시되던 결함 보강.
+- **#57** 수강 현황에 동일 수신자가 중복 표시되던 결함 보강.
   `VideoProgress.Save()` 의 자연키 (user_id, result_id, video_id) upsert
   가 First→Save 사이 race 로 동시 `/track/video` 비콘에서 중복 INSERT
   되던 결함 차단. UNIQUE 인덱스 `idx_video_progresses_unique_urv` 추가
@@ -77,6 +77,20 @@
   접속 수 사이 여백이 컬럼 폭에 따라 과하게 벌어지던 UX 결함 보정.
   `#countryTopList` 폭을 컨테이너의 80% 로 제한 (`width: 80%`). 숫자는
   `margin-right: auto` 유지로 우측 정렬 그대로.
+
+### Security (보안 결함 차단)
+
+- **#58** RedirectPage(`/rp/{id}`) 접근에 선행 행동 게이트 추가.
+  캠페인 설계 의도(Submitted/Executed 한 수신자만 교육 영상 RP 로 이동)와
+  달리, rid 만 유효하면 Opened/Clicked 단계의 수신자나 메일 클라이언트·보안
+  게이트웨이의 링크 프리페치가 `/rp/{id}?rid=` 에 직접 도달해 RP 가 렌더되고,
+  그 결과 RP 전용 영상의 수강 progress·Trained 이벤트가 생성돼 수강 현황에
+  노이즈가 섞이던 결함. `RedirectPageHandler` 의 #41 매핑 검증 뒤에
+  `result.Status == Submitted || result.Executed` 게이트를 추가해 미충족 시
+  404 반환. status 는 Submitted 이후 낮아지지 않고 Executed/Trained 는
+  status 를 건드리지 않으므로, 정상 Submitted/Executed → RP 흐름과 Trained
+  수신자의 RP 재방문은 회귀 없이 통과한다. (#41 cross-campaign 자산 접근
+  차단의 자매 결함)
 
 ### Phase 4 — Low (코드 정리, 미정)
 - (예정)
