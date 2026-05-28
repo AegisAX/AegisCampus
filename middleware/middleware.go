@@ -185,6 +185,8 @@ func ApplySecurityHeaders(next http.Handler) http.HandlerFunc {
 		w.Header().Set("X-Frame-Options", "DENY")
 		// (#18) Referrer-Policy 코드측 명시화 — nginx 우회 경로에서도 동일 정책 보장
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		// MIME 스니핑 방지 — 콘텐츠 타입 오인 기반 공격 표면 축소
+		w.Header().Set("X-Content-Type-Options", "nosniff")
 		next.ServeHTTP(w, r)
 	}
 }
