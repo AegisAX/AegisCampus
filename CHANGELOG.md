@@ -42,6 +42,12 @@
   탭 상단 여백 (`margin-top:15px`) 일치. 수강 현황 테이블 class 를 결과
   목록과 동일하게 통일 (`table-condensed table-bordered table-hover` →
   `table`). `col-md-12` 래퍼 제거로 테이블 가로 폭 일치.
+- **#52** 수강 현황의 '완료' 컬럼이 진행률 100% 또는 ended 이벤트만으로도
+  완료 표시되어, 실제 [수강 완료 확인] 버튼을 누르지 않은 케이스를 식별할
+  수 없던 결함 개선. `VideoProgressSummary` 에 `trained` 필드 신규
+  (`events.message = 'Trained'` EXISTS 서브쿼리). 프론트는 `row.completed`
+  대신 `row.trained` 로 배지 렌더. 컬럼 헤더 '완료' → '수강 완료' 로
+  의미 명확화. 시청 완료 여부는 기존 진행률 컬럼으로 충분히 식별 가능.
 
 ### Phase 4 — Low (코드 정리, 미정)
 - (예정)
