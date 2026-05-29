@@ -53,7 +53,6 @@ scripts = function () {
     return gulp.src([
             app_directory + 'autocomplete.js',
             app_directory + 'campaign_results.js',
-            app_directory + 'campaigns.js',
             app_directory + 'dashboard.js',
             app_directory + 'groups.js',
             app_directory + 'landing_pages.js',
@@ -71,6 +70,11 @@ scripts = function () {
             suffix: '.min'
         }))
         .pipe(uglify().on('error', function (e) {
+            console.log('=== UGLIFY ERROR ===');
+            console.log('FILE:', e.fileName || e.filename || '?');
+            console.log('LINE:', e.lineNumber || e.line || '?');
+            console.log('COL:', e.columnNumber || e.col || '?');
+            console.log('MSG:', e.message);
             console.log(e);
         }))
         .pipe(gulp.dest(dest_js_directory + 'app/'));

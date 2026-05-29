@@ -152,6 +152,64 @@
   의 Trained 이벤트로 수강 완료(`Yes`)를 판정하고, video_progress 의
   `seconds_watched` 를 email 1:1 매핑해 `Watch Time`(`m:ss`)으로 출력.
   수강 데이터 조회 실패 시에도 결과는 정상 내보냄.
+- **#66** Dashboard 와 Campaigns 페이지 통합 (옵션 C). `/campaigns` 라우트
+  + nav.html 의 Campaigns 메뉴 항목 + campaigns.html / campaigns.js 모두
+  제거하고, Dashboard 가 캠페인 관리의 단일 진입점이 되도록 통합. Dashboard
+  에는 기존 차트/도넛/캠페인 목록 위에 영구 필터 + 검색 동기화 + 캠페인
+  생성 흐름을 모두 흡수했다.
+  - **영구 필터** : 신규 테이블 `user_preferences(user_id, dashboard_campaign_filter,
+    modified_date)` + 마이그레이션 `20260530000000_add_user_preferences.sql`
+    (SQLite/MySQL). 사용자 삭제 시 cascade (`DeleteUser` 보강). 일반화된
+    `/api/users/me/preferences` 엔드포인트 (GET/PUT) 로 향후 다른 환경설정도
+    같은 곳에 확장 가능. localStorage 가 아닌 DB 저장 — 다른 PC/브라우저에서
+    접속해도 동일 필터 유지.
+  - **DataTables hidden 컬럼 + search hook 패턴** : 캠페인 id 를 row 의 11번째
+    hidden 컬럼에 저장하고, `$.fn.dataTable.ext.search` 에 등록한 필터 함수가
+    `data[10]` 으로 직접 읽어 필터링. 정규식 HTML 파싱 의존성 제거. `searchable:
+    false` 는 search hook 의 data 인자에서 빈 문자열로 들어와 매칭이 깨지므로
+    의도적으로 `searchable: true` 유지.
+  - **차트 동기화** : DataTables 의 `draw.dt` / `search.dt` 이벤트로 가시 행에서
+    캠페인 id 를 모아 도넛 + Click Rate Over Time 차트를 매번 재집계. 필터 +
+    DataTables 검색이 모두 적용된 결과로 차트가 항상 일관.
+  - **toolbar** : `Show N entries` 우측에 [+ New Campaign] [⚙ 캠페인 선택]
+    버튼을 DataTables 의 length 영역에 동적으로 주입 (campaign_results.js 의
+    컬럼 토글 패턴과 동일).
+  - **캠페인 선택 모달** : 다중 체크박스 + 검색 (이름/소유자/상태) + 세부정보
+    토글 (Launch Date / Send By / Stats 미니 요약 + [View Results →]) +
+    선택 카운트 ("N / M 선택됨"). 빈 선택 = "전체 표시" 로 간주 (UI 와 동일 의미).
+  - **viewer 동작** : shared 캠페인의 Copy/Delete 는 미표시가 아닌 `disabled`
+    상태로 노출 — "왜 안 보이지?" 혼동 제거, 권한 부재를 명시. 호버 시 안내
+    tooltip ("공유받은 캠페인은 복제/삭제할 수 없습니다").
+  - **시각/색상 정리** :
+      Actions 의 [View Results / Copy / Delete] 색상을 의미에 맞게 분리
+      (info / success / danger). 비표준 `btn-blue` 클래스 의존 제거 →
+      Refresh = btn-info, Complete = btn-success 로 교체. 공유 버튼은
+      btn-warning (주황) — 권한 부여의 보안적 의미 + 인접 Refresh 와 색 구분.
+      Actions 버튼 한 줄 nowrap + 4px 미세 간격.
+      `tooltip placement: left → top` — Actions 가 마지막 컬럼이라 좌측
+      tooltip 이 다른 컬럼 데이터를 가리는 결함 보정.
+  - **Name 컬럼 최후 압축** : 좁은 viewport 에서 숫자/Status/Actions 컬럼은
+    nowrap 유지 + Name 컬럼만 wrap + min-width 220px. 가장 의미 있는 컬럼이
+    가장 마지막에 줄어들도록.
+  - **Status hover tooltip 제거** : 같은 행에 모든 stat (Sent/Opened/...) 과
+    launch_date 가 표시되어 tooltip 의 정보가 중복. 라벨만 단순 표시. Name
+    아래 날짜를 `created_date` → `launch_date` 로 일원화 (운영자에게 더 의미
+    있는 시각).
+  - **New Campaign 모달 흐름 개선** : 캠페인 생성 전제조건(Email Templates →
+    Landing Pages → Sending Profiles → Groups) 을 위→아래 순으로 순차 검사.
+    첫 부족 항목 발견 시 그 안내만 표시하고 이후 단계는 검사 안 함. 누락 항목
+    이후의 입력 필드는 모두 숨김 + Launch Campaign 비활성화 + "이동" 버튼으로
+    해당 어드민 페이지로 직접 안내. 모달 재오픈 시 상태 초기화 (`resetSetupOptionsUI`).
+  - **Send By 의 Go time.Time 제로값 표시 결함** : `0001-01-01T00:00:00Z` 가
+    truthy 라 단순 if-truthy 만으로는 `-` 로 치환되지 않던 결함을 정규식 가드로
+    차단. 백엔드 nullable 화는 Phase 5+ 백로그.
+  - **라벨 한국어 통일** : Launch Date → "발송 시작", Send Emails By →
+    "발송 마감 (선택)" / Send By → "발송 마감". 영문 툴팁도 한국어로 정확한
+    의미 명시 ("지정 시, Sentinel 은 발송 시작 시각과 이 시각 사이에 균등하게
+    메일을 발송합니다"). 단어 자체의 정확성은 향후 i18n 도입 트랙에서 재검토.
+  - **Results 페이지 잔여 정리** : "Back" 버튼의 링크 `/campaigns` → `/`,
+    deleteCampaign 후 redirect `/campaigns` → `/`. campaigns.html / campaigns.js
+    잔재 제거.
 
 ### Security (보안 결함 차단)
 

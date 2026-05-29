@@ -163,6 +163,12 @@ func DeleteUser(id int64) error {
 	if err != nil {
 		return err
 	}
+	// (#66) Delete user preferences (dashboard filter etc.) for this user.
+	log.Infof("Deleting user preferences for user ID %d", id)
+	err = DeleteUserPreferences(id)
+	if err != nil {
+		return err
+	}
 	// Finally, delete the user
 	err = db.Where("id=?", id).Delete(&User{}).Error
 	return err

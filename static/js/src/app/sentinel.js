@@ -393,6 +393,16 @@ var api = {
     send_test_email: function (req) {
         return query("/util/send_test_email", "POST", req, true)
     },
+    // (#66) 본인 사용자 환경설정 — Dashboard 의 영구 필터 등.
+    // 향후 다른 preference 키가 늘면 같은 endpoint 에 키 추가만 하면 됨.
+    preferences: {
+        get: function () {
+            return query("/users/me/preferences", "GET", {}, true)
+        },
+        put: function (data) {
+            return query("/users/me/preferences", "PUT", data, true)
+        }
+    },
     reset: function () {
         return query("/reset", "POST", {}, true)
     }

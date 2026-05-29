@@ -665,16 +665,6 @@ table.dataTable {
     width: 100% !important;
 }
 
-.btn-blue {
-    color: #fff;
-    background-color: #428bca;
-    border-color: #428bca;
-}
-
-.btn-blue:hover {
-    background-color: #64a1d6;
-}
-
 .select2-container--bootstrap .select2-selection--single .select2-selection__rendered {
     font-size: 15px !important;
 }

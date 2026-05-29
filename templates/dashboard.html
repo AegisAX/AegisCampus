@@ -6,10 +6,15 @@
     <div id="loading">
         <i class="fa fa-spinner fa-spin fa-4x"></i>
     </div>
+    <div id="flashes"></div>
     {{template "flashes" .Flashes}}
     <div id="emptyMessage" style="display:none;">
         <div class="alert alert-info">
             No campaigns created yet. Let's create one!
+            <button type="button" class="btn btn-primary btn-sm" style="margin-left:10px;"
+                    data-toggle="modal" data-backdrop="static" data-target="#modal" onclick="edit('new')">
+                <i class="fa fa-plus"></i> New Campaign
+            </button>
         </div>
     </div>
     <div id="dashboard" style="display:none;">
@@ -27,30 +32,40 @@
             <div id="trained_chart"></div>
         </div>
         <div class="row">
+            <style>
+                /* (#66) 화면 좁아질 때 숫자/Status/Actions 컬럼은 nowrap 으로
+                   내용물 크기 유지 → Name 컬럼이 가장 마지막에 줄어든다.
+                   Name 은 wrap 허용 + min-width 220px 로 최소 폭 보장. */
+                #campaignTable td, #campaignTable th { white-space: nowrap; }
+                #campaignTable td:first-child, #campaignTable th:first-child {
+                    white-space: normal;
+                    min-width: 220px;
+                }
+            </style>
             <table id="campaignTable" class="table">
                 <thead>
                     <tr>
                         <th class="col-md-2 col-sm-2">Name</th>
                         <th class="col-md-1 col-sm-1">
-                            <i class="fa fa-envelope-o"></i>
+                            <i class="fa fa-envelope-o" title="Sent" data-toggle="tooltip"></i>
                         </th>
                         <th class="col-md-1 col-sm-1">
-                            <i class="fa fa-envelope-open-o"></i>
+                            <i class="fa fa-envelope-open-o" title="Opened" data-toggle="tooltip"></i>
                         </th>
                         <th class="col-md-1 col-sm-1">
-                            <i class="fa fa-mouse-pointer"></i>
+                            <i class="fa fa-mouse-pointer" title="Clicked" data-toggle="tooltip"></i>
                         </th>
                         <th class="col-md-1 col-sm-1">
-                            <i class="fa fa-exclamation-circle"></i>
+                            <i class="fa fa-exclamation-circle" title="Submitted" data-toggle="tooltip"></i>
                         </th>
                         <th class="col-md-1 col-sm-1">
-                            <i class="fa fa-exclamation-triangle"></i>
-                        </th> 
-                        <th class="col-md-1 col-sm-1">
-                            <i class="fa fa-bullhorn"></i>
+                            <i class="fa fa-exclamation-triangle" title="Executed" data-toggle="tooltip"></i>
                         </th>
                         <th class="col-md-1 col-sm-1">
-                            <i class="fa fa-graduation-cap"></i>
+                            <i class="fa fa-bullhorn" title="Reported" data-toggle="tooltip"></i>
+                        </th>
+                        <th class="col-md-1 col-sm-1">
+                            <i class="fa fa-graduation-cap" title="Trained" data-toggle="tooltip"></i>
                         </th>
                         <th class="col-md-1 col-sm-1">Status</th>
                         <th class="col-md-1 col-sm-1 no-sort">Actions</th>
@@ -62,6 +77,151 @@
         </div>
     </div>
 </div>
+
+<!-- (#66) New Campaign 모달 — 기존 campaigns.html 에서 이전. id/필드 모두 그대로 유지. -->
+<div class="modal fade" id="modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="dismiss()">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="campaignModalLabel">New Campaign</h4>
+            </div>
+            <div class="modal-body" id="modal_body">
+                <div class="row" id="modal.flashes"></div>
+                <div class="form-group">
+                    <label for="name">Name:</label>
+                    <input type="text" class="form-control" id="name" placeholder="Campaign name" autofocus>
+                    <label class="control-label" for="template">Email Template:</label>
+                    <select class="form-control" placeholder="Template Name" id="template" />
+                    <option></option>
+                    </select>
+                    <label class="control-label" for="page">Landing Page:</label>
+                    <select class="form-control" placeholder="Landing Page" id="page" />
+                    <option></option>
+                    </select>
+                    <label class="control-label" for="url">URL:
+                        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right" title="Location of Sentinel listener (must be reachable by targets!)"></i>
+                    </label>
+                    <input type="text" class="form-control" placeholder="http://192.168.1.1" id="url" />
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="control-label" for="url">발송 시작</label>
+                            <input type="text" class="form-control" id="launch_date" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="control-label" for="delay">발송 마감 (선택)
+                                <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right" title="지정 시, Sentinel 은 발송 시작 시각과 이 시각 사이에 균등하게 메일을 발송합니다."></i>
+                            </label>
+                            <input type="text" class="form-control" id="send_by_date" autocomplete="random-data"/>
+                        </div>
+                    </div>
+                    <label class="control-label" for="profile">Sending Profile:</label>
+                    <div class="input-group">
+                        <select class="form-control" placeholder="Sending Profile" id="profile" />
+                        <option></option>
+                        </select>
+                        <span class="input-group-btn">
+                            <button type="button" data-toggle="modal" data-backdrop="static" data-target="#sendTestEmailModal"
+                                class="btn btn-primary button">
+                                <i class="fa fa-envelope"></i> Send Test Email</button>
+                        </span>
+                    </div>
+                    <label class="control-label" for="users">Groups:</label>
+                    <select class="form-control" id="users" multiple="multiple"></select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal" onclick="dismiss()">Close</button>
+                <button type="button" id="launchButton" class="btn btn-primary" onclick="launch()">
+                    <i class="fa fa-rocket"></i> Launch Campaign</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Send Test Email 모달 — 기존 campaigns.html 에서 이전. -->
+<div class="modal" id="sendTestEmailModal" tabindex="-1" role="dialog" aria-labelledby="modalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="sendTestEmailModalTitle">Send Test Email</h4>
+            </div>
+            <div class="modal-body">
+                <div class="row" id="sendTestEmailModal.flashes"></div>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <label class="control-label" for="to">Send Test Email to:</label>
+                    </div>
+                    <br>
+                    <div class="col-sm-2">
+                        <input type="text" class="form-control" placeholder="Name" name="to_name">
+                    </div>
+                    <div class="col-sm-2">
+                        <input type="text" class="form-control" placeholder="Department" name="to_department">
+                    </div>
+                    <div class="col-sm-4">
+                        <input type="email" class="form-control" placeholder="Email" name="to_email" required>
+                    </div>
+                    <div class="col-sm-4">
+                        <input type="text" class="form-control" placeholder="Position" name="to_position">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" data-dismiss="modal" class="btn btn-default">Cancel</button>
+                <button type="button" class="btn btn-primary" id="sendTestModalSubmit" onclick="sendTestEmail()">
+                    <i class="fa fa-envelope"></i> Send</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- (#66) 캠페인 선택 필터 모달 — DataTables toolbar 의 [⚙ 캠페인 선택] 버튼에서 호출.
+     체크박스 + 이름/생성일/상태/소유자/수신자 수 + 세부정보 토글. -->
+<div class="modal fade" id="campaignFilterModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">표시할 캠페인 선택</h4>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted" style="margin-bottom:10px;">
+                    선택한 캠페인만 목록과 차트에 표시됩니다. 아무것도 선택하지 않으면 전체가 표시됩니다.
+                    설정은 DB 에 저장되어 다른 PC/브라우저에서도 동일하게 유지됩니다.
+                </p>
+                <div style="margin-bottom:10px;">
+                    <input type="text" class="form-control" id="campaignFilterSearch"
+                           placeholder="이름 / 소유자 / 상태로 검색" style="display:inline-block;width:60%;">
+                    <button type="button" class="btn btn-info btn-xs" id="campaignFilterCheckAll" style="margin-left:8px;">
+                        <i class="fa fa-check-square-o"></i> 전체 선택
+                    </button>
+                    <button type="button" class="btn btn-info btn-xs" id="campaignFilterCheckNone">
+                        <i class="fa fa-square-o"></i> 전체 해제
+                    </button>
+                </div>
+                <div id="campaignFilterList" style="max-height:500px;overflow-y:auto;border:1px solid #ddd;border-radius:4px;">
+                    <!-- 동적 생성 — dashboard.js renderCampaignFilterList() 참조 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <span id="campaignFilterCount" class="text-muted pull-left" style="margin-top:7px;"></span>
+                <button type="button" class="btn btn-default" data-dismiss="modal">취소</button>
+                <button type="button" class="btn btn-primary" id="campaignFilterApply">
+                    <i class="fa fa-check"></i> 적용
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {{end}} {{define "scripts"}}
 <script src="/js/dist/app/dashboard.min.js"></script>
 {{end}}

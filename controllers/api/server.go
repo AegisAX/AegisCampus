@@ -91,6 +91,7 @@ func (as *Server) registerRoutes() {
 	router.HandleFunc("/smtp/", as.SendingProfiles)
 	router.HandleFunc("/smtp/{id:[0-9]+}", as.SendingProfile)
 	router.HandleFunc("/users/", mid.Use(as.Users, mid.RequirePermission(models.PermissionModifySystem)))
+	router.HandleFunc("/users/me/preferences", as.UserPreferencesMe).Methods("GET", "PUT")
 	router.HandleFunc("/users/{id:[0-9]+}", mid.Use(as.User))
 	router.HandleFunc("/util/send_test_email", as.SendTestEmail)
 	router.HandleFunc("/import/group", as.ImportGroup)

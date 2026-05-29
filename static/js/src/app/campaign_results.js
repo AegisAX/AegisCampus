@@ -207,7 +207,7 @@ function deleteCampaign() {
             );
         }
         $('button:contains("OK")').on('click', function () {
-            location.href = '/campaigns'
+            location.href = '/'
         })
     })
 }

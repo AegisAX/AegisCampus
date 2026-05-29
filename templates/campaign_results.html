@@ -8,7 +8,7 @@
             <h1 class="page-header" id="page-title">Results for campaign.name</h1>
         </div>
         <div class="row">
-            <a href="/campaigns" class="btn btn-default">
+            <a href="/" class="btn btn-default">
                 <i class="fa fa-arrow-circle-o-left fa-lg"></i> Back
             </a>
             <div class="btn-group">
@@ -23,16 +23,16 @@
                     <li><a href="#" onclick="exportAsCSV('events')">Raw Events</a></li>
                 </ul>
             </div>
-            <button id="complete_button" type="button" class="btn btn-blue owner-only" data-toggle="tooltip" onclick="completeCampaign()">
+            <button id="complete_button" type="button" class="btn btn-success owner-only" data-toggle="tooltip" onclick="completeCampaign()">
                 <i class="fa fa-flag-checkered"></i> Complete
             </button>
             <button type="button" class="btn btn-danger owner-only" data-toggle="tooltip" onclick="deleteCampaign()">
                 <i class="fa fa-trash-o fa-lg"></i> Delete
             </button>
-            <button id="share_button" type="button" class="btn btn-default owner-only" data-toggle="tooltip" title="다른 사용자에게 읽기 권한 공유" onclick="openShareModal()">
+            <button id="share_button" type="button" class="btn btn-warning owner-only" data-toggle="tooltip" title="다른 사용자에게 읽기 권한 공유" onclick="openShareModal()">
                 <i class="fa fa-share-alt"></i> 공유
             </button>
-            <button id="refresh_btn" type="button" class="btn btn-blue" data-toggle="tooltip" onclick="refresh()">
+            <button id="refresh_btn" type="button" class="btn btn-info" data-toggle="tooltip" onclick="refresh()">
                 <i class="fa fa-refresh fa-lg"></i> Refresh
             </button>
             <span id="refresh_message">
@@ -113,7 +113,7 @@
             <div role="tabpanel" class="tab-pane active" id="tab-results">
                 <div class="row" style="margin-top:15px">
                     <div class="btn-group" id="columnToggleContainer" style="margin-bottom:10px">
-                        <button type="button" id="columnToggleButton" class="btn btn-default dropdown-toggle"
+                        <button type="button" id="columnToggleButton" class="btn btn-info dropdown-toggle"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             <i class="fa fa-columns"></i> 컬럼 <i class="fa fa-caret-down"></i>
                         </button>
