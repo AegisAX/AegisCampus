@@ -70,6 +70,8 @@ func (as *Server) registerRoutes() {
 	router.HandleFunc("/campaigns/{id:[0-9]+}/results/{rid}/report", as.CampaignResultUnreport).Methods("DELETE")
 	router.HandleFunc("/campaigns/{id:[0-9]+}/video_progress", as.CampaignVideoProgress).Methods("GET")
 	router.HandleFunc("/campaigns/{id:[0-9]+}/country_stats", as.CampaignCountryStats).Methods("GET")
+	router.HandleFunc("/campaigns/{id:[0-9]+}/shares", as.CampaignShares).Methods("GET", "POST")
+	router.HandleFunc("/campaigns/{id:[0-9]+}/shares/{uid:[0-9]+}", as.CampaignShareDelete).Methods("DELETE")
 	router.HandleFunc("/groups/", as.Groups)
 	router.HandleFunc("/groups/summary", as.GroupsSummary)
 	router.HandleFunc("/groups/{id:[0-9]+}", as.Group)

@@ -156,6 +156,13 @@ func DeleteUser(id int64) error {
 			return err
 		}
 	}
+	// Delete read-only campaign shares granted to this user (#64). Grants
+	// given BY this user are handled transitively via campaign deletion above.
+	log.Infof("Deleting campaign shares received by user ID %d", id)
+	err = DeleteCampaignSharesByUser(id)
+	if err != nil {
+		return err
+	}
 	// Finally, delete the user
 	err = db.Where("id=?", id).Delete(&User{}).Error
 	return err

@@ -164,6 +164,9 @@ var campaign = {}
 var bubbles = []
 var videoProgressTable = null
 var mapZoomBehavior = null
+// (#64) 결과 화면의 viewer/owner 모드. results API 응답의 is_owner 로 결정.
+// 기본은 owner 로 두고, load() 안에서 정정한다 (false 가 정상 viewer 상태).
+var isOwner = true
 
 function dismiss() {
     $("#modal\\.flashes").empty()
@@ -922,6 +925,11 @@ function load() {
     var use_map = JSON.parse(localStorage.getItem('sentinel.use_map'))
     api.campaignId.results(campaign.id)
         .success(function (c) {
+            // (#64) viewer/owner 모드 분기. 응답의 is_owner 가 false 면 viewer.
+            // 응답에 is_owner 가 빠진(legacy) 경우 owner 로 간주 (안전한 fallback).
+            isOwner = (c.is_owner === undefined) ? true : !!c.is_owner
+            applyViewerVisibility()
+
             campaign = c
             if (campaign) {
                 $("title").text(c.name + " - Sentinel")
@@ -956,7 +964,11 @@ function load() {
                     ],
                     columnDefs: [
                         { orderable: false, targets: "no-sort" },
-                        { className: "details-control", targets: [1] },
+                        // (#64) viewer 는 행 펼치기 차단 + caret 자체도 비움(다른 변경 참조).
+                        // 셀이 비어 있어도 .details-control 의 cursor:pointer 가 남으면
+                        // 마우스가 손모양으로 바뀌어 클릭 가능해 보이는 오해를 부른다 →
+                        // owner 일 때만 details-control 클래스 적용.
+                        { className: (isOwner ? "details-control" : ""), targets: [1] },
                         { visible: false, targets: computeHiddenTargets() },
                         { className: "text-center country-cell", targets: [6] },  // 접속 국가 (HTML 은 row.add 에서 생성)
                         {
@@ -991,6 +1003,13 @@ function load() {
                             render: function(reported, type, row) {
                                 if (type !== "display") return reported;
                                 var reportedColor = statuses["Reported"].color;  // #45d6ef
+                                // (#64) viewer 는 신고 토글 비활성 (아이콘만, onclick 없음).
+                                if (!isOwner) {
+                                    if (reported) {
+                                        return "<i class='fa fa-check-circle' style='color:" + reportedColor + "' title='신고됨'></i>";
+                                    }
+                                    return "<i class='fa fa-times-circle text-muted' title='미신고'></i>";
+                                }
                                 if (reported) {
                                     return "<i role='button' class='fa fa-check-circle' " +
                                         "style='color:" + reportedColor + "' " +
@@ -1033,7 +1052,7 @@ function load() {
                     var evRec = evIdx[result.email] || {};
                     resultsTable.row.add([
                         result.id,
-                        "<i id=\"caret\" class=\"fa fa-caret-right\"></i>",
+                        isOwner ? "<i id=\"caret\" class=\"fa fa-caret-right\"></i>" : "",
                         escapeHtml(result.name) || "",
                         escapeHtml(result.department) || "",
                         escapeHtml(result.email) || "",
@@ -1075,7 +1094,11 @@ function load() {
                 // Setup tooltips
                 $('[data-toggle="tooltip"]').tooltip()
                 // Setup the individual timelines
+                // (#64) viewer 는 행 펼치기(개인 타임라인) 차단 — Q4 의 "대상자 세부 정보" 차단.
                 $('#resultsTable tbody').on('click', 'td.details-control', function () {
+                    if (!isOwner) {
+                        return; // viewer: 펼치기 차단
+                    }
                     var tr = $(this).closest('tr');
                     var row = resultsTable.row(tr);
                     if (row.child.isShown()) {
@@ -1767,4 +1790,113 @@ function formatSeconds(s) {
     var m = Math.floor(s / 60);
     var sec = s % 60;
     return m + ':' + String(sec).padStart(2, '0');
+}
+
+/* ============================================================
+ * (#64) Viewer/Owner 가시성 + 공유 모달
+ * ============================================================ */
+
+// viewer 모드일 때 owner-only 요소를 숨긴다. 템플릿에서 .owner-only 클래스를 단 버튼들.
+function applyViewerVisibility() {
+    if (isOwner) {
+        $('.owner-only').show();
+    } else {
+        $('.owner-only').hide();
+    }
+}
+
+// owner 가 "공유" 버튼을 눌렀을 때. /api/campaigns/{id}/shares 를 GET 해서
+// candidates 를 셀렉트에, shares 를 리스트에 채운다.
+function openShareModal() {
+    if (!isOwner) return; // 안전장치 — viewer 는 버튼 자체가 숨겨져 있지만 만약을 위해
+    loadShareModalData();
+    $('#shareModal').modal('show');
+}
+
+function loadShareModalData() {
+    var url = '/api/campaigns/' + campaign.id + '/shares?api_key=' + user.api_key;
+    $.ajax({
+        url: url,
+        method: 'GET',
+        dataType: 'json'
+    }).done(function (data) {
+        renderShareModal(data);
+    }).fail(function () {
+        Swal.fire('오류', '공유 정보를 불러올 수 없습니다.', 'error');
+    });
+}
+
+function renderShareModal(data) {
+    var $sel = $('#shareUserSelect');
+    var $list = $('#shareCurrentList');
+    var candidates = (data && data.candidates) || [];
+    var shares = (data && data.shares) || [];
+
+    // 후보 셀렉트
+    $sel.empty();
+    if (candidates.length === 0) {
+        $sel.hide();
+        $('#shareAddBtn').prop('disabled', true);
+        $('#shareNoCandidates').show();
+    } else {
+        $sel.show();
+        $('#shareAddBtn').prop('disabled', false);
+        $('#shareNoCandidates').hide();
+        $.each(candidates, function (i, u) {
+            $sel.append($('<option>').val(u.id).text(u.username));
+        });
+    }
+
+    // 현재 공유 목록
+    $list.empty();
+    if (shares.length === 0) {
+        $list.hide();
+        $('#shareEmpty').show();
+    } else {
+        $list.show();
+        $('#shareEmpty').hide();
+        $.each(shares, function (i, u) {
+            var $item = $('<li class="list-group-item">')
+                .append($('<i class="fa fa-user text-muted">').css('margin-right', '6px'))
+                .append($('<span>').text(u.username || ('user#' + u.id)));
+            var $btn = $('<button type="button" class="btn btn-xs btn-danger pull-right">')
+                .html('<i class="fa fa-times"></i> 해제')
+                .data('uid', u.id)
+                .on('click', function () { revokeShare($(this).data('uid')); });
+            $item.append($btn);
+            $list.append($item);
+        });
+    }
+}
+
+// 추가 버튼
+$(document).on('click', '#shareAddBtn', function () {
+    var uid = parseInt($('#shareUserSelect').val(), 10);
+    if (!uid) return;
+    $.ajax({
+        url: '/api/campaigns/' + campaign.id + '/shares?api_key=' + user.api_key,
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ user_id: uid })
+    }).done(function () {
+        loadShareModalData();
+    }).fail(function (xhr) {
+        var msg = '공유 추가에 실패했습니다.';
+        try { msg = JSON.parse(xhr.responseText).message || msg; } catch (e) {}
+        Swal.fire('오류', msg, 'error');
+    });
+});
+
+function revokeShare(uid) {
+    if (!uid) return;
+    $.ajax({
+        url: '/api/campaigns/' + campaign.id + '/shares/' + uid + '?api_key=' + user.api_key,
+        method: 'DELETE'
+    }).done(function () {
+        loadShareModalData();
+    }).fail(function (xhr) {
+        var msg = '공유 해제에 실패했습니다.';
+        try { msg = JSON.parse(xhr.responseText).message || msg; } catch (e) {}
+        Swal.fire('오류', msg, 'error');
+    });
 }

@@ -508,8 +508,15 @@ $(document).ready(function () {
                             + "<br><br>Trained: " + getStat(campaign,'trained')
                     }
 
+                    // (#64) 소유자 표시 — campaign.is_owner 가 false 면 owner_username 을 회색으로 부기.
+                    //       owner 시점에선 표시 생략 (자기 캠페인이라 자명).
+                    //       Name 셀의 좁은 폭에서 줄바꿈으로 튀는 것을 피하기 위해
+                    //       날짜 줄 옆에 배치한다.
+                    var ownerNote = (!campaign.is_owner && campaign.owner_username)
+                        ? " <small class='text-muted'>— by " + escapeHtml(campaign.owner_username) + "</small>"
+                        : "";
                     campaignRows.push([
-                        escapeHtml(campaign.name) + "<br>" + escapeHtml(campaign_date),
+                        escapeHtml(campaign.name) + "<br>" + escapeHtml(campaign_date) + ownerNote,
                         getStat(campaign,'sent'),
                         getStat(campaign,'opened'),
                         getStat(campaign,'clicked'),
@@ -518,12 +525,15 @@ $(document).ready(function () {
                         getStat(campaign,'reported'),
                         getStat(campaign,'trained'),
                         "<span class=\"label " + label + "\" data-toggle=\"tooltip\" data-placement=\"right\" data-html=\"true\" title=\"" + quickStats + "\">" + campaign.status + "</span>",
-                        "<div class='pull-left'><a class='btn btn-primary' href='/campaigns/" + campaign.id + "' data-toggle='tooltip' data-placement='left' title='View Results'>\
+                        "<div class='text-left'><a class='btn btn-primary' href='/campaigns/" + campaign.id + "' data-toggle='tooltip' data-placement='left' title='View Results'>\
                     <i class='fa fa-bar-chart'></i>\
-                    </a>\
-                    <button class='btn btn-danger' onclick='deleteCampaign(" + i + ")' data-toggle='tooltip' data-placement='left' title='Delete Campaign'>\
-                    <i class='fa fa-trash-o'></i>\
-                    </button></div>"
+                    </a>"
+                        + (campaign.is_owner
+                            ? ("<button class='btn btn-danger' onclick='deleteCampaign(" + i + ")' data-toggle='tooltip' data-placement='left' title='Delete Campaign'>"
+                                + "<i class='fa fa-trash-o'></i>"
+                                + "</button>")
+                            : "")
+                        + "</div>"
                     ])
                     $('[data-toggle="tooltip"]').tooltip()
                 })

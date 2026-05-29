@@ -59,6 +59,12 @@ type CampaignSummary struct {
 	Name          string               `json:"name"`
 	Stats         CampaignStats        `json:"stats"`
 	ClickTimeline []ClickTimelinePoint `json:"click_timeline"`
+	// (#64) Read-only 공유 표시. viewer 의 /campaigns·Dashboard 에서 공유받은
+	// 캠페인을 식별할 수 있도록 false 로 내려간다. owner 시점에선 항상 true.
+	IsOwner bool `json:"is_owner"`
+	// (#64) 캠페인 소유자의 username. viewer 의 목록/대시보드에서 누가
+	// 만든 캠페인인지 한눈에 식별하기 위한 표시 전용 필드.
+	OwnerUsername string `json:"owner_username"`
 }
 
 // ClickTimelinePoint is a single point in a campaign's cumulative click timeline.
@@ -414,18 +420,88 @@ func GetCampaigns(uid int64) ([]Campaign, error) {
 }
 
 // GetCampaignSummaries gets the summary objects for all the campaigns
-// owned by the current user
+// visible to the current user. This includes:
+//
+//	(a) campaigns the user owns (is_owner = true)
+//	(b) campaigns shared read-only with the user via campaign_shares (#64,
+//	    is_owner = false)
+//
+// The two sets are disjoint by construction: self-share is rejected at the
+// API layer, and a viewer cannot own a campaign they were also granted.
+// Sorted by created_date desc to keep the most recent campaigns at the top
+// regardless of which set they came from.
 func GetCampaignSummaries(uid int64) (CampaignSummaries, error) {
 	overview := CampaignSummaries{}
-	cs := []CampaignSummary{}
-	// Get the basic campaign information
-	query := db.Table("campaigns").Where("user_id = ?", uid)
-	query = query.Select("id, name, created_date, launch_date, send_by_date, completed_date, status")
-	err := query.Scan(&cs).Error
+
+	// owned 캠페인은 campaigns.user_id = ?  → user_id 가 별도 컬럼이라 SELECT 에
+	// 그대로 끌어와 owner_username 매핑에 사용한다.
+	type campaignRow struct {
+		CampaignSummary
+		UserId int64 `json:"-"`
+	}
+
+	ownedRows := []campaignRow{}
+	err := db.Table("campaigns").
+		Where("user_id = ?", uid).
+		Select("id, name, created_date, launch_date, send_by_date, completed_date, status, user_id").
+		Scan(&ownedRows).Error
 	if err != nil {
 		log.Error(err)
 		return overview, err
 	}
+	for i := range ownedRows {
+		ownedRows[i].IsOwner = true
+	}
+
+	// (#64) 공유받은 캠페인.
+	sharedRows := []campaignRow{}
+	sharedIDs, sErr := GetSharedCampaignIDs(uid)
+	if sErr != nil {
+		log.Error(sErr)
+	} else if len(sharedIDs) > 0 {
+		err = db.Table("campaigns").
+			Where("id IN (?)", sharedIDs).
+			Select("id, name, created_date, launch_date, send_by_date, completed_date, status, user_id").
+			Scan(&sharedRows).Error
+		if err != nil {
+			log.Error(err)
+			return overview, err
+		}
+		for i := range sharedRows {
+			sharedRows[i].IsOwner = false
+		}
+	}
+
+	rows := append(ownedRows, sharedRows...)
+
+	// owner_username 매핑 — 등장하는 user_id 들만 한 번에 조회.
+	ownerIds := map[int64]bool{}
+	for _, r := range rows {
+		ownerIds[r.UserId] = true
+	}
+	idList := make([]int64, 0, len(ownerIds))
+	for id := range ownerIds {
+		idList = append(idList, id)
+	}
+	usernameById := map[int64]string{}
+	if len(idList) > 0 {
+		usersForOwner := []User{}
+		if err := db.Table("users").Where("id IN (?)", idList).Find(&usersForOwner).Error; err != nil {
+			log.Error(err)
+			// 매핑 실패해도 summary 전체를 막지 않음 — owner_username 만 비어 나감.
+		} else {
+			for _, u := range usersForOwner {
+				usernameById[u.Id] = u.Username
+			}
+		}
+	}
+
+	cs := make([]CampaignSummary, len(rows))
+	for i := range rows {
+		rows[i].OwnerUsername = usernameById[rows[i].UserId]
+		cs[i] = rows[i].CampaignSummary
+	}
+
 	for i := range cs {
 		s, err := getCampaignStats(cs[i].Id)
 		if err != nil {
@@ -742,6 +818,13 @@ func DeleteCampaign(id int64) error {
 		return err
 	}
 	err = db.Where("campaign_id=?", id).Delete(&MailLog{}).Error
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	// Delete read-only shares for this campaign (#64). campaign_shares 는
+	// campaign_id 만으로 연결되므로 캠페인 삭제 전 정리해야 고아가 남지 않는다.
+	err = DeleteCampaignSharesByCampaign(id)
 	if err != nil {
 		log.Error(err)
 		return err

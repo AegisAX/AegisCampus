@@ -389,19 +389,33 @@ $(document).ready(function () {
                             + "<br><br>Trained : " + (campaign.stats && campaign.stats.trained || 0)
                     }
 
+                    // (#64) viewer (campaign.is_owner === false) 인 행은 Copy/Delete 버튼 숨김.
+                    // 백엔드는 이미 owner-only 라 누르더라도 404 가 떨어지지만, UI 에서 명확히
+                    // 가려 viewer 의 혼동을 방지한다.
+                    // Actions 셀 정렬은 Dashboard 와 동일하게 좌측(pull-left) 으로 통일.
+                    var actionsHtml = "<div class='text-left'><a class='btn btn-primary' href='/campaigns/" + campaign.id + "' data-toggle='tooltip' data-placement='left' title='View Results'>"
+                        + "<i class='fa fa-bar-chart'></i>"
+                        + "</a>"
+                    if (campaign.is_owner) {
+                        actionsHtml += "<span data-toggle='modal' data-backdrop='static' data-target='#modal'><button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='Copy Campaign' onclick='copy(" + i + ")'>"
+                            + "<i class='fa fa-copy'></i>"
+                            + "</button></span>"
+                            + "<button class='btn btn-danger' onclick='deleteCampaign(" + i + ")' data-toggle='tooltip' data-placement='left' title='Delete Campaign'>"
+                            + "<i class='fa fa-trash-o'></i>"
+                            + "</button>"
+                    }
+                    actionsHtml += "</div>"
+
+                    // (#64) 소유자 표시 — viewer 시점에서만 owner_username 부기.
+                    var ownerNote = (!campaign.is_owner && campaign.owner_username)
+                        ? " <small class='text-muted'>— by " + escapeHtml(campaign.owner_username) + "</small>"
+                        : "";
+
                     var row = [
-                        escapeHtml(campaign.name),
+                        escapeHtml(campaign.name) + ownerNote,
                         moment(campaign.created_date).format('MMMM Do YYYY, h:mm:ss a'),
                         "<span class=\"label " + label + "\" data-toggle=\"tooltip\" data-placement=\"right\" data-html=\"true\" title=\"" + quickStats + "\">" + campaign.status + "</span>",
-                        "<div class='pull-right'><a class='btn btn-primary' href='/campaigns/" + campaign.id + "' data-toggle='tooltip' data-placement='left' title='View Results'>\
-                    <i class='fa fa-bar-chart'></i>\
-                    </a>\
-            <span data-toggle='modal' data-backdrop='static' data-target='#modal'><button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='Copy Campaign' onclick='copy(" + i + ")'>\
-                    <i class='fa fa-copy'></i>\
-                    </button></span>\
-                    <button class='btn btn-danger' onclick='deleteCampaign(" + i + ")' data-toggle='tooltip' data-placement='left' title='Delete Campaign'>\
-                    <i class='fa fa-trash-o'></i>\
-                    </button></div>"
+                        actionsHtml
                     ]
                     if (campaign.status == 'Completed') {
                         rows['archived'].push(row)
