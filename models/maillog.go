@@ -198,7 +198,7 @@ func (m *MailLog) Generate(msg *mailer.Message) error {
 
 	// Add the transparency headers
 	if conf.ContactAddress != "" {
-		msg.SetHeader("X-Sentinel-Contact", conf.ContactAddress)
+		msg.SetHeader("X-AegisCampus-Contact", conf.ContactAddress)
 	}
 
 	// Add Message-Id header as described in RFC 2822.

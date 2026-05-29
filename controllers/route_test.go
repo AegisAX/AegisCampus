@@ -59,7 +59,7 @@ func TestLoginCSRF(t *testing.T) {
 	resp, err := http.PostForm(fmt.Sprintf("%s/login", ctx.adminServer.URL),
 		url.Values{
 			"username": {"admin"},
-			"password": {"sentinel"},
+			"password": {"aegiscampus"},
 		})
 
 	if err != nil {
@@ -87,7 +87,7 @@ func TestInvalidCredentials(t *testing.T) {
 func TestSuccessfulLogin(t *testing.T) {
 	ctx := setupTest(t)
 	defer tearDown(t, ctx)
-	resp := attemptLogin(t, ctx, nil, "admin", "sentinel", "")
+	resp := attemptLogin(t, ctx, nil, "admin", "aegiscampus", "")
 	got := resp.StatusCode
 	expected := http.StatusOK
 	if got != expected {
@@ -103,7 +103,7 @@ func TestSuccessfulRedirect(t *testing.T) {
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		}}
-	resp := attemptLogin(t, ctx, client, "admin", "sentinel", fmt.Sprintf("?next=%s", next))
+	resp := attemptLogin(t, ctx, client, "admin", "aegiscampus", fmt.Sprintf("?next=%s", next))
 	got := resp.StatusCode
 	expected := http.StatusFound
 	if got != expected {
@@ -121,7 +121,7 @@ func TestSuccessfulRedirect(t *testing.T) {
 func TestAccountLocked(t *testing.T) {
 	ctx := setupTest(t)
 	defer tearDown(t, ctx)
-	resp := attemptLogin(t, ctx, nil, "houdini", "sentinel", "")
+	resp := attemptLogin(t, ctx, nil, "houdini", "aegiscampus", "")
 	got := resp.StatusCode
 	expected := http.StatusUnauthorized
 	if got != expected {

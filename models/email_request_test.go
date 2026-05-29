@@ -77,7 +77,7 @@ func (s *ModelsSuite) TestEmailRequestGenerate(ch *check.C) {
 
 	s.config.ContactAddress = "test@test.com"
 	expectedHeaders := map[string]string{
-		"X-Sentinel-Contact": s.config.ContactAddress,
+		"X-AegisCampus-Contact": s.config.ContactAddress,
 	}
 
 	msg := mailer.NewMessage()

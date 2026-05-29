@@ -26,7 +26,7 @@ const (
 
 	// SignatureHeader is the name of the HTTP header which contains the
 	// webhook signature
-	SignatureHeader = "X-Sentinel-Signature"
+	SignatureHeader = "X-AegisCampus-Signature"
 
 	// Sha256Prefix is the prefix that specifies the hashing algorithm used
 	// for the signature

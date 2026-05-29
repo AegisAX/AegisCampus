@@ -118,7 +118,7 @@ func (s *EmailRequest) Generate(msg *mailer.Message) error {
 
 	// Add the transparency headers
 	if conf.ContactAddress != "" {
-		msg.SetHeader("X-Sentinel-Contact", conf.ContactAddress)
+		msg.SetHeader("X-AegisCampus-Contact", conf.ContactAddress)
 	}
 
 	// Date 헤더

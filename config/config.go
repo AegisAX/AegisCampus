@@ -39,11 +39,11 @@ type Config struct {
 	Logging        *log.Config `json:"logging"`
 }
 
-// Version contains the current sentinel version
+// Version contains the current AegisCampus version
 var Version = ""
 
 // ServerName is the server type that is returned in the transparency response.
-const ServerName = "sentinel"
+const ServerName = "AegisCampus"
 
 // LoadConfig loads the configuration from the specified filepath
 func LoadConfig(filepath string) (*Config, error) {

@@ -72,7 +72,7 @@ func (s *ModelsSuite) TestPostSMTPValidHeader(c *check.C) {
 		UserId:      1,
 		Headers: []Header{
 			Header{Key: "Reply-To", Value: "test@example.com"},
-			Header{Key: "X-Mailer", Value: "sentinel"},
+			Header{Key: "X-Mailer", Value: "aegiscampus"},
 		},
 	}
 	err := PostSMTP(&smtp)

@@ -51,7 +51,7 @@ func GetContext(handler http.Handler) http.HandlerFunc {
 		}
 		// Set the context appropriately here.
 		// Set the session
-		session, _ := Store.Get(r, "sentinel")
+		session, _ := Store.Get(r, "aegiscampus")
 		// Put the session in the context so that we can
 		// reuse the values in different handlers
 		r = ctx.Set(r, "session", session)
