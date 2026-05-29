@@ -22,6 +22,46 @@
   `static/css/flag-icons/` (CSS + 4x3/1x1 flags, 542 SVG). `templates/
   base.html` 에 별도 `<link>` 로 로드, `sentinel.css` 에 concat 하지
   않음 (상대경로 깨짐 방지). 외부 CDN 의존 제거의 첫 적용.
+- **#64** 캠페인 결과 화면 read-only 공유 기능. 캠페인 소유자가 다른 사용자에게
+  자기 캠페인의 **결과 화면만** 볼 수 있는 권한을 부여한다. 공유받은 사용자
+  (viewer) 는 결과/수강현황/국가Top10/Export 모두 그대로 보지만, Complete/
+  Delete/공유/대상자 세부 타임라인/신고 토글 등 모든 변경 동작은 불가능하며
+  관련 UI 도 가려진다. 권한 모델 자체는 손대지 않고(`EnforceViewOnly`/`Admin/User`
+  2단계 그대로) 캠페인 단위의 grant 차원을 신규 추가해서, 기존 owner-only
+  격리(#41/#58/#59/#61/#2 류)를 깨지 않는다.
+  - 데이터: 신규 테이블 `campaign_shares(id, campaign_id, user_id, created_date)`
+    + UNIQUE(campaign_id, user_id) + INDEX(user_id). SQLite/MySQL 마이그레이션
+    `20260529000000_add_campaign_shares.sql`. 캠페인/사용자 삭제 시 cascade
+    정리 (`DeleteCampaign`·`DeleteUser` 보강).
+  - 판정 헬퍼: `models.CanViewCampaign(id, viewerUid)` 가 (1) 소유자 또는
+    (2) campaign_shares 에 grant 존재 시 통과. 데이터 조회는 여전히 owner
+    uid 로 수행 — 즉 권한 판정만 viewer uid, 데이터는 owner uid 라는 분리
+    구조로 GORM 의 user_id 필터 불변식을 보존.
+  - 읽기 API 게이트 (controllers/api/campaign.go): `/api/campaigns/{id}`
+    (GET), `/results`, `/summary`, `/video_progress`, `/country_stats` 5개에
+    viewer 통과 게이트 추가. DELETE/`/complete`/`/results/{rid}/report` 는
+    owner-only 그대로 (viewer uid 로 `GetCampaign` 실패 → 자동 404).
+  - 공유 관리 API (owner-only):
+      `GET    /api/campaigns/{id}/shares`            — 현재 공유자 + 후보
+      `POST   /api/campaigns/{id}/shares`            — `{"user_id": N}` 추가
+      `DELETE /api/campaigns/{id}/shares/{uid}`      — 해제
+    `/api/users/` 가 admin 전용이라 후보 사용자 목록도 이 GET 응답에 함께
+    실어 비-admin owner 도 picker 를 채울 수 있게 함 (id + username 만).
+  - 캠페인 목록·Dashboard 노출: `GetCampaignSummaries(uid)` 가 owned + shared
+    union 을 반환. 각 summary 에 `is_owner` 와 `owner_username` 동봉.
+    Dashboard 의 "Click Rate Over Time" 차트는 viewer 의 공유 캠페인도
+    자동 포함됨.
+  - 결과 화면 응답에 `is_owner` 동봉 (`/api/campaigns/{id}/results`) — 프런트가
+    viewer/owner 모드를 분기. viewer 화면에서는 Complete/Delete/공유 버튼 숨김,
+    결과 테이블 행의 ▶ caret 자체 비표시 + 행 펼치기 이벤트 차단 + 셀
+    포인터 커서 제거(`.details-control` 클래스 미적용), 신고 컬럼은 아이콘만
+    표시(onclick 미부착).
+  - 공유 UI (owner 전용): 결과 화면 상단에 "공유" 버튼 + 모달
+    (대상 사용자 선택 + 현재 공유자 목록 + 해제). campaign_results.html /
+    campaign_results.js.
+  - 목록 UI: 캠페인/Dashboard 행에 owner_username 부기 (viewer 시점에서만,
+    날짜 줄 옆 회색 작은 글씨). 캠페인 목록 Actions 컬럼 헤더 명시 추가 +
+    좌측 정렬로 Dashboard 와 통일.
 
 ### Fixed (운영 검증 — rc2 후 발견)
 
