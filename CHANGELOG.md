@@ -226,7 +226,7 @@ v1.0.0-rc2 출시 후 누적된 보안 결함 차단 4건 + 운영 검증 결함
     차단. 백엔드 nullable 화는 Phase 5+ 백로그.
   - **라벨 한국어 통일** : Launch Date → "발송 시작", Send Emails By →
     "발송 마감 (선택)" / Send By → "발송 마감". 영문 툴팁도 한국어로 정확한
-    의미 명시 ("지정 시, Sentinel 은 발송 시작 시각과 이 시각 사이에 균등하게
+    의미 명시 ("지정 시, AegisCampus 은 발송 시작 시각과 이 시각 사이에 균등하게
     메일을 발송합니다"). 단어 자체의 정확성은 향후 i18n 도입 트랙에서 재검토.
   - **Results 페이지 잔여 정리** : "Back" 버튼의 링크 `/campaigns` → `/`,
     deleteCampaign 후 redirect `/campaigns` → `/`. campaigns.html / campaigns.js
