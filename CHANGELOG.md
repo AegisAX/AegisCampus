@@ -2,10 +2,31 @@
 
 이 프로젝트의 모든 변경 사항은 이 파일에 기록됩니다.
 
-[Keep a Changelog](https://keepachangelog.com/ko/1.1.0/) 형식을 따르며,
+[Keep a Changelog](https://keepachangelog.com/) 형식을 따르며,
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) 을 사용합니다.
 
 ## [Unreleased]
+
+### Phase 3 — Branding (다음 트랙, rc4 대상)
+- 브랜딩 적용 (이름/로고/색상) + X-Server 헤더
+- `templates/base.html` Google Fonts CDN → 로컬 vendor 전환 (#55 flag-icons 연장선)
+- dist 동기화 재빌드 (rc1 Known Limitations 해소)
+
+### Phase 4 — Low (코드 정리)
+- (운영 검증 후 결정)
+
+### Phase 5+ — 출시 후 (v1.1 영역)
+- TestAttachment 사전 결함 (testdata 옛 변수)
+- `/videos/upload` 제거 + JS 를 `/api/videos/` 로 이전
+- Email Template / Landing Page / Redirect Page 권한 체계 통일
+
+---
+
+## [1.0.0-rc3] - 2026-05-29
+
+v1.0.0-rc2 출시 후 누적된 보안 결함 차단 4건 + 운영 검증 결함 수정 8건
++ UX/구조 개선 6건 + 신규 기능 3건을 묶은 RC 패치 릴리스. 신규 마이그레이션
+2건 (#64 campaign_shares, #66 user_preferences). 다음 트랙은 브랜딩 적용.
 
 ### Added (신규 기능)
 
@@ -259,14 +280,6 @@
   영상을 캠페인 LandingPage 에 연결(+결과를 Clicked 로 진전)하도록 시나리오를
   현실화. 테스트 전용 변경, 제품 동작 영향 없음.
 
-### Phase 4 — Low (코드 정리, 미정)
-- (예정)
-
-### Phase 5+ — 출시 후 (v1.1 영역)
-- TestAttachment 사전 결함 (testdata 옛 변수)
-- `/videos/upload` 제거 + JS 를 `/api/videos/` 로 이전
-- Email Template / Landing Page / Redirect Page 권한 체계 통일
-
 ---
 
 ## [1.0.0-rc2] - 2026-05-27
@@ -367,7 +380,8 @@ v1.0.0-beta2 운영 검증 후, 출시 후보(rc) 승격을 위한 기능 안정
 
 ---
 
-[Unreleased]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-rc2...HEAD
+[Unreleased]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-rc3...HEAD
+[1.0.0-rc3]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-rc2...v1.0.0-rc3
 [1.0.0-rc2]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-rc1...v1.0.0-rc2
 [1.0.0-rc1]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-beta2...v1.0.0-rc1
 [1.0.0-beta2]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-beta1...v1.0.0-beta2
