@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AegisAX/Sentinel/config"
 	log "github.com/AegisAX/Sentinel/logger"
 	"github.com/AegisAX/Sentinel/mailer"
 	"github.com/AegisAX/Sentinel/util/mimeutil"
@@ -198,7 +197,6 @@ func (m *MailLog) Generate(msg *mailer.Message) error {
 	}
 
 	// Add the transparency headers
-	msg.SetHeader("X-Mailer", config.ServerName)
 	if conf.ContactAddress != "" {
 		msg.SetHeader("X-Sentinel-Contact", conf.ContactAddress)
 	}

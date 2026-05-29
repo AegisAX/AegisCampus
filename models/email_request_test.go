@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/AegisAX/Sentinel/config"
 	"github.com/AegisAX/Sentinel/mailer"
 	emailparser "github.com/AegisAX/Sentinel/util/email"
 	check "gopkg.in/check.v1"
@@ -78,7 +77,6 @@ func (s *ModelsSuite) TestEmailRequestGenerate(ch *check.C) {
 
 	s.config.ContactAddress = "test@test.com"
 	expectedHeaders := map[string]string{
-		"X-Mailer":           config.ServerName,
 		"X-Sentinel-Contact": s.config.ContactAddress,
 	}
 

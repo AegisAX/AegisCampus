@@ -5,7 +5,6 @@ import (
 	"net/mail"
 	"time"
 
-	"github.com/AegisAX/Sentinel/config"
 	log "github.com/AegisAX/Sentinel/logger"
 	"github.com/AegisAX/Sentinel/mailer"
 )
@@ -118,7 +117,6 @@ func (s *EmailRequest) Generate(msg *mailer.Message) error {
 	s.URL = url
 
 	// Add the transparency headers
-	msg.SetHeader("X-Mailer", config.ServerName)
 	if conf.ContactAddress != "" {
 		msg.SetHeader("X-Sentinel-Contact", conf.ContactAddress)
 	}

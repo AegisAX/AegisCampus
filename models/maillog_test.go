@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/AegisAX/Sentinel/config"
 	"github.com/AegisAX/Sentinel/mailer"
 	emailparser "github.com/AegisAX/Sentinel/util/email"
 	"gopkg.in/check.v1"
@@ -265,7 +264,6 @@ func (s *ModelsSuite) TestMailLogGenerate(ch *check.C) {
 func (s *ModelsSuite) TestMailLogGenerateTransparencyHeaders(ch *check.C) {
 	s.config.ContactAddress = "test@test.com"
 	expectedHeaders := map[string]string{
-		"X-Mailer":           config.ServerName,
 		"X-Sentinel-Contact": s.config.ContactAddress,
 	}
 	campaign := s.createCampaign(ch)
