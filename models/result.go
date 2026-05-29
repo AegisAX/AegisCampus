@@ -285,6 +285,25 @@ func UnreportResult(rid string) error {
 	).Delete(&Event{}).Error
 }
 
+// ReportResult 는 rid 의 결과를 신고 상태로 표시합니다.
+// 이미 reported=true 인 경우 멱등하게 nil 을 반환합니다.
+//
+// (#65) 운영자가 결과 화면에서 신고 토글 ON 을 눌렀을 때 호출됩니다.
+// 기존엔 클라이언트가 phishing 서버 /report?rid 를 직접 fetch 했는데,
+// CampaignComplete 가드 등에 막혀 완료된 캠페인에서 404 가 나는 결함이
+// 있었습니다. admin API 로 통일해 캠페인 상태와 무관하게 사후 토글이
+// 가능하도록 합니다.
+func ReportResult(rid string) error {
+	r := Result{}
+	if err := db.Where("r_id = ?", rid).First(&r).Error; err != nil {
+		return err
+	}
+	if r.Reported {
+		return nil
+	}
+	return r.HandleEmailReport(EventDetails{})
+}
+
 // CountryStat 은 캠페인별 국가 접속 통계를 표현합니다.
 type CountryStat struct {
 	Country string `json:"country"`

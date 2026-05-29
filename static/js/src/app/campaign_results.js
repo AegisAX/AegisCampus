@@ -1229,38 +1229,33 @@ function toggle_report(rid, cid, currentlyReported) {
     }).then(function(result) {
         if (!result.value) return;
 
-        if (currentlyReported) {
-            // OFF: API로 reported=false 처리
-            api.campaignId.get(cid).success(function(c) {
-                // 직접 reported 상태 토글 API 호출
-                $.ajax({
-                    url: "/api/campaigns/" + cid + "/results/" + rid + "/report",
-                    method: "DELETE",
-                    beforeSend: function(xhr) {
-                        xhr.setRequestHeader("Authorization", "Bearer " + user.api_key);
-                    }
-                }).done(function() {
-                    refresh();
-                }).fail(function() {
-                    Swal.fire("오류", "신고 취소에 실패했습니다.", "error");
-                });
-            });
-        } else {
-            // ON: 기존 방식 (피싱 서버 /report 엔드포인트 호출)
-            api.campaignId.get(cid).success(function(c) {
-                var report_url = new URL(c.url);
-                report_url.pathname = '/report';
-                report_url.search = "?rid=" + rid;
-                fetch(report_url)
-                    .then(function(response) {
-                        if (!response.ok) throw new Error("HTTP " + response.status);
-                        refresh();
-                    })
-                    .catch(function(error) {
-                        Swal.fire("오류", "신고 처리에 실패했습니다: " + error.message, "error");
-                    });
-            });
-        }
+        // (#65) ON/OFF 모두 admin API 로 통일. 기존 ON 경로는 phishing 서버
+        // /report?rid 호출이라 CampaignComplete 가드에 막혀 완료된 캠페인에서
+        // 404 가 나는 결함이 있었다. 동일 path 의 POST(=ON) / DELETE(=OFF) 로 통합.
+        var method  = currentlyReported ? "DELETE" : "POST";
+        var failMsg = currentlyReported ? "신고 취소에 실패했습니다." : "신고 처리에 실패했습니다.";
+
+        $.ajax({
+            url: "/api/campaigns/" + cid + "/results/" + rid + "/report",
+            method: method,
+            beforeSend: function(xhr) {
+                xhr.setRequestHeader("Authorization", "Bearer " + user.api_key);
+            }
+        }).done(function() {
+            // (#65) refresh() 는 completed 캠페인에서 doPoll=false 가드로
+            // 즉시 리턴되어 화면이 안 바뀐다. 폴링 루프 건드리지 않고 1회
+            // 강제 갱신 — poll() 만 직접 호출하고 인디케이터는 수동 토글.
+            $("#refresh_message").show();
+            $("#refresh_btn").hide();
+            poll();
+        }).fail(function(xhr) {
+            var detail = failMsg;
+            try {
+                var body = JSON.parse(xhr.responseText);
+                if (body && body.message) detail = failMsg + " (" + body.message + ")";
+            } catch (e) {}
+            Swal.fire("오류", detail, "error");
+        });
     });
 }
 

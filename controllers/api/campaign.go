@@ -209,6 +209,31 @@ func (as *Server) CampaignResultUnreport(w http.ResponseWriter, r *http.Request)
 	JSONResponse(w, models.Response{Success: true, Message: "Reported status cleared"}, http.StatusOK)
 }
 
+// POST /api/campaigns/:id/results/:rid/report
+// 운영자가 결과 화면에서 신고 상태를 ON 으로 토글하는 경로.
+//
+// (#65) 기존엔 ON 시 클라이언트가 phishing 서버 /report?rid 를 호출했는데,
+// CampaignComplete 가드에 막혀 완료된 캠페인에서 404 가 나는 결함이 있었다.
+// 신고 토글은 owner-only — viewer uid 로 GetCampaign 호출 → 404.
+func (as *Server) CampaignResultReport(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	cid, _ := strconv.ParseInt(vars["id"], 10, 64)
+	rid := vars["rid"]
+	uid := ctx.Get(r, "user_id").(int64)
+
+	// 캠페인 소유권 확인
+	if _, err := models.GetCampaign(cid, uid); err != nil {
+		JSONResponse(w, models.Response{Success: false, Message: "Campaign not found"}, http.StatusNotFound)
+		return
+	}
+
+	if err := models.ReportResult(rid); err != nil {
+		JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
+		return
+	}
+	JSONResponse(w, models.Response{Success: true, Message: "Reported"}, http.StatusOK)
+}
+
 // GET /api/campaigns/{id}/video_progress
 // 캠페인 수신자별 수강 현황 조회
 //

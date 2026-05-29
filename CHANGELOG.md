@@ -109,6 +109,20 @@
   Raw Events.csv` 로 분리. Events(CSV, 정리된 per-수신자) 는 기존 파일명
   유지. `static/js/src/app/campaign_results.js` 의 `exportAsCSV` 정리 +
   공통 다운로드 헬퍼 `downloadCSV` 로 추출.
+- **#65** 완료된 캠페인(`CampaignComplete`)에서 결과 화면의 신고 토글 ON 시
+  클라이언트에 404 알림이 노출되던 결함 보강. 기존 `toggle_report` 는 ON
+  분기에서 phishing 서버 `/report?rid=` 를 fetch 했는데, `/report` 핸들러의
+  CampaignComplete 가드에 막혀 404 가 반환됐다. 완료 후에도 사후 신고
+  반영이 가능해야 하는 운영 요구를 만족시키기 위해, ON 경로를 OFF 와
+  대칭인 admin API 로 통일했다 — 신규 `POST /api/campaigns/{id}/results/
+  {rid}/report` 라우트 + owner-only 핸들러 `CampaignResultReport` +
+  `models.ReportResult(rid)` (멱등 — 이미 reported 면 nil 반환,
+  `HandleEmailReport(EventDetails{})` 호출로 Reported 이벤트 + reported
+  플래그 동시 처리). 토글 done 콜백은 `refresh()` 가 완료 캠페인에서
+  `doPoll=false` 가드로 즉시 리턴되는 점을 우회해 `poll()` 만 직접 호출
+  + 인디케이터 수동 토글 — 자동 폴링 루프는 그대로(완료 캠페인은 더 이상
+  이벤트 없음). viewer 는 owner-only 그대로 (`GetCampaign(cid, uid)` 검증
+  으로 자동 404).
 
 ### Changed (UX / 일관성)
 

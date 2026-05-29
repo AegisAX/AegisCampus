@@ -67,6 +67,7 @@ func (as *Server) registerRoutes() {
 	router.HandleFunc("/campaigns/{id:[0-9]+}/results", as.CampaignResults)
 	router.HandleFunc("/campaigns/{id:[0-9]+}/summary", as.CampaignSummary)
 	router.HandleFunc("/campaigns/{id:[0-9]+}/complete", as.CampaignComplete)
+	router.HandleFunc("/campaigns/{id:[0-9]+}/results/{rid}/report", as.CampaignResultReport).Methods("POST")
 	router.HandleFunc("/campaigns/{id:[0-9]+}/results/{rid}/report", as.CampaignResultUnreport).Methods("DELETE")
 	router.HandleFunc("/campaigns/{id:[0-9]+}/video_progress", as.CampaignVideoProgress).Methods("GET")
 	router.HandleFunc("/campaigns/{id:[0-9]+}/country_stats", as.CampaignCountryStats).Methods("GET")
