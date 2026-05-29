@@ -1,11 +1,11 @@
-# Sentinel 아키텍처 & 설계 문서
+# AegisCampus 아키텍처 & 설계 문서
 
-- 버전: v1.0.0-rc1
-- 발행일: 2026-05-19
+- 버전: v1.0.0-rc3
+- 발행일: 2026-05-29
 - 베이스: GoPhish 0.12.1 fork
-- 성격: Sentinel 의 **첫 공식 설계 문서**. 본 문서는 v1.0.0-rc1 코드를 1차 출처로 기술하며, 이전 베타 단계의 변경 이력은 릴리스 노트(CHANGELOG)에서 관리한다.
+- 성격: AegisCampus 의 **첫 공식 설계 문서**. 본 문서는 v1.0.0-rc1 코드를 1차 출처로 기술하며, rc2/rc3 및 이전 베타 단계의 변경 이력은 릴리스 노트(CHANGELOG)에서 관리한다.
 
-> 이 문서는 현재 코드(`v1.0.0-rc1`) 기준으로 직접 추출한 라우트·미들웨어·데이터 모델·마이그레이션 등의 내용을 근거로 작성되었다. 향후 코드 변경 시 본 문서와 `docs/*.mmd` 다이어그램 소스를 같은 변경 단위에서 갱신한다.
+> 이 문서는 작성 시점 코드(`v1.0.0-rc1`) 기준으로 직접 추출한 라우트·미들웨어·데이터 모델·마이그레이션 등의 내용을 근거로 작성되었다. 향후 코드 변경 시 본 문서와 `docs/*.mmd` 다이어그램 소스를 같은 변경 단위에서 갱신한다.
 
 ## 목차
 
@@ -26,14 +26,14 @@
 
 ## 1. 개요
 
-### 1.1 Sentinel 이란
+### 1.1 AegisCampus 이란
 
-Sentinel 은 GoPhish 0.12.1 의 피싱 시뮬레이션 기능을 **사이버보안 인식 교육이 통합된 종합 플랫폼**으로 확장한 프로젝트다.
+AegisCampus 은 GoPhish 0.12.1 의 피싱 시뮬레이션 기능을 **사이버보안 인식 교육이 통합된 종합 플랫폼**으로 확장한 프로젝트다.
 핵심 가치는 "누가 클릭했는가" 를 넘어, 잘못 클릭한 대상자에게 즉시 교육 영상을 송출하고 그 **수강 여부까지 캠페인 보고서에서 추적**하는 데 있다.
 
 ### 1.2 GoPhish 0.12.1 대비 핵심 차별점
 
-| 영역 | GoPhish 0.12.1 | Sentinel |
+| 영역 | GoPhish 0.12.1 | AegisCampus |
 | --- | --- | --- |
 | 영상 교육 | - | 동영상 업로드·스트리밍·수강률 추적 |
 | Redirect Pages | - | 캠페인 종료 후 교육 페이지 |
@@ -50,7 +50,7 @@ Sentinel 은 GoPhish 0.12.1 의 피싱 시뮬레이션 기능을 **사이버보�
 
 - 신규 모델 3개: Video, VideoProgress, RedirectPage
 - 신규 유틸 패키지: util/mimeutil (RFC 2047/5987)
-- Sentinel-era 마이그레이션 10건 (SQLite + MySQL 동일 구조)
+- AegisCampus-era 마이그레이션 10건 (SQLite + MySQL 동일 구조)
 - 신규 phishing 라우트 다수 + 신규 admin/API 라우트 (4장 참조)
 
 ---
@@ -454,7 +454,7 @@ RP/LP HTML 에 `Swal.fire` 호출은 있으나 `window.Swal` 정의가 없는 �
 
 ## 8. 마이그레이션
 
-### 8.1 Sentinel-era 적용 순서 (10건)
+### 8.1 AegisCampus-era 적용 순서 (10건)
 
 | # | 파일 | 의미 |
 | --- | --- | --- |
@@ -547,7 +547,7 @@ v1.0.0-rc1 은 기능 표면을 고정한 채, 운영 검증과 출시 후보 �
 | isSafeInternalPath | 백슬래시/제어문자 통과 → `\\evil.com`→`//evil.com` 오픈 리다이렉트 우회 → 차단 |
 | Media | rid TransparencySuffix 미제거(타 핸들러 비일관) → 일관 처리 |
 
-검증: 전 패키지 `go test ./...` 통과(실패 0), `go vet ./...` 클린, 운영 빌드 성공, 마이그레이션 SQLite/MySQL Sentinel-era 10건 패리티. 회귀 가드 `TestTrackVideoServerAuthoritative`(controllers/phish_test.go) — 위조 완료 차단 + 정상 완주 무회귀 + seconds_watched 클램프 동시 검증. 운영 스모크 (LP/RP 영상 수강, 새로고침 완료유지, ended controls 제거, Media 스트리밍, stale 페이지 Swal) 이상 없음.
+검증: 전 패키지 `go test ./...` 통과(실패 0), `go vet ./...` 클린, 운영 빌드 성공, 마이그레이션 SQLite/MySQL AegisCampus-era 10건 패리티. 회귀 가드 `TestTrackVideoServerAuthoritative`(controllers/phish_test.go) — 위조 완료 차단 + 정상 완주 무회귀 + seconds_watched 클램프 동시 검증. 운영 스모크 (LP/RP 영상 수강, 새로고침 완료유지, ended controls 제거, Media 스트리밍, stale 페이지 Swal) 이상 없음.
 
 ---
 
@@ -573,8 +573,8 @@ v1.0.0-rc1 은 기능 표면을 고정한 채, 운영 검증과 출시 후보 �
 | mailer/mailer.go | SMTP 발송 + dialHost sender==nil 가드 |
 | worker/worker.go | SendTestEmail 10s timeout |
 | controllers/phish_test.go | TestTrackVideoServerAuthoritative 회귀 가드 |
-| db/db_sqlite3,db_mysql/migrations/ | Sentinel-era 10건 (양쪽 패리티) |
+| db/db_sqlite3,db_mysql/migrations/ | AegisCampus-era 10건 (양쪽 패리티) |
 
 ---
 
-*Sentinel v1.0.0-rc1 / 2026-05-19*
+*AegisCampus v1.0.0-rc3 / 2026-05-29*

@@ -1,8 +1,8 @@
-# 기여 가이드 / Contributing to Sentinel
+# 기여 가이드 / Contributing to AegisCampus
 
-Sentinel 에 기여해주셔서 감사합니다. 이 문서는 효율적인 기여를 위한 안내입니다.
+AegisCampus 에 기여해주셔서 감사합니다. 이 문서는 효율적인 기여를 위한 안내입니다.
 
-*Thank you for your interest in contributing to Sentinel. This document outlines how to contribute effectively.*
+*Thank you for your interest in contributing to AegisCampus. This document outlines how to contribute effectively.*
 
 ---
 

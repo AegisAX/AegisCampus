@@ -2,15 +2,15 @@
   <img src="static/images/sentinel_mark.svg" width="80" alt="" />
 </p>
 
-<h1 align="center">Sentinel</h1>
+<h1 align="center">AegisCampus</h1>
 
 <p align="center">
-  Security awareness training, integrated into phishing simulation.<br/>
-  사이버보안 인식 교육 통합 플랫폼
+  Cybersecurity training & phishing simulation, in one platform.<br/>
+  악성메일 모의훈련과 사이버보안 교육을 하나의 플랫폼에서
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.0--beta2-3F3D7A" alt="Version" />
+  <img src="https://img.shields.io/badge/version-1.0.0--rc3-3F3D7A" alt="Version" />
   <img src="https://img.shields.io/badge/license-MIT-3F3D7A" alt="License" />
   <img src="https://img.shields.io/badge/Go-1.23%2B-3F3D7A" alt="Go" />
 </p>
@@ -18,14 +18,14 @@
 ---
 
 <p align="center">
-  <img src="static/images/sentinel_infographic.svg" width="800" alt="Sentinel system overview" />
+  <img src="static/images/sentinel_infographic.svg" width="800" alt="AegisCampus system overview" />
 </p>
 
 ## 개요 / Overview
 
-**Sentinel** 은 피싱 시뮬레이션과 보안 인식 교육 영상을 하나의 도구에서 통합 운영할 수 있는 자체 호스트 플랫폼입니다. "잘못된 클릭 → 즉시 교육 영상 → 수강 완료 추적" 흐름으로, 시뮬레이션 그 자체로 끝내지 않고 학습 효과까지 캠페인 보고서에 통합합니다.
+**AegisCampus** 은 피싱 시뮬레이션과 보안 인식 교육 영상을 하나의 도구에서 통합 운영할 수 있는 자체 호스트 플랫폼입니다. "잘못된 클릭 → 즉시 교육 영상 → 수강 완료 추적" 흐름으로, 시뮬레이션 그 자체로 끝내지 않고 학습 효과까지 캠페인 보고서에 통합합니다.
 
-*Sentinel is a self-hosted platform that combines phishing simulation with embedded video training. Beyond simulating attacks, it tracks whether employees who fell for a campaign actually watched and completed the assigned training video — the `Trained` event joins the existing `Sent → Opened → Clicked → Submitted` timeline, giving security teams a complete picture from compromise to remediation.*
+*AegisCampus is a self-hosted platform that combines phishing simulation with embedded video training. Beyond simulating attacks, it tracks whether employees who fell for a campaign actually watched and completed the assigned training video — the `Trained` event joins the existing `Sent → Opened → Clicked → Submitted` timeline, giving security teams a complete picture from compromise to remediation.*
 
 ## 핵심 특징 / Key features
 
@@ -148,5 +148,5 @@ GitHub 웹 UI 에서 `Releases > Draft a new release` → tag 선택 → CHANGEL
 ---
 
 <p align="center">
-  <sub>Sentinel is distributed under the MIT License. See <a href="LICENSE">LICENSE</a> for details.</sub>
+  <sub>AegisCampus is distributed under the MIT License. See <a href="LICENSE">LICENSE</a> for details.</sub>
 </p>
