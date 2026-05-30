@@ -11,6 +11,24 @@ Portions of this software are derived from Gophish and remain subject to the
 terms of the MIT License as stated in the LICENSE file.
 
 --------------------------------------------------------------------------------
+Bundled web fonts
+--------------------------------------------------------------------------------
+
+This product bundles the following web fonts, each under its own license:
+
+  - Source Sans 3 (used under the family name 'Source Sans Pro')
+      Copyright 2010-2024 Adobe, with Reserved Font Name 'Source'.
+      Licensed under the SIL Open Font License, Version 1.1.
+      Source : https://github.com/adobe-fonts/source-sans
+      License: static/font/LICENSE-SourceSans.md
+
+  - Roboto
+      Copyright 2011 Google Inc. All Rights Reserved.
+      Licensed under the Apache License, Version 2.0.
+      Source : https://github.com/googlefonts/roboto-3-classic
+      License: static/font/LICENSE-Roboto.txt
+
+--------------------------------------------------------------------------------
 
 [ 한국어 (Korean) ]
 ※ 본 한글 표기는 참고용이며, 법적 효력은 위 영문 및 LICENSE 파일에 있습니다.
@@ -26,3 +44,21 @@ Copyright (c) 2013-2020 Jordan Wright) 의 파생 저작물입니다.
 
 본 소프트웨어의 일부는 Gophish 에서 파생되었으며, LICENSE 파일에 명시된 MIT
 라이선스 조건의 적용을 계속 받습니다.
+
+----------------------------------------
+동봉된 웹 폰트
+----------------------------------------
+
+본 제품에는 다음 웹 폰트가 동봉되어 있으며, 각각의 라이선스를 따릅니다.
+
+  - Source Sans 3 ('Source Sans Pro' 패밀리명으로 사용)
+      Copyright 2010-2024 Adobe (Reserved Font Name 'Source')
+      SIL Open Font License, Version 1.1
+      출처   : https://github.com/adobe-fonts/source-sans
+      라이선스: static/font/LICENSE-SourceSans.md
+
+  - Roboto
+      Copyright 2011 Google Inc.
+      Apache License, Version 2.0
+      출처   : https://github.com/googlefonts/roboto-3-classic
+      라이선스: static/font/LICENSE-Roboto.txt

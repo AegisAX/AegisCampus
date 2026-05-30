@@ -1,6 +1,56 @@
+/* ──────────────────────────────────────────────────────────────────────
+ * Vendor web fonts (AegisCampus, rc4: 외부 CDN 의존 제거)
+ *   Source Sans 3 ── Source Sans Pro 후계, metric 호환. SIL OFL 1.1.
+ *     family 명을 'Source Sans Pro' 로 매핑해 기존 CSS 호출과 호환.
+ *   Roboto v30 latin ── Apache 2.0. 영문 헤더(h1~h6) 전용. 한글은 fallback.
+ *   라이선스 텍스트는 static/font/LICENSE-SourceSans.md, LICENSE-Roboto.txt.
+ * ────────────────────────────────────────────────────────────────────── */
+@font-face {
+    font-family: 'Source Sans Pro';
+    font-style: normal;
+    font-weight: 300;
+    font-display: swap;
+    src: url('/font/sourcesans3-light.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Source Sans Pro';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/font/sourcesans3-regular.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Source Sans Pro';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('/font/sourcesans3-semibold.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Source Sans Pro';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/font/sourcesans3-bold.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('/font/roboto-medium.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/font/roboto-bold.woff2') format('woff2');
+}
+
 .swal2-popup {
     font-size: 1.6rem !important;
-  }
+}
 
 .nav-tabs {
     cursor: pointer;
