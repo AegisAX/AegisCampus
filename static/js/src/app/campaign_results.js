@@ -118,7 +118,7 @@ function normalizeStatus(raw) {
     if (!raw) return "";
     var s = ("" + raw).trim();
     switch (s) {
-        // Sentinel 라벨로 정규화 (마이그레이션 전 방어)
+        // AegisCampus 라벨로 정규화 (마이그레이션 전 방어)
         case "Email Sent":     return "Sent";
         case "Email Opened":   return "Opened";
         case "Clicked Link":   return "Clicked";
@@ -216,7 +216,7 @@ function deleteCampaign() {
 function completeCampaign() {
     Swal.fire({
         title: "Are you sure?",
-        text: "Sentinel will stop processing events for this campaign",
+        text: "AegisCampus will stop processing events for this campaign",
         type: "warning",
         animation: false,
         showCancelButton: true,
@@ -922,7 +922,7 @@ function poll() {
 
 function load() {
     campaign.id = window.location.pathname.split('/').slice(-1)[0]
-    var use_map = JSON.parse(localStorage.getItem('sentinel.use_map'))
+    var use_map = JSON.parse(localStorage.getItem('aegiscampus.use_map'))
     api.campaignId.results(campaign.id)
         .success(function (c) {
             // (#64) viewer/owner 모드 분기. 응답의 is_owner 가 false 면 viewer.
@@ -932,7 +932,7 @@ function load() {
 
             campaign = c
             if (campaign) {
-                $("title").text(c.name + " - Sentinel")
+                $("title").text(c.name + " - AegisCampus")
                 $("#loading").hide()
                 $("#campaignResults").show()
                 // Set the title
@@ -1649,7 +1649,7 @@ var TOGGLEABLE_COLUMNS = [
 ];
 // 기본 숨김 컬럼 (Email, Position, Status)
 var DEFAULT_HIDDEN_COLUMNS = [4, 5, 7];
-var COLUMN_PREFS_KEY = "sentinel.resultCols";
+var COLUMN_PREFS_KEY = "aegiscampus.resultCols";
 
 // 저장된 컬럼 표시 설정 로드 → { colIdx: bool } 맵.
 // 기본값(미저장 컬럼)은 DEFAULT_HIDDEN_COLUMNS 기준으로 결정.

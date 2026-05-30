@@ -228,10 +228,10 @@ $(document).ready(function () {
         })
     }
 
-    var use_map = localStorage.getItem('sentinel.use_map')
+    var use_map = localStorage.getItem('aegiscampus.use_map')
     $("#use_map").prop('checked', JSON.parse(use_map))
     $("#use_map").on('change', function () {
-        localStorage.setItem('sentinel.use_map', JSON.stringify(this.checked))
+        localStorage.setItem('aegiscampus.use_map', JSON.stringify(this.checked))
     })
 
     loadIMAPSettings()
