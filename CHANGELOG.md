@@ -7,18 +7,84 @@
 
 ## [Unreleased]
 
-### Phase 3 — Branding (다음 트랙, rc4 대상)
-- 브랜딩 적용 (이름/로고/색상) + X-Server 헤더
-- `templates/base.html` Google Fonts CDN → 로컬 vendor 전환 (#55 flag-icons 연장선)
-- dist 동기화 재빌드 (rc1 Known Limitations 해소)
-
 ### Phase 4 — Low (코드 정리)
 - (운영 검증 후 결정)
 
-### Phase 5+ — 출시 후 (v1.1 영역)
+### Phase 5+ — 출시 후 (v1.1 영역, 운영 식별자 2차 리브랜드)
+- 운영 식별자 정리: Go 모듈명, 바이너리/디렉터리/DB 파일명, 환경변수 prefix,
+  GitHub repo 이름, ansible role 이름, docker 태그
 - TestAttachment 사전 결함 (testdata 옛 변수)
 - `/videos/upload` 제거 + JS 를 `/api/videos/` 로 이전
 - Email Template / Landing Page / Redirect Page 권한 체계 통일
+
+---
+
+## [1.0.0-rc4] - 2026-05-31
+
+Sentinel → **AegisCampus** 1차 브랜딩(Layer 1, 운영 무중단) 적용 RC 릴리스.
+사용자 경험에 노출되는 표면(UI 텍스트, LICENSE/NOTICE, 식별 헤더, 정적 자산
+파일명, 폰트 의존)을 모두 AegisCampus 로 통일하면서, 운영 식별자(Go 모듈
+경로, 바이너리 이름, 디렉터리, 환경변수 prefix, GitHub repo 이름)는 그대로
+유지해 배포 절차/외부 인프라(nginx, ansible, systemd 등)에 변화가 없도록
+설계했다. 신규 기능/마이그레이션/Go 동작 변경은 없으며, Phase 2 #5~#8·rc1~rc3
+의 보안 게이트와 회귀 가드는 그대로 유지된다.
+
+**Layer 2 (운영 식별자)** 는 별도 트랙(v1.1+ 후보)에서 처리한다.
+
+### Changed (브랜딩 — 사용자 표면)
+
+- **#67 [1-A] LICENSE/NOTICE 정비.** LICENSE 는 업스트림 MIT 원문
+  ("Gophish Community Edition" 표기 + Jordan Wright 저작권) 을 그대로
+  보존하면서 AegisAX 저작권 줄과 파생 표기, 연락처(`yjjeon.whitehat@gmail.com`)
+  를 추가. 하단에 비구속 한글 참고번역 동봉. NOTICE 신규 추가 (영문+한글).
+- **#67 [1-A] 폰트 라이선스 동봉.** Source Sans 3 / Roboto 의 라이선스 텍스트
+  를 `static/font/LICENSE-SourceSans.md` (SIL OFL 1.1), `static/font/LICENSE-
+  Roboto.txt` (Apache 2.0) 로 동봉. NOTICE 에 두 폰트의 귀속과 출처 명시.
+- **#67 [1-C] UI 텍스트 리브랜드.** login / base / reset_password / dashboard
+  / settings / sending_profiles 의 표시 텍스트(브랜드명, 푸터, 메타 태그라인)
+  와 코드 식별자 (config.ServerName, webhook 헤더 `X-AegisCampus-Signature`,
+  `X-AegisCampus-Contact`, cert Organization, 세션 스토어명 `aegiscampus`,
+  테스트 픽스처) 를 AegisCampus 로 통일. 메타 태그라인 확정: "Cybersecurity
+  Training & Simulation Platform".
+- **#67 [1-D-2] 정적 자산 파일명 리네임.** `sentinel.css` / `sentinel.js` /
+  `sentinel.min.js` → `aegiscampus.*` (gulp concat 타깃 + HTML href 동기 갱신).
+  CSS 클래스 `.sentinel-editor` → `.aegiscampus-editor` (main.css + templates.html).
+  localStorage 키 `sentinel.resultCols` / `sentinel.use_map` → `aegiscampus.*`
+  (rc4 첫 접속 시 컬럼 토글/지도 토글 사용자 환경 1회 리셋, 기능 영향 없음).
+- **#67 [1-D-3] 로고/인포그래픽 자산 리네임 + 텍스트 갱신.** `sentinel_mark*.svg`
+  / `sentinel_infographic.svg` → `aegiscampus_*.svg`. 동심육각형 심볼·#3F3D7A
+  팔레트는 유지(정식 디자인 가이드 확정 전 placeholder). Hero 텍스트는
+  AegisCampus + "Cybersecurity Training & Simulation Platform" 로 갱신.
+- **#67 문서 갱신.** README 제품명/부제/배지, CONTRIBUTING, docs/Architecture.md
+  의 브랜드명·에디션 스탬프(rc4 / 2026-05-31) 동기화.
+
+### Changed (외부 의존 / 식별 헤더)
+
+- **#67 [1-B] HTTP 식별 헤더 제거.** PhishHandler 의 `X-Server` 응답 헤더와
+  발송 메일의 하드코딩 `X-Mailer` 헤더 제거. 필요 시 Sending Profile >
+  Email Headers 에서 운영자가 지정. 정찰성 식별 표면 축소.
+- **#67 [1-D-1] Google Fonts CDN → 로컬 vendor 전환** (#55 flag-icons 연장선,
+  오프라인/사내망 운영 원칙). `templates/base.html` / `login.html` /
+  `reset_password.html` 의 `fonts.googleapis.com` `<link>` 제거. `static/font/`
+  에 Source Sans 3 (Light/Regular/Semibold/Bold) + Roboto (Medium/Bold) WOFF2
+  vendor 포함. `static/css/main.css` 상단에 `@font-face` 6개 선언 (`font-display:
+  swap`, 패밀리명은 기존 CSS 호환 위해 'Source Sans Pro' 매핑 유지). 라이선스
+  텍스트는 위 LICENSE 동봉 항목 참조. `scripts/fetch-vendor-fonts.sh` 1회 실행
+  으로 폰트/라이선스 vendor.
+
+### Known Limitations
+
+- **Layer 2 (운영 식별자) 미적용** — Go 모듈 경로 `github.com/AegisAX/Sentinel`,
+  바이너리 이름 `sentinel`, 운영 디렉터리 `~/Sentinel/`, DB 파일 `sentinel.db`,
+  TLS cert `sentinel_admin.{crt,key}`, 환경변수 prefix `GOPHISH_*`, GitHub
+  저장소 `AegisAX/Sentinel` 은 모두 의도적으로 그대로 유지. v1.1+ 트랙에서
+  일괄 처리 예정 (배포 절차 변경 동반).
+- **정식 로고/팔레트 미확정** — 현재 SVG 는 placeholder. 상표 클리어런스
+  (KIPRIS/USPTO 09·41·42류 + 변리사) 완료 후 정식 디자인으로 교체 예정.
+- **세션 1회 재로그인** — `controllers/route.go` 의 세션 스토어명이
+  `gophish` → `aegiscampus` 로 변경되어 rc4 배포 직후 admin 계정 1회 재로그인 필요.
+- **localStorage 1회 리셋** — `sentinel.resultCols` / `sentinel.use_map` 키
+  변경으로 캠페인 결과 컬럼 토글·지도 표시 토글이 기본값으로 1회 리셋됨.
 
 ---
 
@@ -380,7 +446,8 @@ v1.0.0-beta2 운영 검증 후, 출시 후보(rc) 승격을 위한 기능 안정
 
 ---
 
-[Unreleased]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-rc3...HEAD
+[Unreleased]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-rc4...HEAD
+[1.0.0-rc4]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-rc3...v1.0.0-rc4
 [1.0.0-rc3]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-rc2...v1.0.0-rc3
 [1.0.0-rc2]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-rc1...v1.0.0-rc2
 [1.0.0-rc1]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-beta2...v1.0.0-rc1
