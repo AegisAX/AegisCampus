@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="static/images/sentinel_mark.svg" width="80" alt="" />
+  <img src="static/images/aegiscampus_mark.svg" width="80" alt="" />
 </p>
 
 <h1 align="center">AegisCampus</h1>
@@ -18,7 +18,7 @@
 ---
 
 <p align="center">
-  <img src="static/images/sentinel_infographic.svg" width="800" alt="AegisCampus system overview" />
+  <img src="static/images/aegiscampus_infographic.svg" width="800" alt="AegisCampus system overview" />
 </p>
 
 ## 개요 / Overview

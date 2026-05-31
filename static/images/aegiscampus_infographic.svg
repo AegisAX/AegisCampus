@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Sentinel system infographic">
-  <title>Sentinel System Infographic</title>
-  <desc>Hero, architecture, key features, and tech stack overview of Sentinel.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="AegisCampus system overview">
+  <title>AegisCampus System Overview</title>
+  <desc>Hero, architecture, key features, and tech stack overview of AegisCampus.</desc>
 
   <!-- ============ SECTION 1: Hero ============ -->
   <svg x="375" y="20" width="50" height="50" viewBox="0 0 80 80">
@@ -8,8 +8,8 @@
     <polygon points="40,21 56,30 56,50 40,59 24,50 24,30" fill="none" stroke="#7F77DD" stroke-width="2"/>
     <polygon points="40,31 47,35 47,45 40,49 33,45 33,35" fill="#F0B429"/>
   </svg>
-  <text x="400" y="96" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="28" font-weight="800" fill="#3F3D7A" letter-spacing="-0.5">Sentinel</text>
-  <text x="400" y="118" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="12.5" fill="#5F5F5F">Security awareness training, integrated</text>
+  <text x="400" y="96" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="26" font-weight="800" fill="#3F3D7A" letter-spacing="-0.5">AegisCampus</text>
+  <text x="400" y="118" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="12.5" fill="#5F5F5F">Cybersecurity Training &amp; Simulation Platform</text>
   <text x="400" y="134" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="12.5" fill="#5F5F5F">사이버보안 인식 교육 통합 플랫폼</text>
 
   <line x1="340" y1="152" x2="460" y2="152" stroke="#F0B429" stroke-width="2" stroke-linecap="round"/>
@@ -25,7 +25,7 @@
   <text x="52" y="288" font-family="'Open Sans', system-ui, sans-serif" font-size="11" fill="#3a3a3a">Watch · Report</text>
 
   <rect x="222" y="190" width="356" height="130" fill="#FFFFFF" stroke="#3F3D7A" stroke-width="2" rx="10"/>
-  <text x="400" y="212" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="13" font-weight="700" fill="#3F3D7A">Sentinel System</text>
+  <text x="400" y="212" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="13" font-weight="700" fill="#3F3D7A">AegisCampus System</text>
 
   <g transform="translate(238, 226)">
     <rect width="100" height="36" fill="#FAFAFA" stroke="#7F77DD" stroke-width="0.8" rx="5"/>
