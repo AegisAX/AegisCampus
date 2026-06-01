@@ -10,12 +10,63 @@
 ### Phase 4 — Low (코드 정리)
 - (운영 검증 후 결정)
 
-### Phase 5+ — 출시 후 (v1.1 영역, 운영 식별자 2차 리브랜드)
-- 운영 식별자 정리: Go 모듈명, 바이너리/디렉터리/DB 파일명, 환경변수 prefix,
-  GitHub repo 이름, ansible role 이름, docker 태그
+### Phase 5+ — 출시 후 (v1.1 영역, 구조 변경)
 - TestAttachment 사전 결함 (testdata 옛 변수)
 - `/videos/upload` 제거 + JS 를 `/api/videos/` 로 이전
 - Email Template / Landing Page / Redirect Page 권한 체계 통일
+
+---
+
+## [1.0.0-rc6] - 2026-06-02
+
+Sentinel → **AegisCampus** 2차 브랜딩(Layer 2, 운영 식별자) 적용 + 운영
+cutover RC 릴리스. rc4(Layer 1) 가 사용자 표면만 리브랜드하고 의도적으로
+남겨둔 운영 식별자 — Go 모듈 경로, 바이너리/디렉터리/DB 파일명, 환경변수
+prefix, GitHub 저장소·ansible 롤·docker — 를 모두 AegisCampus 로 통일했다.
+신규 기능/마이그레이션/Go 동작 변경 없음. Phase 2 #5~#8·rc1~rc3 의 보안
+게이트와 rc5 의 의존성 차단(govulncheck 0건)은 그대로 유지된다.
+
+### Changed (브랜딩 — 운영 식별자, Layer 2)
+
+- **Go 모듈 경로** `github.com/AegisAX/Sentinel` → `github.com/AegisAX/AegisCampus`.
+  전 패키지 import 경로 동기 갱신.
+- **환경변수 prefix** `GOPHISH_*` → `AEGISCAMPUS_*` (FFMPEG / FFPROBE /
+  MAX_VIDEO_BYTES / MSGID_DOMAIN / INITIAL_ADMIN_API_TOKEN). 과거 릴리스
+  본문의 역사적 `GOPHISH_` 표기는 보존.
+- **앱·파일 식별자** 바이너리 `sentinel` → `aegiscampus`, 엔트리
+  `sentinel.go` → `aegiscampus.go`, `config.json` / `config_test.go` 내
+  식별자, `.go` 잔여 문자열 갱신.
+- **Docker / ansible** Dockerfile 의 바이너리/이미지 식별자, ansible 롤
+  (`roles/aegiscampus`, `aegiscampus.service.j2`) 리네임.
+- **DB config** `db/dbconf.yml` 갱신 + 마이그레이션 파일 주석의 잔여 브랜드
+  문자열 정리 (마이그레이션 SQL·테이블/컬럼명은 불변).
+- **에셋** favicon, `autocomplete.js` 잔여 식별자 갱신 + gulp dist 재빌드.
+- **CI / 메타** `.github/` 워크플로 + ISSUE_TEMPLATE + `package.json` 의
+  브랜드 메타데이터 갱신.
+- **문서** README / CONTRIBUTING / SECURITY / docs/Architecture.md /
+  CHANGELOG compare 링크 / `.gitignore` 의 식별자·경로 갱신.
+- **GitHub 저장소 리네임** `AegisAX/Sentinel` → `AegisAX/AegisCampus`
+  (origin remote 갱신·검증). 작업 디렉터리 `~/GitHub/Sentinel` →
+  `~/GitHub/AegisCampus`.
+
+### Changed (운영 cutover)
+
+- 운영 디렉터리 `~/Sentinel` → `~/AegisCampus`. 운영 DB `sentinel.db` →
+  `aegiscampus.db`, TLS cert `sentinel_admin.{crt,key}` →
+  `aegiscampus_admin.*`. `config.json` 의 `cert_path` / `key_path` /
+  `db_path` / `logging.filename`(→ `aegiscampus.log`) 4개 경로 갱신. 새
+  `aegiscampus` 바이너리 배포 후 라이브 검증(기동 / goose 무결 / TLS cert /
+  로그인·대시보드) 통과.
+
+### Known Limitations
+
+- **정식 로고/팔레트 미확정** — 현재 SVG 는 placeholder(동심육각형 + #3F3D7A).
+  상표 클리어런스(KIPRIS/USPTO 09·41·42류 + 변리사) 완료 후 정식 디자인 교체 예정.
+- **Git 브랜치명 미변경** — 브랜치 `Sentinel` 은 리네임 여부 미정으로 유지.
+- **upstream 계보 표기 보존** — LICENSE/NOTICE(Gophish / Jordan Wright MIT),
+  docs/Architecture.md 의 "GoPhish 0.12.1 fork" 계보, upstream 마이그레이션
+  (`20190105192341_0.8.0_rbac`), `trusted_origins` 도메인(`sentinel.whitehat.kr`
+  등 = DNS/cert/프록시 영역)은 의도적으로 보존.
 
 ---
 
@@ -502,7 +553,8 @@ v1.0.0-beta2 운영 검증 후, 출시 후보(rc) 승격을 위한 기능 안정
 
 ---
 
-[Unreleased]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-rc5...HEAD
+[Unreleased]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-rc6...HEAD
+[1.0.0-rc6]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-rc5...v1.0.0-rc6
 [1.0.0-rc5]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-rc4...v1.0.0-rc5
 [1.0.0-rc4]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-rc3...v1.0.0-rc4
 [1.0.0-rc3]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-rc2...v1.0.0-rc3
