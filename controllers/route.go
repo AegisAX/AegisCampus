@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	csrf "filippo.io/csrf/gorilla"
 	"github.com/AegisAX/Sentinel/auth"
 	"github.com/AegisAX/Sentinel/config"
 	ctx "github.com/AegisAX/Sentinel/context"
@@ -26,7 +27,6 @@ import (
 	"github.com/AegisAX/Sentinel/util"
 	"github.com/AegisAX/Sentinel/worker"
 	"github.com/NYTimes/gziphandler"
-	"github.com/gorilla/csrf"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"

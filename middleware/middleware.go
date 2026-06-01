@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strings"
 
+	csrf "filippo.io/csrf/gorilla"
 	ctx "github.com/AegisAX/Sentinel/context"
 	"github.com/AegisAX/Sentinel/models"
-	"github.com/gorilla/csrf"
 )
 
 // CSRFExemptPrefixes are a list of routes that are exempt from CSRF protection
