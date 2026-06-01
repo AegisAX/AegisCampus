@@ -84,5 +84,5 @@ fi
 echo "Runtime configuration: "
 cat config.json
 
-# start sentinel
-./sentinel
+# start aegiscampus
+./aegiscampus
