@@ -2,21 +2,21 @@
 	"admin_server": {
 		"listen_url": "127.0.0.1:3333",
 		"use_tls": true,
-		"cert_path": "/etc/ssl/crt/sentinel.crt",
-		"key_path": "/etc/ssl/private/sentinel.pem"
+		"cert_path": "/etc/ssl/crt/aegiscampus.crt",
+		"key_path": "/etc/ssl/private/aegiscampus.pem"
 	},
 	"phish_server": {
 		"listen_url": "127.0.0.1:8080",
 		"use_tls": true,
-		"cert_path": "/etc/ssl/crt/sentinel.crt",
-		"key_path": "/etc/ssl/private/sentinel.pem"
+		"cert_path": "/etc/ssl/crt/aegiscampus.crt",
+		"key_path": "/etc/ssl/private/aegiscampus.pem"
 	},
 	"db_name": "sqlite3",
-	"db_path": "sentinel.db",
+	"db_path": "aegiscampus.db",
 	"migrations_prefix": "db/db_",
 	"contact_address": "",
 	"logging": {
-		"filename": "sentinel.log",
+		"filename": "aegiscampus.log",
 		"level": ""
 	}
 }

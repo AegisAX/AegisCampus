@@ -13,13 +13,13 @@
     port: "22"
     proto: tcp
 
-- name: Allow TCP 80 for Sentinel.
+- name: Allow TCP 80 for AegisCampus.
   ufw:
     rule: allow
     port: "80"
     proto: tcp
 
-- name: Allow TCP 443 for Sentinel.
+- name: Allow TCP 443 for AegisCampus.
   ufw:
     rule: allow
     port: "443"
@@ -62,9 +62,9 @@
     pkg: "{{ install_packages }}"
     state: latest
 
-- name: adding existing user '{{ sentinel_user }}' to group ssl-cert
+- name: adding existing user '{{ aegiscampus_user }}' to group ssl-cert
   user:
-    name: "{{ sentinel_user }}"
+    name: "{{ aegiscampus_user }}"
     groups: ssl-cert
     append: yes
 
@@ -74,19 +74,19 @@
 
 - name: Generate an OpenSSL private key with the default values (4096 bits, RSA)
   openssl_privatekey:
-    path: "{{ sentinel_ssl_cert_path }}"
+    path: "{{ aegiscampus_ssl_cert_path }}"
 
 - name: Generate an OpenSSL Certificate Signing Request
   openssl_csr:
-    path: "{{ sentinel_csr_path }}"
-    privatekey_path: "{{ sentinel_ssl_cert_path }}"
-    common_name: "{{ sentinel_domain }}"
+    path: "{{ aegiscampus_csr_path }}"
+    privatekey_path: "{{ aegiscampus_ssl_cert_path }}"
+    common_name: "{{ aegiscampus_domain }}"
 
 - name: Generate a Self Signed OpenSSL certificate
   openssl_certificate:
-    path: "{{ sentinel_crt_path }}"
-    privatekey_path: "{{ sentinel_ssl_cert_path }}"
-    csr_path: "{{ sentinel_csr_path }}"
+    path: "{{ aegiscampus_crt_path }}"
+    privatekey_path: "{{ aegiscampus_ssl_cert_path }}"
+    csr_path: "{{ aegiscampus_csr_path }}"
     provider: selfsigned
 
 - name: Update postfix main.cf configuration file.
@@ -111,88 +111,88 @@
 
 - name: get latest release info
   uri:
-    url: "https://api.github.com/repos/AegisAX/Sentinel/releases/latest"
+    url: "https://api.github.com/repos/AegisAX/AegisCampus/releases/latest"
     return_content: true
   register: latest_json_reponse
 
-- name: Download latest Sentinel .zip file.
+- name: Download latest AegisCampus .zip file.
   get_url:
     validate_certs: True
-    url: "https://github.com/AegisAX/Sentinel/releases/download/{{ latest_json_reponse.json.tag_name }}/sentinel-{{ latest_json_reponse.json.tag_name }}-linux-64bit.zip"
-    dest: "/home/{{ sentinel_user }}/sentinel.zip"
+    url: "https://github.com/AegisAX/AegisCampus/releases/download/{{ latest_json_reponse.json.tag_name }}/aegiscampus-{{ latest_json_reponse.json.tag_name }}-linux-64bit.zip"
+    dest: "/home/{{ aegiscampus_user }}/aegiscampus.zip"
     mode: 0755
-    owner: "{{ sentinel_user }}"
-    group: "{{ sentinel_user }}"
+    owner: "{{ aegiscampus_user }}"
+    group: "{{ aegiscampus_user }}"
 
-- name: Ensure sentinel user has permission for CRT file.
+- name: Ensure aegiscampus user has permission for CRT file.
   file:
-    path: "{{ sentinel_crt_path }}"
+    path: "{{ aegiscampus_crt_path }}"
     mode: 0755
-    owner: "{{ sentinel_user }}"
-    group: "{{ sentinel_user }}"
+    owner: "{{ aegiscampus_user }}"
+    group: "{{ aegiscampus_user }}"
 
-- name: Ensure sentinel user has permission for SSL certificate.
+- name: Ensure aegiscampus user has permission for SSL certificate.
   file:
-    path: "{{ sentinel_ssl_cert_path }}"
+    path: "{{ aegiscampus_ssl_cert_path }}"
     mode: 0755
-    owner: "{{ sentinel_user }}"
-    group: "{{ sentinel_user }}"
+    owner: "{{ aegiscampus_user }}"
+    group: "{{ aegiscampus_user }}"
 
-- name: Create directory for sentinel.
+- name: Create directory for aegiscampus.
   file:
-    path: "/home/{{ sentinel_user }}/sentinel_deploy"
+    path: "/home/{{ aegiscampus_user }}/aegiscampus_deploy"
     state: directory
     mode: 0755
-    owner: "{{ sentinel_user }}"
-    group: "{{ sentinel_user }}"
+    owner: "{{ aegiscampus_user }}"
+    group: "{{ aegiscampus_user }}"
 
-- name: Unzip sentinel file.
+- name: Unzip aegiscampus file.
   unarchive:
-    src: "/home/{{ sentinel_user }}/sentinel.zip"
-    dest: "/home/{{ sentinel_user }}/sentinel_deploy"
+    src: "/home/{{ aegiscampus_user }}/aegiscampus.zip"
+    dest: "/home/{{ aegiscampus_user }}/aegiscampus_deploy"
     remote_src: True # File is on target server and not locally.
-    owner: "{{ sentinel_user }}"
-    group: "{{ sentinel_user }}"
+    owner: "{{ aegiscampus_user }}"
+    group: "{{ aegiscampus_user }}"
 
-- name: Change ownership of Sentinel folder and files.
+- name: Change ownership of AegisCampus folder and files.
   file:
-    path: /home/{{ sentinel_user }}/sentinel_deploy
-    owner: "{{ sentinel_user }}"
-    group: "{{ sentinel_user }}"
+    path: /home/{{ aegiscampus_user }}/aegiscampus_deploy
+    owner: "{{ aegiscampus_user }}"
+    group: "{{ aegiscampus_user }}"
     recurse: True
 
-- name: Ensure sentinel binary is executable
+- name: Ensure aegiscampus binary is executable
   file:
-    path: /home/{{ sentinel_user }}/sentinel_deploy/sentinel
+    path: /home/{{ aegiscampus_user }}/aegiscampus_deploy/aegiscampus
     mode: 744
 
-- name: Ensure sentinel binary is allowed to bind to privileged ports using setcap
+- name: Ensure aegiscampus binary is allowed to bind to privileged ports using setcap
   capabilities:
-    path: /home/{{ sentinel_user }}/sentinel_deploy/sentinel
+    path: /home/{{ aegiscampus_user }}/aegiscampus_deploy/aegiscampus
     capability: cap_net_bind_service+eip
     state: present
 
 - name: Copy config.json file.
   copy:
     src: files/config.json
-    dest: "/home/{{ sentinel_user }}/sentinel_deploy/config.json"
-    owner: "{{ sentinel_user }}"
-    group: "{{ sentinel_user }}"
+    dest: "/home/{{ aegiscampus_user }}/aegiscampus_deploy/config.json"
+    owner: "{{ aegiscampus_user }}"
+    group: "{{ aegiscampus_user }}"
     mode: 0644
 
-- name: Ensure sentinel service file is properly set
+- name: Ensure aegiscampus service file is properly set
   template:
-    src: sentinel.service.j2
-    dest: /etc/systemd/system/sentinel.service
+    src: aegiscampus.service.j2
+    dest: /etc/systemd/system/aegiscampus.service
     mode: 644
 
 - name: Ensure systemd to reread configs
   systemd:
     daemon_reload: yes
 
-- name: Ensure sentinel is properly started
+- name: Ensure aegiscampus is properly started
   service:
-    name: sentinel.service
+    name: aegiscampus.service
     state: started
     enabled: yes
 
@@ -213,13 +213,13 @@
     state: reloaded
     enabled: yes
 
-- name: get Sentinel log file which contain initial password
-  command: cat /home/{{ sentinel_user }}/sentinel_deploy/sentinel.log
-  register: sentinel_log
+- name: get AegisCampus log file which contain initial password
+  command: cat /home/{{ aegiscampus_user }}/aegiscampus_deploy/aegiscampus.log
+  register: aegiscampus_log
 
 - name: display log file
   debug:
-    msg: "{{ sentinel_log }}"
+    msg: "{{ aegiscampus_log }}"
 
 - name: Reboot the box in 1 minute.
   command: shutdown -r 1

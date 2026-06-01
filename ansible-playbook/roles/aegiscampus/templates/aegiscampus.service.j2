@@ -1,0 +1,11 @@
+[Unit]
+Description=AegisCampus
+After=network.target
+[Service]
+Type=simple
+WorkingDirectory=/home/{{ aegiscampus_user }}/aegiscampus_deploy/
+ExecStart="/home/{{ aegiscampus_user }}/aegiscampus_deploy/aegiscampus"
+User={{ aegiscampus_user }}
+PIDFile="/home/{{ aegiscampus_user }}/aegiscampus_deploy/aegiscampus.pid"
+[Install]
+WantedBy=multi-user.target

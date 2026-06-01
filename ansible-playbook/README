@@ -1,8 +1,8 @@
 Tested on Ubuntu 20.04 LTS.
 
-Installs Postfix (to listen on localhost only) and the latest Linux sentinel binary.  setcap is used to allow the sentinel binary to listen on privileged ports without running as root.
+Installs Postfix (to listen on localhost only) and the latest Linux aegiscampus binary.  setcap is used to allow the aegiscampus binary to listen on privileged ports without running as root.
 
-1) Edit hosts file with the Sentinel server IP.
+1) Edit hosts file with the AegisCampus server IP.
 
 2) Edit vars/main.yml with any changes:
 
