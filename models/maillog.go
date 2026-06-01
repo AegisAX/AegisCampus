@@ -319,7 +319,7 @@ func LockMailLogs(ms []*MailLog, lock bool) error {
 }
 
 // UnlockAllMailLogs removes the processing lock for all maillogs
-// in the database. This is intended to be called when Sentinel is started
+// in the database. This is intended to be called when AegisCampus is started
 // so that any previously locked maillogs can resume processing.
 func UnlockAllMailLogs() error {
 	return db.Model(&MailLog{}).Update("processing", false).Error

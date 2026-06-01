@@ -34,7 +34,7 @@ func (as *Server) SendTestEmail(w http.ResponseWriter, r *http.Request) {
 	// If a Template is not specified use a default
 	if s.Template.Name == "" {
 		//default message body
-		text := "정상 작동 중입니다!\n\nSentinel 설정이 성공적으로 적용되었음을 알리는 메일입니다.\n\n" +
+		text := "정상 작동 중입니다!\n\nAegisCampus 설정이 성공적으로 적용되었음을 알리는 메일입니다.\n\n" +
 			"상세 정보:\n발신: {{.From}}\n" +
 			"{{if .Email}}수신: {{.Email}}\n{{end}}" +
 			"{{if .Name}}이름: {{.Name}}\n{{end}}" +
@@ -42,7 +42,7 @@ func (as *Server) SendTestEmail(w http.ResponseWriter, r *http.Request) {
 			"{{if .Position}}직책: {{.Position}}\n{{end}}" +
 			"\n이제 캠페인을 시작해 보세요!"
 		t := models.Template{
-			Subject: "Sentinel 테스트 메일",
+			Subject: "AegisCampus 테스트 메일",
 			Text:    text,
 		}
 		s.Template = t

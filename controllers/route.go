@@ -36,7 +36,7 @@ import (
 // admin server
 type AdminServerOption func(*AdminServer)
 
-// AdminServer is an HTTP server that implements the administrative Sentinel
+// AdminServer is an HTTP server that implements the administrative AegisCampus
 // handlers, including the dashboard and REST API.
 type AdminServer struct {
 	server  *http.Server
@@ -312,7 +312,7 @@ func (as *AdminServer) Settings(w http.ResponseWriter, r *http.Request) {
 }
 
 // UserManagement is an admin-only handler that allows for the registration
-// and management of user accounts within Sentinel.
+// and management of user accounts within AegisCampus.
 func (as *AdminServer) UserManagement(w http.ResponseWriter, r *http.Request) {
 	params := newTemplateParams(r)
 	params.Title = "User Management"
@@ -439,7 +439,7 @@ func (as *AdminServer) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 // ResetPassword handles the password reset flow when a password change is
-// required either by the Sentinel system or an administrator.
+// required either by the AegisCampus system or an administrator.
 //
 // This handler is meant to be used when a user is required to reset their
 // password, not just when they want to.

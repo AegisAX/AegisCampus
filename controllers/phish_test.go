@@ -242,7 +242,7 @@ func TestNoRecipientID(t *testing.T) {
 		t.Fatalf("invalid status code received for /track endpoint. expected %d got %d", expected, got)
 	}
 
-	// Sentinel 동작: rid 없이 GET / 접근 시 신고 폼(/report-form) 으로 302 리다이렉트.
+	// AegisCampus 동작: rid 없이 GET / 접근 시 신고 폼(/report-form) 으로 302 리다이렉트.
 	// (controllers/phish.go 의 루트 라우터 참조)
 	// http.Get 은 기본적으로 리다이렉트를 따라가므로, 따라가지 않는 클라이언트로 직접 검증한다.
 	client := &http.Client{

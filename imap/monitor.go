@@ -21,10 +21,10 @@ import (
 	"github.com/AegisAX/AegisCampus/models"
 )
 
-// Pattern for Sentinel emails e.g ?rid=AbC1234
+// Pattern for AegisCampus emails e.g ?rid=AbC1234
 // We include the optional quoted-printable 3D at the front, just in case decoding fails. e.g ?rid=3DAbC1234
 // We also include alternative URL encoded representations of '=' and '?' to handle Microsoft ATP URLs e.g %3Frid%3DAbC1234
-var sentinelRidRegex = regexp.MustCompile("((\\?|%3F)rid(=|%3D)(3D)?([A-Za-z0-9]{7}))")
+var aegiscampusRidRegex = regexp.MustCompile("((\\?|%3F)rid(=|%3D)(3D)?([A-Za-z0-9]{7}))")
 
 // Monitor is a worker that monitors IMAP servers for reported campaign emails
 type Monitor struct {
@@ -169,8 +169,8 @@ func checkForNewEmails(im models.IMAP) {
 				continue
 			}
 			if len(rids) < 1 {
-				// In the future this should be an alert in Sentinel
-				log.Infof("User '%s' reported email with subject '%s'. This is not a Sentinel campaign; you should investigate it.", m.Message.From, m.Message.Subject)
+				// In the future this should be an alert in AegisCampus
+				log.Infof("User '%s' reported email with subject '%s'. This is not a AegisCampus campaign; you should investigate it.", m.Message.From, m.Message.Subject)
 			}
 			// rid별 성공/실패 집계 후 SeqNum은 한 번만 결정:
 			successCount, failCount := 0, 0
@@ -223,15 +223,15 @@ func checkForNewEmails(im models.IMAP) {
 		// Check if any emails were unable to be reported, so we can mark them as unread
 		if len(reportingFailed) > 0 {
 			log.Debugf("Marking %d emails as unread as failed to report", len(reportingFailed))
-			err := mailServer.MarkAsUnread(reportingFailed) // Set emails as unread that we failed to report to Sentinel
+			err := mailServer.MarkAsUnread(reportingFailed) // Set emails as unread that we failed to report to AegisCampus
 			if err != nil {
 				log.Error("Unable to mark emails as unread: ", err.Error())
 			}
 		}
-		// If the DeleteReportedCampaignEmail flag is set, delete reported Sentinel campaign emails
+		// If the DeleteReportedCampaignEmail flag is set, delete reported AegisCampus campaign emails
 		if len(deleteEmails) > 0 {
 			log.Debugf("Deleting %d campaign emails", len(deleteEmails))
-			err := mailServer.DeleteEmails(deleteEmails) // Delete Sentinel campaign emails.
+			err := mailServer.DeleteEmails(deleteEmails) // Delete AegisCampus campaign emails.
 			if err != nil {
 				log.Error("Failed to delete emails: ", err.Error())
 			}
@@ -245,7 +245,7 @@ func checkForNewEmails(im models.IMAP) {
 func checkRIDs(em *emailparser.Message, rids map[string]bool) {
 	// Check Text and HTML
 	emailContent := string(em.Text) + string(em.HTML)
-	for _, r := range sentinelRidRegex.FindAllStringSubmatch(emailContent, -1) {
+	for _, r := range aegiscampusRidRegex.FindAllStringSubmatch(emailContent, -1) {
 		newrid := r[len(r)-1]
 		if !rids[newrid] {
 			rids[newrid] = true
@@ -253,7 +253,7 @@ func checkRIDs(em *emailparser.Message, rids map[string]bool) {
 	}
 }
 
-// returns a slice of sentinel rid paramters found in the email HTML, Text, and attachments
+// returns a slice of aegiscampus rid paramters found in the email HTML, Text, and attachments
 func matchEmail(em *emailparser.Message) (map[string]bool, error) {
 	rids := make(map[string]bool)
 	checkRIDs(em, rids)

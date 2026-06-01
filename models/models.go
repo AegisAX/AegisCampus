@@ -228,11 +228,11 @@ func Setup(c *config.Config) error {
 			return err
 		}
 	}
-	// If this is the first time the user is installing Sentinel, then we will
+	// If this is the first time the user is installing AegisCampus, then we will
 	// generate a temporary password for the admin user.
 	//
 	// We do this here instead of in the block above where the admin is created
-	// since there's the chance the user executes Sentinel and has some kind of
+	// since there's the chance the user executes AegisCampus and has some kind of
 	// error, then tries restarting it. If they didn't grab the password out of
 	// the logs, then they would have lost it.
 	//

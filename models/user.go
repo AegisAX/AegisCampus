@@ -9,10 +9,10 @@ import (
 
 // ErrModifyingOnlyAdmin occurs when there is an attempt to modify the only
 // user account with the Admin role in such a way that there will be no user
-// accounts left in Sentinel with that role.
+// accounts left in AegisCampus with that role.
 var ErrModifyingOnlyAdmin = errors.New("Cannot remove the only administrator")
 
-// User represents the user model for sentinel.
+// User represents the user model for aegiscampus.
 type User struct {
 	Id                     int64     `json:"id"`
 	Username               string    `json:"username" sql:"not null;unique"`
@@ -33,7 +33,7 @@ func GetUser(id int64) (User, error) {
 	return u, err
 }
 
-// GetUsers returns the users registered in Sentinel
+// GetUsers returns the users registered in AegisCampus
 func GetUsers() ([]User, error) {
 	us := []User{}
 	err := db.Preload("Role").Find(&us).Error
@@ -63,7 +63,7 @@ func PutUser(u *User) error {
 }
 
 // EnsureEnoughAdmins ensures that there is more than one user account in
-// Sentinel with the Admin role. This function is meant to be called before
+// AegisCampus with the Admin role. This function is meant to be called before
 // modifying a user account with the Admin role in a non-revokable way.
 func EnsureEnoughAdmins() error {
 	role, err := GetRoleBySlug(RoleAdmin)

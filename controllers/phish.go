@@ -46,7 +46,7 @@ type TransparencyResponse struct {
 	SendDate       time.Time `json:"send_date"`
 }
 
-// TransparencySuffix (when appended to a valid result ID), will cause Sentinel
+// TransparencySuffix (when appended to a valid result ID), will cause AegisCampus
 // to return a transparency response.
 const TransparencySuffix = "+"
 
@@ -712,7 +712,7 @@ func renderPhishResponse(w http.ResponseWriter, r *http.Request, ptx models.Phis
 				};
 
 				// 뒤로가기 감지: 가짜 히스토리 항목 추가 후 popstate로 가로채기
-				history.pushState({_sentinel:true},'');
+				history.pushState({_aegiscampus:true},'');
 				window.addEventListener('popstate',function(e){
 					if(!_done){_done=true;window.location.replace(_r);}
 					else{history.back();}

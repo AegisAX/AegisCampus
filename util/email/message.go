@@ -1,5 +1,5 @@
 // Package emailparser parses raw RFC 5322 + MIME multipart messages
-// into a Message struct with the fields Sentinel needs (From, To, Subject,
+// into a Message struct with the fields AegisCampus needs (From, To, Subject,
 // Headers, Text, HTML, Attachments).
 package emailparser
 

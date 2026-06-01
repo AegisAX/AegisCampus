@@ -22,7 +22,7 @@ const (
 )
 
 // Message represents an email message — a 1:1 compatible replacement
-// the previous external mailer used by Sentinel.
+// the previous external mailer used by AegisCampus.
 type Message struct {
 	header      map[string][]string
 	headerKeys  []string

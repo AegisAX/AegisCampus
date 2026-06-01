@@ -84,7 +84,7 @@ func videoMaxBytesDefault() int64 {
 
 // init은 패키지 로드 시 ffmpeg/ffprobe 설치 여부를 확인하고
 // 없으면 stderr에 경고를 출력합니다.
-// Sentinel 기동 시 운영자가 바로 인지할 수 있도록 합니다.
+// AegisCampus 기동 시 운영자가 바로 인지할 수 있도록 합니다.
 func init() {
 	checkVideoBin(FfmpegBin, "ffmpeg", "AEGISCAMPUS_FFMPEG", "동영상 썸네일 생성 및 재인코딩")
 	checkVideoBin(FfprobeBin, "ffprobe", "AEGISCAMPUS_FFPROBE", "동영상 재생 시간(길이) 자동 감지")
@@ -93,7 +93,7 @@ func init() {
 func checkVideoBin(bin, name, envKey, purpose string) {
 	if _, err := exec.LookPath(bin); err != nil {
 		fmt.Fprintf(os.Stderr,
-			"[Sentinel WARN] %s을(를) PATH에서 찾을 수 없습니다 (bin=%q).\n"+
+			"[AegisCampus WARN] %s을(를) PATH에서 찾을 수 없습니다 (bin=%q).\n"+
 				"  영향 기능: %s\n"+
 				"  영상 업로드는 가능하지만 해당 기능이 비활성화됩니다.\n"+
 				"  해결 방법: sudo apt install %s  또는  환경변수 %s=<경로> 설정\n",

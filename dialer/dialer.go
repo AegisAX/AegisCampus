@@ -62,11 +62,11 @@ func Dialer() *net.Dialer {
 // Dialer returns a net.Dialer that restricts outbound connections to only the
 // allowed addresses over TCP.
 //
-// By default, since Sentinel anticipates connections originating to hosts on
+// By default, since AegisCampus anticipates connections originating to hosts on
 // the local network, we only deny access to the link-local addresses at
 // 169.254.0.0/16.
 //
-// If hosts are provided, then Sentinel blocks access to all local addresses
+// If hosts are provided, then AegisCampus blocks access to all local addresses
 // except the ones provided.
 //
 // This implementation is based on the blog post by Andrew Ayer at
