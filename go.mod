@@ -1,6 +1,6 @@
 module github.com/AegisAX/Sentinel
 
-go 1.23.0
+go 1.25.0
 
 toolchain go1.26.3
 
@@ -20,9 +20,9 @@ require (
 	github.com/jinzhu/gorm v1.9.12
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/oschwald/maxminddb-golang v1.6.0
-	github.com/sirupsen/logrus v1.4.2
-	golang.org/x/crypto v0.40.0
-	golang.org/x/text v0.28.0
+	github.com/sirupsen/logrus v1.9.4
+	golang.org/x/crypto v0.51.0
+	golang.org/x/text v0.37.0
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405
@@ -35,11 +35,10 @@ require (
 	github.com/emersion/go-sasl v0.0.0-20191210011802-430746ea8b9b // indirect
 	github.com/emersion/go-textwrapper v0.0.0-20160606182133-d0e65e56babe // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
-	github.com/konsorten/go-windows-terminal-sequences v1.0.1 // indirect
 	github.com/kylelemons/go-gypsy v0.0.0-20160905020020-08cad365cd28 // indirect
 	github.com/lib/pq v1.1.1 // indirect
 	github.com/pkg/errors v0.8.0 // indirect
 	github.com/ziutek/mymysql v1.5.4 // indirect
-	golang.org/x/net v0.42.0 // indirect
-	golang.org/x/sys v0.34.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
 )
