@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 
-	log "github.com/AegisAX/Sentinel/logger"
+	log "github.com/AegisAX/AegisCampus/logger"
 )
 
 // AdminServer represents the Admin server configuration details

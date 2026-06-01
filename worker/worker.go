@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	log "github.com/AegisAX/Sentinel/logger"
-	"github.com/AegisAX/Sentinel/mailer"
-	"github.com/AegisAX/Sentinel/models"
+	log "github.com/AegisAX/AegisCampus/logger"
+	"github.com/AegisAX/AegisCampus/mailer"
+	"github.com/AegisAX/AegisCampus/models"
 	"github.com/sirupsen/logrus"
 )
 

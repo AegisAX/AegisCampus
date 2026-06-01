@@ -3,7 +3,7 @@ package middleware
 import (
 	"encoding/gob"
 
-	"github.com/AegisAX/Sentinel/models"
+	"github.com/AegisAX/AegisCampus/models"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 )

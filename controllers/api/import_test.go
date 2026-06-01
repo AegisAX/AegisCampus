@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/AegisAX/Sentinel/dialer"
-	"github.com/AegisAX/Sentinel/models"
+	"github.com/AegisAX/AegisCampus/dialer"
+	"github.com/AegisAX/AegisCampus/models"
 )
 
 func makeImportRequest(ctx *testContext, allowedHosts []string, url string) *httptest.ResponseRecorder {

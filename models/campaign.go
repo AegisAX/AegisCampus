@@ -5,8 +5,8 @@ import (
 	"net/url"
 	"time"
 
-	log "github.com/AegisAX/Sentinel/logger"
-	"github.com/AegisAX/Sentinel/webhook"
+	log "github.com/AegisAX/AegisCampus/logger"
+	"github.com/AegisAX/AegisCampus/webhook"
 	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
 )

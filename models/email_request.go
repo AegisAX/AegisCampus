@@ -5,8 +5,8 @@ import (
 	"net/mail"
 	"time"
 
-	log "github.com/AegisAX/Sentinel/logger"
-	"github.com/AegisAX/Sentinel/mailer"
+	log "github.com/AegisAX/AegisCampus/logger"
+	"github.com/AegisAX/AegisCampus/mailer"
 )
 
 // PreviewPrefix is the standard prefix added to the rid parameter when sending

@@ -10,8 +10,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/AegisAX/Sentinel/config"
-	"github.com/AegisAX/Sentinel/models"
+	"github.com/AegisAX/AegisCampus/config"
+	"github.com/AegisAX/AegisCampus/models"
 )
 
 func getFirstCampaign(t *testing.T) models.Campaign {

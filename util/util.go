@@ -23,8 +23,8 @@ import (
 
 	"unicode/utf8"
 
-	log "github.com/AegisAX/Sentinel/logger"
-	"github.com/AegisAX/Sentinel/models"
+	log "github.com/AegisAX/AegisCampus/logger"
+	"github.com/AegisAX/AegisCampus/models"
 	"golang.org/x/text/encoding/korean"
 	"golang.org/x/text/encoding/unicode"
 	"golang.org/x/text/transform"

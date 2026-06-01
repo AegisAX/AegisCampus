@@ -10,8 +10,8 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	ctx "github.com/AegisAX/Sentinel/context"
-	"github.com/AegisAX/Sentinel/models"
+	ctx "github.com/AegisAX/AegisCampus/context"
+	"github.com/AegisAX/AegisCampus/models"
 )
 
 func createUnpriviledgedUser(t *testing.T, slug string) *models.User {

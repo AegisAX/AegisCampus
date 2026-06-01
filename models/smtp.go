@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AegisAX/Sentinel/dialer"
-	log "github.com/AegisAX/Sentinel/logger"
-	"github.com/AegisAX/Sentinel/mailer"
+	"github.com/AegisAX/AegisCampus/dialer"
+	log "github.com/AegisAX/AegisCampus/logger"
+	"github.com/AegisAX/AegisCampus/mailer"
 	"github.com/jinzhu/gorm"
 )
 

@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"testing"
 
-	gctx "github.com/AegisAX/Sentinel/context"
-	"github.com/AegisAX/Sentinel/models"
+	gctx "github.com/AegisAX/AegisCampus/context"
+	"github.com/AegisAX/AegisCampus/models"
 	"github.com/gorilla/mux"
 )
 

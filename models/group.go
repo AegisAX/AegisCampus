@@ -5,7 +5,7 @@ import (
 	"net/mail"
 	"time"
 
-	log "github.com/AegisAX/Sentinel/logger"
+	log "github.com/AegisAX/AegisCampus/logger"
 	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
 )

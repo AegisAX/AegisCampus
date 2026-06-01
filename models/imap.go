@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	log "github.com/AegisAX/Sentinel/logger"
+	log "github.com/AegisAX/AegisCampus/logger"
 )
 
 const DefaultIMAPFolder = "INBOX"

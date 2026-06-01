@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	log "github.com/AegisAX/Sentinel/logger"
+	log "github.com/AegisAX/AegisCampus/logger"
 )
 
 // ErrModifyingOnlyAdmin occurs when there is an attempt to modify the only

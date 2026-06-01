@@ -1,4 +1,4 @@
-module github.com/AegisAX/Sentinel
+module github.com/AegisAX/AegisCampus
 
 go 1.25.0
 

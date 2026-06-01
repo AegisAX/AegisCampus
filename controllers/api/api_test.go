@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/AegisAX/Sentinel/config"
-	"github.com/AegisAX/Sentinel/models"
+	"github.com/AegisAX/AegisCampus/config"
+	"github.com/AegisAX/AegisCampus/models"
 )
 
 type testContext struct {

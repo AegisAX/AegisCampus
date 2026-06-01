@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
-	log "github.com/AegisAX/Sentinel/logger"
-	"github.com/AegisAX/Sentinel/models"
-	"github.com/AegisAX/Sentinel/webhook"
+	log "github.com/AegisAX/AegisCampus/logger"
+	"github.com/AegisAX/AegisCampus/models"
+	"github.com/AegisAX/AegisCampus/webhook"
 	"github.com/gorilla/mux"
 )
 

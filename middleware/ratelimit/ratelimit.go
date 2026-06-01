@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/AegisAX/Sentinel/logger"
+	log "github.com/AegisAX/AegisCampus/logger"
 	"golang.org/x/time/rate"
 )
 

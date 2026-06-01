@@ -3,9 +3,9 @@ package api
 import (
 	"net/http"
 
-	"github.com/AegisAX/Sentinel/auth"
-	ctx "github.com/AegisAX/Sentinel/context"
-	"github.com/AegisAX/Sentinel/models"
+	"github.com/AegisAX/AegisCampus/auth"
+	ctx "github.com/AegisAX/AegisCampus/context"
+	"github.com/AegisAX/AegisCampus/models"
 )
 
 // Reset (/api/reset) resets the currently authenticated user's API key

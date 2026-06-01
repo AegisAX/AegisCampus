@@ -11,11 +11,11 @@ import (
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
 	"github.com/emersion/go-message/charset"
-	"github.com/AegisAX/Sentinel/dialer"
-	log "github.com/AegisAX/Sentinel/logger"
-	"github.com/AegisAX/Sentinel/models"
+	"github.com/AegisAX/AegisCampus/dialer"
+	log "github.com/AegisAX/AegisCampus/logger"
+	"github.com/AegisAX/AegisCampus/models"
 
-	emailparser "github.com/AegisAX/Sentinel/util/email"
+	emailparser "github.com/AegisAX/AegisCampus/util/email"
 )
 
 // Client interface for IMAP interactions

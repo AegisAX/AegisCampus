@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/AegisAX/Sentinel/auth"
-	"github.com/AegisAX/Sentinel/config"
-	"github.com/AegisAX/Sentinel/models"
+	"github.com/AegisAX/AegisCampus/auth"
+	"github.com/AegisAX/AegisCampus/config"
+	"github.com/AegisAX/AegisCampus/models"
 )
 
 // testContext is the data required to test API related functions

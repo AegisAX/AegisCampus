@@ -3,10 +3,10 @@ package api
 import (
 	"net/http"
 
-	mid "github.com/AegisAX/Sentinel/middleware"
-	"github.com/AegisAX/Sentinel/middleware/ratelimit"
-	"github.com/AegisAX/Sentinel/models"
-	"github.com/AegisAX/Sentinel/worker"
+	mid "github.com/AegisAX/AegisCampus/middleware"
+	"github.com/AegisAX/AegisCampus/middleware/ratelimit"
+	"github.com/AegisAX/AegisCampus/models"
+	"github.com/AegisAX/AegisCampus/worker"
 	"github.com/gorilla/mux"
 )
 

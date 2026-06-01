@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/AegisAX/Sentinel/mailer"
-	emailparser "github.com/AegisAX/Sentinel/util/email"
+	"github.com/AegisAX/AegisCampus/mailer"
+	emailparser "github.com/AegisAX/AegisCampus/util/email"
 	check "gopkg.in/check.v1"
 )
 

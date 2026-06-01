@@ -15,10 +15,10 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/AegisAX/Sentinel/logger"
-	emailparser "github.com/AegisAX/Sentinel/util/email"
+	log "github.com/AegisAX/AegisCampus/logger"
+	emailparser "github.com/AegisAX/AegisCampus/util/email"
 
-	"github.com/AegisAX/Sentinel/models"
+	"github.com/AegisAX/AegisCampus/models"
 )
 
 // Pattern for Sentinel emails e.g ?rid=AbC1234

@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/AegisAX/Sentinel/models"
+	"github.com/AegisAX/AegisCampus/models"
 )
 
 func buildCSVRequest(csvPayload string) (*http.Request, error) {

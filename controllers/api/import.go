@@ -10,11 +10,11 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/AegisAX/Sentinel/dialer"
-	log "github.com/AegisAX/Sentinel/logger"
-	"github.com/AegisAX/Sentinel/models"
-	"github.com/AegisAX/Sentinel/util"
-	emailparser "github.com/AegisAX/Sentinel/util/email"
+	"github.com/AegisAX/AegisCampus/dialer"
+	log "github.com/AegisAX/AegisCampus/logger"
+	"github.com/AegisAX/AegisCampus/models"
+	"github.com/AegisAX/AegisCampus/util"
+	emailparser "github.com/AegisAX/AegisCampus/util/email"
 )
 
 type cloneRequest struct {

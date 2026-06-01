@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	log "github.com/AegisAX/Sentinel/logger"
+	log "github.com/AegisAX/AegisCampus/logger"
 	"github.com/jinzhu/gorm"
 )
 

@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/AegisAX/Sentinel/util/mimeutil"
+	"github.com/AegisAX/AegisCampus/util/mimeutil"
 )
 
 // Encoding represents a MIME body encoding scheme.

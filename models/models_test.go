@@ -3,7 +3,7 @@ package models
 import (
 	"testing"
 
-	"github.com/AegisAX/Sentinel/config"
+	"github.com/AegisAX/AegisCampus/config"
 	"gopkg.in/check.v1"
 )
 

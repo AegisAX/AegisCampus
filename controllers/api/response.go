@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	log "github.com/AegisAX/Sentinel/logger"
+	log "github.com/AegisAX/AegisCampus/logger"
 )
 
 // JSONResponse attempts to set the status code, c, and marshal the given interface, d, into a response that

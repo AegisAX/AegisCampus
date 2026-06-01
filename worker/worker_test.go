@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/AegisAX/Sentinel/config"
-	"github.com/AegisAX/Sentinel/mailer"
-	"github.com/AegisAX/Sentinel/models"
+	"github.com/AegisAX/AegisCampus/config"
+	"github.com/AegisAX/AegisCampus/mailer"
+	"github.com/AegisAX/AegisCampus/models"
 )
 
 type logMailer struct {

@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	csrf "filippo.io/csrf/gorilla"
-	ctx "github.com/AegisAX/Sentinel/context"
-	"github.com/AegisAX/Sentinel/models"
+	ctx "github.com/AegisAX/AegisCampus/context"
+	"github.com/AegisAX/AegisCampus/models"
 )
 
 // CSRFExemptPrefixes are a list of routes that are exempt from CSRF protection

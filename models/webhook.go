@@ -3,7 +3,7 @@ package models
 import (
 	"errors"
 
-	log "github.com/AegisAX/Sentinel/logger"
+	log "github.com/AegisAX/AegisCampus/logger"
 )
 
 // Webhook represents the webhook model

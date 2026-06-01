@@ -9,14 +9,14 @@ import (
 
 	"gopkg.in/alecthomas/kingpin.v2"
 
-	"github.com/AegisAX/Sentinel/config"
-	"github.com/AegisAX/Sentinel/controllers"
-	"github.com/AegisAX/Sentinel/dialer"
-	"github.com/AegisAX/Sentinel/imap"
-	log "github.com/AegisAX/Sentinel/logger"
-	"github.com/AegisAX/Sentinel/middleware"
-	"github.com/AegisAX/Sentinel/models"
-	"github.com/AegisAX/Sentinel/webhook"
+	"github.com/AegisAX/AegisCampus/config"
+	"github.com/AegisAX/AegisCampus/controllers"
+	"github.com/AegisAX/AegisCampus/dialer"
+	"github.com/AegisAX/AegisCampus/imap"
+	log "github.com/AegisAX/AegisCampus/logger"
+	"github.com/AegisAX/AegisCampus/middleware"
+	"github.com/AegisAX/AegisCampus/models"
+	"github.com/AegisAX/AegisCampus/webhook"
 )
 
 const (

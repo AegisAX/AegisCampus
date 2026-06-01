@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	ctx "github.com/AegisAX/Sentinel/context"
-	"github.com/AegisAX/Sentinel/imap"
-	"github.com/AegisAX/Sentinel/models"
+	ctx "github.com/AegisAX/AegisCampus/context"
+	"github.com/AegisAX/AegisCampus/imap"
+	"github.com/AegisAX/AegisCampus/models"
 )
 
 // IMAPServerValidate handles requests for the /api/imapserver/validate endpoint

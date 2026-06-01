@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/AegisAX/Sentinel/logger"
-	"github.com/AegisAX/Sentinel/mailer"
-	"github.com/AegisAX/Sentinel/util/mimeutil"
+	log "github.com/AegisAX/AegisCampus/logger"
+	"github.com/AegisAX/AegisCampus/mailer"
+	"github.com/AegisAX/AegisCampus/util/mimeutil"
 )
 
 // MaxSendAttempts set to 8 since we exponentially backoff after each failed send

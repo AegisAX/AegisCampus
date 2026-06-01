@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"time"
 
-	ctx "github.com/AegisAX/Sentinel/context"
-	log "github.com/AegisAX/Sentinel/logger"
-	"github.com/AegisAX/Sentinel/models"
+	ctx "github.com/AegisAX/AegisCampus/context"
+	log "github.com/AegisAX/AegisCampus/logger"
+	"github.com/AegisAX/AegisCampus/models"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 )

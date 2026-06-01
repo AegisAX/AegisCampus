@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/AegisAX/Sentinel/mailer"
-	emailparser "github.com/AegisAX/Sentinel/util/email"
+	"github.com/AegisAX/AegisCampus/mailer"
+	emailparser "github.com/AegisAX/AegisCampus/util/email"
 	"gopkg.in/check.v1"
 )
 

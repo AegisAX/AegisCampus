@@ -6,9 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/AegisAX/Sentinel/config"
-	ctx "github.com/AegisAX/Sentinel/context"
-	"github.com/AegisAX/Sentinel/models"
+	"github.com/AegisAX/AegisCampus/config"
+	ctx "github.com/AegisAX/AegisCampus/context"
+	"github.com/AegisAX/AegisCampus/models"
 )
 
 var successHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
