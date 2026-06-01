@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 -- 원본의 {{.FirstName}}, {{.LastName}} →
--- Sentinel의 {{.Name}}, {{.Department}} 로 일괄 치환
+-- AegisCampus의 {{.Name}}, {{.Department}} 로 일괄 치환
 
 -- 이메일 템플릿 제목
 UPDATE templates

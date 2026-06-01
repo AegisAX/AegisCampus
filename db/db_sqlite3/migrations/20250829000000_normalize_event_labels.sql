@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
--- 원본 라벨 → Sentinel 축약 라벨로 통일
--- 이미 Sentinel 라벨인 경우 WHERE 조건 불일치로 영향 없음
+-- 원본 라벨 → AegisCampus 축약 라벨로 통일
+-- 이미 AegisCampus 라벨인 경우 WHERE 조건 불일치로 영향 없음
 
 -- events.message 정규화
 UPDATE events SET message = 'Sent'      WHERE message = 'Email Sent';
@@ -20,8 +20,8 @@ UPDATE results SET status = 'Submitted' WHERE status = 'Submitted Data';
 
 -- +goose Down
 -- +goose StatementBegin
--- Down: Sentinel 축약 라벨 → 원본 라벨로 복원
--- 주의: 원래부터 Sentinel로 설치된 경우 되돌릴 필요 없음
+-- Down: AegisCampus 축약 라벨 → 원본 라벨로 복원
+-- 주의: 원래부터 AegisCampus로 설치된 경우 되돌릴 필요 없음
 
 UPDATE events SET message = 'Email Sent'      WHERE message = 'Sent';
 UPDATE events SET message = 'Email Opened'    WHERE message = 'Opened';
