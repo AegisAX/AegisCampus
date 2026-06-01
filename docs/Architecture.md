@@ -488,13 +488,13 @@ SQLite DROP COLUMN 은 3.35+ 필요(Down 시 주의).
 npx gulp scripts
 
 # Go 바이너리 (운영)
-go build -ldflags="-s -w" -trimpath -o sentinel .
+go build -ldflags="-s -w" -trimpath -o aegiscampus .
 ```
 
 ### 9.2 배포
 
-개발 디렉터리(`~/GitHub/Sentinel`)에서 빌드 → 운영(`~/Sentinel/`)으로 바이너리 배포 후 재기동. 운영 DB(`sentinel.db`)는 덮어쓰지 않는다.
-admin = sentinel.whitehat.kr, phish = campaign.whitehat.kr (NPMplus 프록시).
+개발 디렉터리(`~/GitHub/AegisCampus`)에서 빌드 → 운영(`~/AegisCampus/`)으로 바이너리 배포 후 재기동. 운영 DB(`aegiscampus.db`)는 덮어쓰지 않는다.
+admin = aegiscampus.whitehat.kr, phish = campaign.whitehat.kr (NPMplus 프록시).
 
 ### 9.3 환경 변수
 
@@ -527,7 +527,7 @@ admin = sentinel.whitehat.kr, phish = campaign.whitehat.kr (NPMplus 프록시).
 | v1.0.0-rc1 | 기능 안정화. 운영 검증 + 전수 감사 결함 차단, 회귀 가드 |
 | v1.0.0-rc2 | 첨부파일 기능 개선(직접/자동 첨부, 자동생성 B형, Executed 후 RP/LP 리다이렉트, RP 우선) + 전수 코드 감사 |
 | v1.0.0-rc3 | 운영 검증 + 보안/UX 누적분 (#42~#66) + 캠페인 결과 공유(#64) + Dashboard 통합(#66) |
-| v1.0.0-rc4 (현재) | Sentinel → AegisCampus 1차 브랜딩 (LICENSE/NOTICE, 식별 헤더, 텍스트, 자산 리네임, Google Fonts 로컬 vendor) |
+| v1.0.0-rc4 (현재) | AegisCampus → AegisCampus 1차 브랜딩 (LICENSE/NOTICE, 식별 헤더, 텍스트, 자산 리네임, Google Fonts 로컬 vendor) |
 | v1.0.0 GA | rc1~rc4 안정화 검증 후 정식 릴리스 |
 
 ---
