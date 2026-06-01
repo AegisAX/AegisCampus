@@ -14,8 +14,8 @@ var validConfig = []byte(`{
 	"admin_server": {
 		"listen_url": "127.0.0.1:3333",
 		"use_tls": true,
-		"cert_path": "sentinel_admin.crt",
-		"key_path": "sentinel_admin.key"
+		"cert_path": "aegiscampus_admin.crt",
+		"key_path": "aegiscampus_admin.key"
 	},
 	"phish_server": {
 		"listen_url": "0.0.0.0:8080",
@@ -24,13 +24,13 @@ var validConfig = []byte(`{
 		"key_path": "example.key"
 	},
 	"db_name": "sqlite3",
-	"db_path": "sentinel.db",
+	"db_path": "aegiscampus.db",
 	"migrations_prefix": "db/db_",
 	"contact_address": ""
 }`)
 
 func createTemporaryConfig(t *testing.T) *os.File {
-	f, err := ioutil.TempFile("", "sentinel-config")
+	f, err := ioutil.TempFile("", "aegiscampus-config")
 	if err != nil {
 		t.Fatalf("unable to create temporary config: %v", err)
 	}

@@ -77,7 +77,7 @@ func main() {
 	}
 
 	// Unlock any maillogs that may have been locked for processing
-	// when Sentinel was last shutdown.
+	// when AegisCampus was last shutdown.
 	err = models.UnlockAllMailLogs()
 	if err != nil {
 		log.Fatal(err)

@@ -2,8 +2,8 @@
 	"admin_server": {
 		"listen_url": "127.0.0.1:3333",
 		"use_tls": true,
-		"cert_path": "sentinel_admin.crt",
-		"key_path": "sentinel_admin.key",
+		"cert_path": "aegiscampus_admin.crt",
+		"key_path": "aegiscampus_admin.key",
 		"trusted_origins": []
 	},
 	"phish_server": {
@@ -13,7 +13,7 @@
 		"key_path": "example.key"
 	},
 	"db_name": "sqlite3",
-	"db_path": "sentinel.db",
+	"db_path": "aegiscampus.db",
 	"migrations_prefix": "db/db_",
 	"contact_address": "",
 	"logging": {

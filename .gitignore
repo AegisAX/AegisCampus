@@ -24,11 +24,11 @@ _cgo_export.*
 
 _testmain.go
 
-sentinel_admin.crt
-sentinel_admin.key
+aegiscampus_admin.crt
+aegiscampus_admin.key
 
 *.exe
 config.json
-sentinel.db*
-sentinel
-sentinel.log
+aegiscampus.db*
+aegiscampus
+aegiscampus.log
