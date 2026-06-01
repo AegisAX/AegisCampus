@@ -410,7 +410,7 @@ RedirectPageHandler: id 파싱 → GetRedirectPageByID → rid 추출 → 소유
 
 ### 6.4 메일 발송 보안
 
-- **FQDN Message-ID** (Gmail 5.7.1 회피). 도메인 우선순위: `GOPHISH_MSGID_DOMAIN` → `Template.EnvelopeSender` 의 @ 뒤 도메인 → `SMTP.FromAddress` 도메인 → FQDN hostname → `mail.invalid`. 형식 `<{16-byte hex}@{fqdn}>`. Message-ID/MessageID/Date 키 덮어쓰기 차단.
+- **FQDN Message-ID** (Gmail 5.7.1 회피). 도메인 우선순위: `AEGISCAMPUS_MSGID_DOMAIN` → `Template.EnvelopeSender` 의 @ 뒤 도메인 → `SMTP.FromAddress` 도메인 → FQDN hostname → `mail.invalid`. 형식 `<{16-byte hex}@{fqdn}>`. Message-ID/MessageID/Date 키 덮어쓰기 차단.
 - **RFC 2047** Subject Q-encoding (ASCII 는 그대로 통과).
 - **RFC 5987 + RFC 2047** 첨부 filename/filename* 병기 헤더. ASCII 폴백.
 - `mailer.dialHost` 가 ctx 취소 시 sender 가 nil 이면 즉시 반환하여 후속 `defer sender.Close()` nil panic 을 방지(초기 dial + 재연결 양쪽).
@@ -423,7 +423,7 @@ RedirectPageHandler: id 파싱 → GetRedirectPageByID → rid 추출 → 소유
 ### 7.1 util/videoutil.go
 
 `ProcessVideoUpload`(io.Copy + sha256 + 중복 제거 + ffprobe + ffmpeg 썸네일), `ProbeDurationSeconds`, `GenerateThumbnail`, `IsUnderBaseDir`(path traversal), `checkVideoBin`(init 바이너리 검사).
-환경변수 `GOPHISH_FFMPEG`/ `GOPHISH_FFPROBE`/`GOPHISH_MAX_VIDEO_BYTES`.
+환경변수 `AEGISCAMPUS_FFMPEG`/ `AEGISCAMPUS_FFPROBE`/`AEGISCAMPUS_MAX_VIDEO_BYTES`.
 
 ### 7.2 util/mimeutil/utf8safe.go
 
@@ -500,11 +500,11 @@ admin = sentinel.whitehat.kr, phish = campaign.whitehat.kr (NPMplus 프록시).
 
 | 변수 | 기본값 | 의미 |
 | --- | --- | --- |
-| GOPHISH_FFMPEG | ffmpeg | ffmpeg 경로 |
-| GOPHISH_FFPROBE | ffprobe | ffprobe 경로 |
-| GOPHISH_MAX_VIDEO_BYTES | (코드) | 영상 업로드 상한 |
-| GOPHISH_MSGID_DOMAIN | (EnvelopeSender 도메인) | Message-ID FQDN |
-| GOPHISH_INITIAL_ADMIN_API_TOKEN | (자동 생성) | 초기 관리자 API 토큰 |
+| AEGISCAMPUS_FFMPEG | ffmpeg | ffmpeg 경로 |
+| AEGISCAMPUS_FFPROBE | ffprobe | ffprobe 경로 |
+| AEGISCAMPUS_MAX_VIDEO_BYTES | (코드) | 영상 업로드 상한 |
+| AEGISCAMPUS_MSGID_DOMAIN | (EnvelopeSender 도메인) | Message-ID FQDN |
+| AEGISCAMPUS_INITIAL_ADMIN_API_TOKEN | (자동 생성) | 초기 관리자 API 토큰 |
 
 ---
 

@@ -32,12 +32,12 @@ const DefaultAdminUsername = "admin"
 // InitialAdminPassword is the environment variable that specifies which
 // password to use for the initial root login instead of generating one
 // randomly
-const InitialAdminPassword = "SENTINEL_INITIAL_ADMIN_PASSWORD"
+const InitialAdminPassword = "AEGISCAMPUS_INITIAL_ADMIN_PASSWORD"
 
 // InitialAdminApiToken is the environment variable that specifies the
 // API token to seed the initial root login instead of generating one
 // randomly
-const InitialAdminApiToken = "SENTINEL_INITIAL_ADMIN_API_TOKEN"
+const InitialAdminApiToken = "AEGISCAMPUS_INITIAL_ADMIN_API_TOKEN"
 
 const (
 	CampaignInProgress     string = "In progress"

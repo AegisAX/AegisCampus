@@ -327,16 +327,16 @@ func UnlockAllMailLogs() error {
 
 // Message-ID 헤더에 사용할 도메인 결정
 // 우선순위:
-//  1. 환경변수 SENTINEL_MSGID_DOMAIN
+//  1. 환경변수 AEGISCAMPUS_MSGID_DOMAIN
 //  2. Template EnvelopeSender의 @ 뒤 도메인
 //  3. SMTP FromAddress의 @ 뒤 도메인
 //  4. os.Hostname() — 점(.)이 있는 FQDN인 경우만
 //  5. "mail.invalid" — 위 모두 실패 시
 //
-// 환경변수 예시: export SENTINEL_MSGID_DOMAIN=mail.example.com
+// 환경변수 예시: export AEGISCAMPUS_MSGID_DOMAIN=mail.example.com
 func pickMsgIDDomain(envelopeSender, smtpFromAddress string) string {
 	// 1) 환경변수 우선
-	if v := os.Getenv("SENTINEL_MSGID_DOMAIN"); v != "" && strings.Contains(v, ".") {
+	if v := os.Getenv("AEGISCAMPUS_MSGID_DOMAIN"); v != "" && strings.Contains(v, ".") {
 		return strings.ToLower(v)
 	}
 	// 2) EnvelopeSender 도메인
