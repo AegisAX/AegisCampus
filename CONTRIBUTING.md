@@ -8,9 +8,9 @@ AegisCampus 에 기여해주셔서 감사합니다. 이 문서는 효율적인 �
 
 ## 이슈 신고 / Reporting issues
 
-버그를 발견하거나 기능을 제안하고 싶으시면 [이슈 등록](https://github.com/AegisAX/Sentinel/issues) 을 통해 알려주세요. 이슈 템플릿이 필요한 정보를 안내해드립니다.
+버그를 발견하거나 기능을 제안하고 싶으시면 [이슈 등록](https://github.com/AegisAX/AegisCampus/issues) 을 통해 알려주세요. 이슈 템플릿이 필요한 정보를 안내해드립니다.
 
-*To report a bug or suggest a feature, please [open an issue](https://github.com/AegisAX/Sentinel/issues). Issue templates will guide you through the required information.*
+*To report a bug or suggest a feature, please [open an issue](https://github.com/AegisAX/AegisCampus/issues). Issue templates will guide you through the required information.*
 
 ⚠️ 보안 취약점은 **공개 이슈로 신고하지 마세요**. [SECURITY.md](SECURITY.md) 의 비공개 신고 채널을 이용해주세요.
 
@@ -105,6 +105,6 @@ go test ./...
 
 ## 질문 / Questions
 
-기타 문의는 [GitHub Issues](https://github.com/AegisAX/Sentinel/issues) 를 이용해주세요.
+기타 문의는 [GitHub Issues](https://github.com/AegisAX/AegisCampus/issues) 를 이용해주세요.
 
 *For other inquiries, please use GitHub Issues.*

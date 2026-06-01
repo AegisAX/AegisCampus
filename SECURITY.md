@@ -2,14 +2,14 @@
 
 ## 취약점 신고 / Reporting a Vulnerability
 
-Sentinel 에서 보안 취약점을 발견하셨다면 다음 채널로 **비공개 신고** 부탁드립니다.
+AegisCampus 에서 보안 취약점을 발견하셨다면 다음 채널로 **비공개 신고** 부탁드립니다.
 
-*If you discover a security vulnerability in Sentinel, please report it through the private channel below.*
+*If you discover a security vulnerability in AegisCampus, please report it through the private channel below.*
 
 ### 신고 경로 / How to report
 
 - **GitHub Security Advisories** (권장 / preferred)
-  - URL: https://github.com/AegisAX/Sentinel/security/advisories/new
+  - URL: https://github.com/AegisAX/AegisCampus/security/advisories/new
   - 저장소 메인테이너만 접근 가능한 비공개 채널입니다.
   - *A private channel visible only to repository maintainers.*
 
