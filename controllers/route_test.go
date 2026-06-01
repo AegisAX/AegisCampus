@@ -56,15 +56,27 @@ func attemptLogin(t *testing.T, ctx *testContext, client *http.Client, username,
 func TestLoginCSRF(t *testing.T) {
 	ctx := setupTest(t)
 	defer tearDown(t, ctx)
-	resp, err := http.PostForm(fmt.Sprintf("%s/login", ctx.adminServer.URL),
-		url.Values{
+
+	// filippo.io/csrf (net/http.CrossOriginProtection) 모델은 폼 토큰이 아니라
+	// Sec-Fetch-Site / Origin 헤더로 cross-site 요청을 판별한다. 따라서 토큰
+	// 누락이 아니라, 브라우저가 보내는 cross-site 신호를 명시해 차단을 검증한다.
+	req, err := http.NewRequest(http.MethodPost,
+		fmt.Sprintf("%s/login", ctx.adminServer.URL),
+		strings.NewReader(url.Values{
 			"username": {"admin"},
 			"password": {"aegiscampus"},
-		})
+		}.Encode()))
+	if err != nil {
+		t.Fatalf("error building the /login request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Sec-Fetch-Site", "cross-site")
 
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("error requesting the /login endpoint: %v", err)
 	}
+	defer resp.Body.Close()
 
 	got := resp.StatusCode
 	expected := http.StatusForbidden
