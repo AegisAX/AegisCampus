@@ -46,7 +46,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: Sentinel 버전 / Sentinel version
+      label: AegisCampus 버전 / AegisCampus version
       placeholder: 예) v1.0.0-beta2
     validations:
       required: true

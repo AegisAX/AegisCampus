@@ -1,4 +1,4 @@
-name: Build Sentinel Release
+name: Build AegisCampus Release
 on:
     release:
         types: [created]
@@ -17,15 +17,15 @@ jobs:
                 include:
                     - os: windows-latest
                       goos: windows
-                      bin: 'sentinel.exe'
+                      bin: 'aegiscampus.exe'
                       releaseos: windows
                     - os: ubuntu-latest
                       goos: linux
-                      bin: 'sentinel'
+                      bin: 'aegiscampus'
                       releaseos: linux
                     - os: macos-latest
                       goos: darwin
-                      bin: 'sentinel'
+                      bin: 'aegiscampus'
                       releaseos: osx
                 # Don't build windows-32bit due to missing MinGW dependencies
                 # Don't build osx-32bit due to eventual drop in Go support
@@ -42,11 +42,11 @@ jobs:
             - if: matrix.os == 'ubuntu-latest'
               run: sudo apt-get update && sudo apt-get install -y gcc-multilib
             - if: matrix.arch == '386'
-              run: echo "RELEASE=sentinel-${{ github.event.release.tag_name }}-${{ matrix.releaseos }}-32bit" >> $GITHUB_ENV
+              run: echo "RELEASE=aegiscampus-${{ github.event.release.tag_name }}-${{ matrix.releaseos }}-32bit" >> $GITHUB_ENV
             - if: matrix.arch == 'amd64'
-              run: echo "RELEASE=sentinel-${{ github.event.release.tag_name }}-${{ matrix.releaseos }}-64bit" >> $GITHUB_ENV
+              run: echo "RELEASE=aegiscampus-${{ github.event.release.tag_name }}-${{ matrix.releaseos }}-64bit" >> $GITHUB_ENV
             - if: matrix.os == 'windows-latest'
-              run: echo "RELEASE=sentinel-${{ github.event.release.tag_name }}-${{ matrix.releaseos }}-64bit" | Out-File -FilePath $env:GITHUB_ENV -Append # https://github.com/actions/runner/issues/1636
+              run: echo "RELEASE=aegiscampus-${{ github.event.release.tag_name }}-${{ matrix.releaseos }}-64bit" | Out-File -FilePath $env:GITHUB_ENV -Append # https://github.com/actions/runner/issues/1636
             - uses: actions/checkout@v4
             - name: Build ${{ matrix.goos }}/${{ matrix.arch }}
               run: go build -o ${{ matrix.bin }}
