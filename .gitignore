@@ -30,5 +30,5 @@ aegiscampus_admin.key
 *.exe
 config.json
 aegiscampus.db*
-aegiscampus
+/aegiscampus
 aegiscampus.log
