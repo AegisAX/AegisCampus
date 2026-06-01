@@ -19,6 +19,62 @@
 
 ---
 
+## [1.0.0-rc5] - 2026-06-01
+
+GA 직전 의존성 보안 트랙. `govulncheck ./...` 가 보고한 호출(called) 취약점
+46건(표준 라이브러리 38 + 외부 모듈 8)을 모두 차단해 0건으로 만든 RC 패치
+릴리스. 신규 기능/마이그레이션 없음. 단, CSRF 미들웨어의 검증 모델이 폼
+토큰 기반(gorilla/csrf) → Origin/Sec-Fetch-Site 기반(filippo.io/csrf,
+net/http.CrossOriginProtection 백포트)으로 교체됐다 (아래 Known Limitations).
+
+### Security (의존성 취약점 차단 — govulncheck 46 → 0)
+
+- **#68** Go 빌드 툴체인을 go1.26.3 으로 고정 (go.mod `toolchain`). 표준
+  라이브러리 취약점 38건 일괄 해결 — net/mail·html/template·crypto/tls·
+  crypto/x509·net/url·net/http·os·encoding/{asn1,pem,gob}·net/textproto·
+  database/sql·os/exec 계열 (GO-2026-4986/4982/4980/4977/4971/4947/4870/
+  4865/4603/4602/4601 외 GO-2025·GO-2024 다수). 컴파일 툴체인만 상향하고
+  언어/런타임 기준선(go directive)은 보존해 동작 변화를 최소화.
+- **#68** `golang.org/x/net` v0.42.0 → v0.55.0 — goquery 경유 HTML 파서
+  취약점 7건 (GO-2026-5030/5029/5028/5027/5025/4441/4440).
+  `github.com/sirupsen/logrus` v1.4.2 → v1.9.4 (GO-2025-4188, writerScanner DoS).
+- **#68** CSRF 미들웨어를 `github.com/gorilla/csrf` 에서 `filippo.io/csrf/gorilla`
+  드롭인으로 교체. gorilla/csrf v1.7.3 은 GO-2025-3607(Referer 검증 결함)을
+  닫지만 그 수정이 GO-2025-3884(TrustedOrigins 스킴 무시 — 업스트림 수정
+  계획 없음)를 새로 유발한다. filippo 드롭인은 net/http.CrossOriginProtection
+  기반으로 Origin/Sec-Fetch-Site 와 스킴까지 검증해 두 항목을 모두 차단.
+  import 별칭(`csrf`)만 교체하여 호출부(controllers/route.go·middleware/
+  middleware.go) 코드는 불변. `/api/` 면제(`UnsafeSkipCheck`)와 multi-origin
+  `trusted_origins` 동작은 그대로 유지된다.
+
+### Changed (빌드 / 의존성)
+
+- `x/net` v0.55.0 이 go1.25 를 요구해 go.mod `go` 디렉티브가 1.23.0 → 1.25.0
+  으로 자동 상향됐다(불가피). `toolchain` 은 go1.26.3 유지. go 디렉티브의
+  1.26 기준선 채택 + 전체 의존성 최신화는 GA 트랙으로 예약.
+- 부수 의존성 정리: `x/crypto` v0.51.0·`x/sys` v0.45.0·`x/text` v0.37.0 동반
+  상향, `gorilla/securecookie` v1.1.2. `konsorten/go-windows-terminal-sequences`
+  와 `pkg/errors` 는 logrus/csrf 가 더 이상 사용하지 않아 제거.
+
+### Tested (회귀 방지)
+
+- `TestLoginCSRF` 갱신 — filippo 모델은 폼 토큰이 아니라 Sec-Fetch-Site/
+  Origin 헤더로 cross-site 를 판별하므로, 토큰 누락 대신 `Sec-Fetch-Site:
+  cross-site` 를 보내 차단(403)을 검증하도록 수정. 테스트 전용, 제품 동작
+  영향 없음.
+
+### Known Limitations
+
+- **CSRF 검증 모델 변경** — 폼 토큰+쿠키 → Origin/Sec-Fetch-Site. admin 은
+  same-origin 폼이라 영향 없도록 설계됐고 `trusted_origins`(공개 호스트 3개)
+  로 백업되나, 리버스 프록시(NPMplus)의 Host/Origin 전달에 의존한다. 배포
+  후 admin 로그인·폼 POST·API 호출 회귀 검증 권장. `csrf_token` 숨김 필드와
+  CSRF 쿠키는 더 이상 검증에 쓰이지 않으나 렌더는 유지된다(무해).
+- **go 디렉티브 1.25** — x/net 요구로 상향. 1.26 기준선 + 전체 의존성 최신화는
+  GA 트랙에서 일괄 처리 예정.
+
+---
+
 ## [1.0.0-rc4] - 2026-05-31
 
 Sentinel → **AegisCampus** 1차 브랜딩(Layer 1, 운영 무중단) 적용 RC 릴리스.
@@ -446,7 +502,8 @@ v1.0.0-beta2 운영 검증 후, 출시 후보(rc) 승격을 위한 기능 안정
 
 ---
 
-[Unreleased]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-rc4...HEAD
+[Unreleased]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-rc5...HEAD
+[1.0.0-rc5]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-rc4...v1.0.0-rc5
 [1.0.0-rc4]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-rc3...v1.0.0-rc4
 [1.0.0-rc3]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-rc2...v1.0.0-rc3
 [1.0.0-rc2]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-rc1...v1.0.0-rc2
