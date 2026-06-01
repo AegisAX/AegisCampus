@@ -502,11 +502,11 @@ v1.0.0-beta2 운영 검증 후, 출시 후보(rc) 승격을 위한 기능 안정
 
 ---
 
-[Unreleased]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-rc5...HEAD
-[1.0.0-rc5]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-rc4...v1.0.0-rc5
-[1.0.0-rc4]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-rc3...v1.0.0-rc4
-[1.0.0-rc3]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-rc2...v1.0.0-rc3
-[1.0.0-rc2]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-rc1...v1.0.0-rc2
-[1.0.0-rc1]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-beta2...v1.0.0-rc1
-[1.0.0-beta2]: https://github.com/AegisAX/Sentinel/compare/v1.0.0-beta1...v1.0.0-beta2
-[1.0.0-beta1]: https://github.com/AegisAX/Sentinel/releases/tag/v1.0.0-beta1
+[Unreleased]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-rc5...HEAD
+[1.0.0-rc5]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-rc4...v1.0.0-rc5
+[1.0.0-rc4]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-rc3...v1.0.0-rc4
+[1.0.0-rc3]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-rc2...v1.0.0-rc3
+[1.0.0-rc2]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-rc1...v1.0.0-rc2
+[1.0.0-rc1]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-beta2...v1.0.0-rc1
+[1.0.0-beta2]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-beta1...v1.0.0-beta2
+[1.0.0-beta1]: https://github.com/AegisAX/AegisCampus/releases/tag/v1.0.0-beta1
