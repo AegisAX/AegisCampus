@@ -52,6 +52,14 @@ func (as *Server) Pages(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
+		if verr := models.ValidateTemplate(p.HTML); verr != nil {
+			JSONResponse(w, models.Response{Success: false, Message: verr.Error()}, http.StatusBadRequest)
+			return
+		}
+		if verr := models.ValidateTemplate(p.RedirectURL); verr != nil {
+			JSONResponse(w, models.Response{Success: false, Message: verr.Error()}, http.StatusBadRequest)
+			return
+		}
 		err = models.PostPage(&p)
 		if err == models.ErrPageNameNotSpecified {
 			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
@@ -110,6 +118,14 @@ func (as *Server) Page(w http.ResponseWriter, r *http.Request) {
 				JSONResponse(w, models.Response{Success: false, Message: "선택한 동영상에 접근 권한이 없습니다."}, http.StatusForbidden)
 				return
 			}
+		}
+		if verr := models.ValidateTemplate(p.HTML); verr != nil {
+			JSONResponse(w, models.Response{Success: false, Message: verr.Error()}, http.StatusBadRequest)
+			return
+		}
+		if verr := models.ValidateTemplate(p.RedirectURL); verr != nil {
+			JSONResponse(w, models.Response{Success: false, Message: verr.Error()}, http.StatusBadRequest)
+			return
 		}
 		err = models.PutPage(&p)
 		if err == models.ErrPageNameNotSpecified {
