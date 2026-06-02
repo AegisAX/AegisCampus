@@ -1,40 +1,38 @@
 {{define "nav"}}
-<div class="container-fluid"><div class="row"><div class="col-sm-3 col-md-2 sidebar">
+<div class="sidebar" id="sidebar">
     <ul class="nav nav-sidebar">
         <li>
-            <a href="/"><span class="sidebar-nav-item-icon fa fa-tachometer"></span> Dashboard</a>
+            <a href="/"><span class="sidebar-nav-item-icon fa fa-tachometer"></span> <span class="sidebar-nav-item-text">Dashboard</span></a>
         </li>
         <li>
-            <a href="/groups"><span class="sidebar-nav-item-icon fa fa-users"></span> Users &amp; Groups</a>
+            <a href="/groups"><span class="sidebar-nav-item-icon fa fa-users"></span> <span class="sidebar-nav-item-text">Users &amp; Groups</span></a>
         </li>
         <li>
-            <a href="/templates"><span class="sidebar-nav-item-icon fa fa-envelope"></span> Email Templates</a>
+            <a href="/templates"><span class="sidebar-nav-item-icon fa fa-envelope"></span> <span class="sidebar-nav-item-text">Email Templates</span></a>
         </li>
         <li>
-            <a href="/landing_pages"><span class="sidebar-nav-item-icon fa fa-file-text-o"></span> Landing Pages</a>
+            <a href="/landing_pages"><span class="sidebar-nav-item-icon fa fa-file-text-o"></span> <span class="sidebar-nav-item-text">Landing Pages</span></a>
         </li>
         <li>
-            <a href="/redirect_pages"><span class="sidebar-nav-item-icon fa fa-share-square-o"></span> Redirect Pages</a>
+            <a href="/redirect_pages"><span class="sidebar-nav-item-icon fa fa-share-square-o"></span> <span class="sidebar-nav-item-text">Redirect Pages</span></a>
         </li>
         <li>
-            <a href="/videos"><span class="sidebar-nav-item-icon fa fa-film"></span> Video Management</a>
+            <a href="/videos"><span class="sidebar-nav-item-icon fa fa-film"></span> <span class="sidebar-nav-item-text">Video Management</span></a>
         </li>
         <li>
-            <a href="/sending_profiles"><span class="sidebar-nav-item-icon fa fa-paper-plane"></span> Sending Profiles</a>
+            <a href="/sending_profiles"><span class="sidebar-nav-item-icon fa fa-paper-plane"></span> <span class="sidebar-nav-item-text">Sending Profiles</span></a>
         </li>
         <li>
-            <a href="/settings"><span class="sidebar-nav-item-icon fa fa-cog"></span> Account Settings</a>
+            <a href="/settings"><span class="sidebar-nav-item-icon fa fa-cog"></span> <span class="sidebar-nav-item-text">Account Settings</span></a>
         </li>
         {{if .ModifySystem}}
         <li>
-            <a href="/users"><span class="sidebar-nav-item-icon fa fa-user-secret"></span> User Management
-            <span class="nav-badge badge pull-right">Admin</span></a>
+            <a href="/users"><span class="sidebar-nav-item-icon fa fa-user-secret"></span> <span class="sidebar-nav-item-text">User Management</span></a>
         </li>
         <li>
-            <a href="/webhooks"><span class="sidebar-nav-item-icon fa fa-link"></span> Webhooks
-            <span class="nav-badge badge pull-right">Admin</span></a>
+            <a href="/webhooks"><span class="sidebar-nav-item-icon fa fa-link"></span> <span class="sidebar-nav-item-text">Webhooks</span></a>
         </li>
         {{end}}
     </ul>
-</div></div></div>
+</div>
 {{end}}

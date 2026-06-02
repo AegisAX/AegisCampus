@@ -13,7 +13,7 @@
 
     <title>{{ .Title }} - AegisCampus</title>
 
-    <link href="/css/dist/aegiscampus.css" rel="stylesheet" type="text/css">
+    <link href="/css/dist/aegiscampus.css?v=20260603a" rel="stylesheet" type="text/css">
     <link href="/css/flag-icons/css/flag-icons.min.css" rel="stylesheet" type="text/css">
     <script>
         {{if .User}}
@@ -32,7 +32,7 @@
     <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
         <div class="container-fluid">
             <div class="navbar-header">
-                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-main">
                     <span class="sr-only">Toggle navigation</span>
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
@@ -43,7 +43,7 @@
                     <span>AegisCampus</span>
                 </a>
             </div>
-            <div class="navbar-collapse collapse">
+            <div class="navbar-collapse collapse" id="navbar-main">
                 <ul class="nav navbar-nav navbar-right">
                     <li>
                         {{if .User}}
@@ -66,9 +66,20 @@
     {{template "nav" .}}
     {{template "body" .}}
     <!-- Placed at the end of the document so the pages load faster -->
-    <script src="/js/dist/vendor.min.js"></script>
-    <script src="/js/dist/app/aegiscampus.min.js"></script>
+    <script src="/js/dist/vendor.min.js?v=20260603a"></script>
+    <script src="/js/dist/app/aegiscampus.min.js?v=20260603a"></script>
     {{template "scripts" .}}
+    <script>
+    (function () {
+        var btn = document.querySelector('.navbar-toggle');
+        var sidebar = document.getElementById('sidebar');
+        if (btn && sidebar) {
+            btn.addEventListener('click', function () {
+                sidebar.classList.toggle('in');
+            });
+        }
+    })();
+    </script>
 </body>
 
 </html>

@@ -58,3 +58,94 @@ body {
     background-color: #4338CA;
     border-color: #4338CA;
 }
+
+/* ===== 사이드바 레이아웃 (데스크톱 fixed / 모바일 부트스트랩 collapse) — rc8 후속 ===== */
+:root {
+    --sidebar-width: 210px;
+    --navbar-height: 51px;
+}
+/* nav-sidebar 그리드용 음수 마진 중화 (fixed 전환으로 불필요) */
+.nav-sidebar {
+    margin: 0;
+}
+.nav-sidebar > li > a {
+    white-space: nowrap;
+    overflow: hidden;
+    padding: 10px 16px;
+}
+/* 테이블 Actions 셀(마지막 열) 버튼이 좁은 화면에서 줄바꿈되지 않도록 */
+table.dataTable td:last-child {
+    white-space: nowrap;
+}
+.sidebar-nav-item-icon {
+    display: inline-block;
+    width: 20px;
+    text-align: center;
+}
+
+/* ----- 넓은 화면 (≥1301px): 좌측 고정 사이드바 ----- */
+@media (min-width: 1301px) {
+    .sidebar {
+        display: block;
+        position: fixed;
+        top: var(--navbar-height);
+        left: 0;
+        bottom: 0;
+        width: var(--sidebar-width);
+        padding: 0;
+        margin: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        z-index: 1000;
+        background-color: #14102E;
+        border-right: none;
+    }
+    .main {
+        margin-left: var(--sidebar-width);
+        padding-left: 30px;
+        padding-right: 30px;
+    }
+}
+
+/* ----- 좁은 화면 (≤1300px): navbar 분기점과 동일, 햄버거 collapse (오버레이 방식) ----- */
+@media (max-width: 1300px) {
+    :root { --navbar-height-mobile: 100px; }
+    /* 펼쳐진 사이드바는 본문 위에 떠서(absolute) 본문을 밀지 않음 */
+    .sidebar {
+        position: absolute;
+        top: var(--navbar-height-mobile);
+        left: 0;
+        right: 0;
+        bottom: auto;
+        width: 100%;
+        max-width: 100%;
+        padding: 0;
+        margin: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        border-right: none;
+        background-color: #14102E;
+        z-index: 1000;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+    }
+    /* 본문은 사이드바 폭/높이에 영향받지 않음 */
+    .main {
+        margin-left: 0;
+        padding-left: 30px;
+        padding-right: 30px;
+    }
+    /* admin(navbar collapse) 높이 애니메이션 제거 → 즉시 펼침 */
+    #navbar-main.collapse,
+    #navbar-main.collapsing,
+    #navbar-main.collapse.in {
+        transition: none !important;
+        height: auto !important;
+    }
+    /* 사이드바는 JS 가 .in 클래스로 직접 토글 (부트스트랩 collapsing 미경유) */
+    #sidebar {
+        display: none;
+    }
+    #sidebar.in {
+        display: block;
+    }
+}
