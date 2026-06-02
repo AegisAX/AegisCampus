@@ -31,4 +31,5 @@ aegiscampus_admin.key
 config.json
 aegiscampus.db*
 /aegiscampus
+/AegisCampus
 aegiscampus.log
