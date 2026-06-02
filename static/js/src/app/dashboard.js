@@ -31,7 +31,7 @@ var statuses = {
     "Sending":      { color: "#428bca", label: "label-primary", icon: "fa-spinner",               point: "ct-point-sending" },
     "Campaign Created": { label: "label-success", icon: "fa-rocket" },
     "Executed":     { color: "#ff0000", label: "label-danger",  icon: "fa-exclamation-triangle",  point: "ct-point-executed" },
-    "Trained":      { color: "#2727dd", label: "label-info",    icon: "fa-graduation-cap",        point: "ct-point-trained" }
+    "Trained":      { color: "#06B6D4", label: "label-info",    icon: "fa-graduation-cap",        point: "ct-point-trained" }
 };
 
 var statsMapping = {
@@ -80,6 +80,7 @@ function renderPieChart(chartopts) {
     return Highcharts.chart(chartopts['elemId'], {
         chart: {
             type: 'pie',
+            backgroundColor: 'transparent',
             events: {
                 load: function () {
                     var chart = this,
@@ -169,6 +170,9 @@ function generateClickRateOverTimeChart(srcCampaigns) {
         return new Date(b.created_date) - new Date(a.created_date);
     }).slice(0, 10);
 
+    var LINE_COLORS = ['#6366F1', '#06B6D4', '#F59E0B', '#EC4899', '#10B981',
+                       '#8B5CF6', '#84CC16', '#F43F5E', '#3B82F6', '#D946EF'];
+
     var series = [];
     $.each(recent, function (i, c) {
         var timeline = c.click_timeline || [];
@@ -187,11 +191,16 @@ function generateClickRateOverTimeChart(srcCampaigns) {
                 original_time: pt.time
             });
         });
-        series.push({ name: c.name, data: points });
+        var idx = series.length;
+        series.push({
+            name: c.name,
+            data: points,
+            color: LINE_COLORS[idx % LINE_COLORS.length]
+        });
     });
 
     Highcharts.chart('click_rate_over_time_chart', {
-        chart: { type: 'line', zoomType: 'x' },
+        chart: { type: 'line', zoomType: 'x', backgroundColor: 'transparent' },
         title: { text: 'Click Rate Over Time (' + series.length + ' Campaigns)' },
         xAxis: {
             title: { text: 'Elapsed time since launch' },
