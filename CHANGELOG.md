@@ -17,6 +17,33 @@
 
 ---
 
+## [1.0.0-rc8] - 2026-06-02
+
+admin UI 재디자인 RC 릴리스. 다크 인디고 프레임 retone(1차) + KPI 도넛/라인
+차트·배경 통일(2차)을 적용했다. 신규 기능/마이그레이션/Go 동작 변경 없음.
+대시보드/캠페인 데이터 모델·집계 로직과 보안 게이트는 그대로 유지된다.
+
+### Changed (admin UI 재디자인)
+
+- **프레임 retone (1차).** 다크 인디고 톤으로 admin 셸 재정비 — body 배경,
+  navbar-inverse / sidebar `#14102E`, active 항목 시안 inset box-shadow,
+  `btn-primary` `#4F46E5`. `static/css/src/aegiscampus-theme.css` 신규 +
+  gulp `styles` 타깃 등록.
+- **KPI 도넛 (2차).** 의미색(직관적 데이터 구분)은 유지하되 Trained 만
+  시안 `#06B6D4` 으로 강조, Executed 는 very-high-risk 경고 의미로 빨강
+  `#ff0000` 유지. `dashboard.js` 의 statuses 색 정의 기준.
+- **Click Rate Over Time 라인차트 (2차).** 캠페인별 라인을 10색 분산 팔레트
+  (hue 균등 + 인접 분리)로 series 별 지정, `dashStyle` 제거(색만으로 구분).
+  표시 라인 수는 기존 최근 10개 유지. 팔레트: `#6366F1 #06B6D4 #F59E0B
+  #EC4899 #10B981 #8B5CF6 #84CC16 #F43F5E #3B82F6 #D946EF`.
+- **배경 통일 (2차).** 도넛/라인 Highcharts `backgroundColor: 'transparent'`
+  로 전환해 차트가 body 색을 그대로 비치게 하고, body 를 `#F8FAFF`(회색기
+  제거한 거의 흰색)로 통일. "흰 카드만 떠 보이던" 위화감 해소.
+- **상태 배지 (2차).** `.label-primary`(In progress) bg `#CFFAFE`/색 `#0E7490`,
+  `.label-success`(Completed) bg `#E0E7FF`/색 `#3730A3` 으로 톤 정렬.
+
+---
+
 ## [1.0.0-rc7] - 2026-06-02
 
 ### Changed
@@ -569,7 +596,8 @@ v1.0.0-beta2 운영 검증 후, 출시 후보(rc) 승격을 위한 기능 안정
 
 ---
 
-[Unreleased]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-rc7...HEAD
+[Unreleased]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-rc8...HEAD
+[1.0.0-rc8]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-rc7...v1.0.0-rc8
 [1.0.0-rc7]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-rc6...v1.0.0-rc7
 [1.0.0-rc6]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-rc5...v1.0.0-rc6
 [1.0.0-rc5]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-rc4...v1.0.0-rc5
