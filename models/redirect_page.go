@@ -81,7 +81,11 @@ func GetRedirectPages(uid int64) ([]RedirectPage, error) {
 	// 단일 IN 쿼리로 필요한 Video만 조회
 	if len(videoIDs) > 0 {
 		var videos []Video
-		if err := db.Where("id IN (?)", videoIDs).Find(&videos).Error; err == nil {
+		if err := db.Where("id IN (?)", videoIDs).Find(&videos).Error; err != nil {
+			// IN 쿼리 실패 시에도 페이지 목록은 반환하되(관리 UI 가용성 우선),
+			// Video 첨부 누락을 silent 로 넘기지 않고 로그를 남긴다.
+			log.Error(err)
+		} else {
 			// id → Video 맵 구성
 			vmap := make(map[int64]*Video, len(videos))
 			for i := range videos {
