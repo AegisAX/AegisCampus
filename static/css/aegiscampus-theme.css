@@ -1,0 +1,60 @@
+/* =====================================================================
+   AegisCampus Theme — admin UI re-skin (rc8 후보)
+   concat 최후순위 로드. 색상/톤만 override, 레이아웃(width/position/
+   padding)은 건드리지 않음. cleanCSS 로 minify 되어 dist 에 합쳐짐.
+   팔레트: Dark #0E0B26 / Navbar·Sidebar #14102E / Indigo #6366F1·#4F46E5
+           Cyan #22D3EE·#06B6D4 / 메뉴텍스트 #A7AAD6 / active bg #241C52
+   ===================================================================== */
+
+/* ---- body 콘텐츠 배경 ---- */
+body {
+    background-color: #EEF1F6;
+}
+
+/* ---- 상단 navbar (다크 인디고 retone, mark_dark 유지) ---- */
+.navbar-inverse {
+    background-color: #14102E;
+    border-color: #14102E;
+}
+.navbar-inverse .navbar-brand,
+.navbar-inverse .navbar-brand:hover,
+.navbar-inverse .navbar-brand:focus {
+    color: #EEF1FF;
+}
+
+/* ---- 사이드바 (다크 인디고) ---- */
+.sidebar {
+    background-color: #14102E;
+}
+/* 기존 .sidebar a (color:#201e1c) 보다 높은 specificity 로 메뉴 텍스트 색 확정 */
+.nav-sidebar > li > a {
+    color: #A7AAD6;
+}
+.nav-sidebar > li > a:hover,
+.nav-sidebar > li > a:focus {
+    background-color: #241C52;
+    color: #FFFFFF;
+}
+/* active: bg #241C52 + 흰 텍스트 + 시안 좌측바 2px
+   (border 대신 inset box-shadow 사용 → 레이아웃 reflow 없음) */
+.nav-sidebar > li.active > a,
+.nav-sidebar > li.active > a:hover,
+.nav-sidebar > li.active > a:focus {
+    background-color: #241C52;
+    color: #FFFFFF;
+    box-shadow: inset 2px 0 0 #22D3EE;
+}
+
+/* ---- 기본 버튼 (인디고) ---- */
+.btn-primary {
+    background-color: #4F46E5;
+    border-color: #4F46E5;
+}
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active,
+.btn-primary.active,
+.btn-primary:active:focus {
+    background-color: #4338CA;
+    border-color: #4338CA;
+}
