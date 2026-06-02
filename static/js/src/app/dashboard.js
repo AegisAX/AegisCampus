@@ -31,7 +31,7 @@ var statuses = {
     "Sending":      { color: "#428bca", label: "label-primary", icon: "fa-spinner",               point: "ct-point-sending" },
     "Campaign Created": { label: "label-success", icon: "fa-rocket" },
     "Executed":     { color: "#ff0000", label: "label-danger",  icon: "fa-exclamation-triangle",  point: "ct-point-executed" },
-    "Trained":      { color: "#06B6D4", label: "label-info",    icon: "fa-graduation-cap",        point: "ct-point-trained" }
+    "Trained":      { color: "#2727dd", label: "label-info",    icon: "fa-graduation-cap",        point: "ct-point-trained" }
 };
 
 var statsMapping = {
