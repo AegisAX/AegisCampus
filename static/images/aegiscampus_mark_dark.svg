@@ -1,7 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" role="img" aria-label="AegisCampus">
-  <title>AegisCampus</title>
-  <desc>AegisCampus mark for dark backgrounds — white concentric hexagons with gold center.</desc>
-  <polygon points="40,11 66,25 66,55 40,69 14,55 14,25" fill="none" stroke="#FFFFFF" stroke-width="3"/>
-  <polygon points="40,21 56,30 56,50 40,59 24,50 24,30" fill="none" stroke="#FFFFFF" stroke-width="2" opacity="0.55"/>
-  <polygon points="40,31 47,35 47,45 40,49 33,45 33,35" fill="#F0B429"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130 194"  role="img" aria-label="AegisCampus">
+<path fill="#C2CACF" d="M0,0 L65,0 L65,194 Q0,144 0,84 Z"/>
+<path fill="#8A929A" d="M65,0 L130,0 L130,84 Q130,144 65,194 Z"/>
+<path fill="#312B6E" d="M10,11 L120,11 L120,82 Q120,137 65,183 Q10,137 10,82 Z"/>
+<path fill="none" stroke="#6366F1" stroke-width="1" d="M15,16 L115,16 L115,80 Q115,133 65,176 Q15,133 15,80 Z"/>
+<path fill="none" stroke="#22D3EE" stroke-width="1.6" d="M35,92 Q65,70 95,92"/>
+<path fill="none" stroke="#22D3EE" stroke-width="1.2" opacity="0.7" d="M26,108 Q65,77 104,108"/>
+<path fill="none" stroke="#22D3EE" stroke-width="0.9" opacity="0.45" d="M18,124 Q65,85 112,124"/>
+<path fill="#F4F7F9" d="M65,40 L25,154 L45,154 L65,94 Z"/>
+<path fill="#AEB6BC" d="M65,40 L65,94 L85,154 L105,154 Z"/>
+<path fill="#22D3EE" d="M65,60 L59,140 L71,140 Z"/>
 </svg>
