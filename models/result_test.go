@@ -19,9 +19,9 @@ func (s *ModelsSuite) TestGenerateResultId(c *check.C) {
 func (s *ModelsSuite) TestFormatAddress(c *check.C) {
 	r := Result{
 		BaseRecipient: BaseRecipient{
-			Name: "John Doe",
-			Department:  "HQ",
-			Email:     "johndoe@example.com",
+			Name:       "John Doe",
+			Department: "HQ",
+			Email:      "johndoe@example.com",
 		},
 	}
 	expected := &mail.Address{

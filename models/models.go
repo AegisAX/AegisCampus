@@ -12,9 +12,9 @@ import (
 
 	"bitbucket.org/liamstask/goose/lib/goose"
 
-	mysql "github.com/go-sql-driver/mysql"
 	"github.com/AegisAX/AegisCampus/auth"
 	"github.com/AegisAX/AegisCampus/config"
+	mysql "github.com/go-sql-driver/mysql"
 
 	log "github.com/AegisAX/AegisCampus/logger"
 	"github.com/jinzhu/gorm"

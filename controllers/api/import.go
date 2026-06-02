@@ -9,12 +9,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/PuerkitoBio/goquery"
 	"github.com/AegisAX/AegisCampus/dialer"
 	log "github.com/AegisAX/AegisCampus/logger"
 	"github.com/AegisAX/AegisCampus/models"
 	"github.com/AegisAX/AegisCampus/util"
 	emailparser "github.com/AegisAX/AegisCampus/util/email"
+	"github.com/PuerkitoBio/goquery"
 )
 
 type cloneRequest struct {
@@ -153,4 +153,3 @@ func (as *Server) ImportSite(w http.ResponseWriter, r *http.Request) {
 	cs := cloneResponse{HTML: h}
 	JSONResponse(w, cs, http.StatusOK)
 }
-

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PuerkitoBio/goquery"
 	log "github.com/AegisAX/AegisCampus/logger"
+	"github.com/PuerkitoBio/goquery"
 )
 
 // Page contains the fields used for a Page model

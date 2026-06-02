@@ -107,10 +107,10 @@ func ValidateTemplate(text string) error {
 	}
 	td := Result{
 		BaseRecipient: BaseRecipient{
-			Email:     "foo@bar.com",
-			Name: "Foo",
-			Department:  "HQ",
-			Position:  "Test",
+			Email:      "foo@bar.com",
+			Name:       "Foo",
+			Department: "HQ",
+			Position:   "Test",
 		},
 		RId: "123456",
 	}

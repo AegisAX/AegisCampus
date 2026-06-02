@@ -182,9 +182,9 @@ func benchmarkPostGroup(b *testing.B, iter, size int) {
 	for i := 0; i < size; i++ {
 		g.Targets = append(g.Targets, Target{
 			BaseRecipient: BaseRecipient{
-				Name: "User",
-				Department:  fmt.Sprintf("%d", i),
-				Email:     fmt.Sprintf("test-%d@test.com", i),
+				Name:       "User",
+				Department: fmt.Sprintf("%d", i),
+				Email:      fmt.Sprintf("test-%d@test.com", i),
 			},
 		})
 	}
@@ -205,9 +205,9 @@ func benchmarkPutGroup(b *testing.B, iter, size int) {
 	for i := 0; i < size; i++ {
 		g.Targets = append(g.Targets, Target{
 			BaseRecipient: BaseRecipient{
-				Name: "User",
-				Department:  fmt.Sprintf("%d", i),
-				Email:     fmt.Sprintf("test-%d@test.com", i),
+				Name:       "User",
+				Department: fmt.Sprintf("%d", i),
+				Email:      fmt.Sprintf("test-%d@test.com", i),
 			},
 		})
 	}

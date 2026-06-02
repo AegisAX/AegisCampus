@@ -8,12 +8,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/emersion/go-imap"
-	"github.com/emersion/go-imap/client"
-	"github.com/emersion/go-message/charset"
 	"github.com/AegisAX/AegisCampus/dialer"
 	log "github.com/AegisAX/AegisCampus/logger"
 	"github.com/AegisAX/AegisCampus/models"
+	"github.com/emersion/go-imap"
+	"github.com/emersion/go-imap/client"
+	"github.com/emersion/go-message/charset"
 
 	emailparser "github.com/AegisAX/AegisCampus/util/email"
 )

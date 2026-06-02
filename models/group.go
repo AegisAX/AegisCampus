@@ -52,18 +52,18 @@ type Target struct {
 // BaseRecipient contains the fields for a single recipient. This is the base
 // struct used in members of groups and campaign results.
 type BaseRecipient struct {
-	Email       string `json:"email"`
-	Name        string `json:"name"`
-	Department  string `json:"department"`
-	Position    string `json:"position"`
+	Email      string `json:"email"`
+	Name       string `json:"name"`
+	Department string `json:"department"`
+	Position   string `json:"position"`
 }
 
 // FormatAddress returns the email address to use in the "To" header of the email
 func (r *BaseRecipient) FormatAddress() string {
 	addr := r.Email
-	if r.Name != "" { 
+	if r.Name != "" {
 		a := &mail.Address{
-			Name:    r.Name,   // fmt.Sprintf("%s", r.Name) → r.Name
+			Name:    r.Name, // fmt.Sprintf("%s", r.Name) → r.Name
 			Address: r.Email,
 		}
 		addr = a.String()
@@ -244,7 +244,7 @@ func PutGroup(g *Group) error {
 			log.WithFields(logrus.Fields{
 				"email": t.Email,
 			}).Error("Error deleting email")
-			return err	// 추가
+			return err // 추가
 		}
 	}
 	// Add any targets that are not in the database yet.
@@ -272,7 +272,7 @@ func PutGroup(g *Group) error {
 	err = tx.Save(g).Error
 	if err != nil {
 		log.Error(err)
-		tx.Rollback()	// tx.Rollback() 호출 추가
+		tx.Rollback() // tx.Rollback() 호출 추가
 		return err
 	}
 	err = tx.Commit().Error
@@ -325,8 +325,8 @@ func insertTargetIntoGroup(tx *gorm.DB, t Target, gid int64) error {
 // UpdateTarget updates the given target information in the database.
 func UpdateTarget(tx *gorm.DB, target Target) error {
 	targetInfo := map[string]interface{}{
-		"name": target.Name,
-		"department":  target.Department,
+		"name":       target.Name,
+		"department": target.Department,
 		"position":   target.Position,
 	}
 	err := tx.Model(&target).Where("id = ?", target.Id).Updates(targetInfo).Error
