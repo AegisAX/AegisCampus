@@ -17,6 +17,22 @@
 
 ---
 
+## [1.0.0-rc7] - 2026-06-02
+
+### Changed
+- 브랜드 로고 자산을 placeholder 에서 확정 디자인으로 교체.
+  방패 + A 모노그램 + 스캔(탐지·인식) 모티프, 인디고/시안 사이버보안 팔레트.
+  - static/images/aegiscampus_mark.svg (라이트 배경용)
+  - static/images/aegiscampus_mark_dark.svg (다크 배경용, 네비바)
+  - static/images/favicon.svg, favicon.ico (멀티 해상도 16~256)
+  워드마크는 코드(템플릿)에서 직접 처리하므로 심볼만 자산화. 템플릿 참조 변경 없음.
+
+### Added
+- static/images/aegiscampus_mark_mono.svg — 단색(currentColor) 심볼 변형.
+  향후 admin UI 테마/저대비 용도.
+
+---
+
 ## [1.0.0-rc6] - 2026-06-02
 
 Sentinel → **AegisCampus** 2차 브랜딩(Layer 2, 운영 식별자) 적용 + 운영
@@ -553,7 +569,8 @@ v1.0.0-beta2 운영 검증 후, 출시 후보(rc) 승격을 위한 기능 안정
 
 ---
 
-[Unreleased]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-rc6...HEAD
+[Unreleased]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-rc7...HEAD
+[1.0.0-rc7]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-rc6...v1.0.0-rc7
 [1.0.0-rc6]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-rc5...v1.0.0-rc6
 [1.0.0-rc5]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-rc4...v1.0.0-rc5
 [1.0.0-rc4]: https://github.com/AegisAX/AegisCampus/compare/v1.0.0-rc3...v1.0.0-rc4
