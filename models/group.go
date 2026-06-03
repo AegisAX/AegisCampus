@@ -164,7 +164,7 @@ func GetGroupSummary(id int64, uid int64) (GroupSummary, error) {
 // GetGroupByName returns the group, if it exists, specified by the given name and user_id.
 func GetGroupByName(n string, uid int64) (Group, error) {
 	g := Group{}
-	err := db.Where("user_id=? and name=?", uid, n).Find(&g).Error
+	err := db.Where("user_id=? and name=?", uid, n).First(&g).Error
 	if err != nil {
 		log.Error(err)
 		return g, err
