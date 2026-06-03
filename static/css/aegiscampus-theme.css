@@ -2,19 +2,19 @@
    AegisCampus Theme — admin UI re-skin (rc8 후보)
    concat 최후순위 로드. 색상/톤만 override, 레이아웃(width/position/
    padding)은 건드리지 않음. cleanCSS 로 minify 되어 dist 에 합쳐짐.
-   팔레트: Dark #0E0B26 / Navbar·Sidebar #14102E / Indigo #6366F1·#4F46E5
-           Cyan #22D3EE·#06B6D4 / 메뉴텍스트 #A7AAD6 / active bg #241C52
+   팔레트: Navbar·Sidebar #1E293B / active bg #334155 / Indigo #4F46E5·#4338CA
+           Sky #38BDF8 / 메뉴텍스트 #94A3B8 / body #F8FAFC
    ===================================================================== */
 
 /* ---- body 콘텐츠 배경 ---- */
 body {
-    background-color: #F8FAFF;
+    background-color: #F8FAFC;
 }
 
 /* ---- 상단 navbar (다크 인디고 retone, mark_dark 유지) ---- */
 .navbar-inverse {
-    background-color: #14102E;
-    border-color: #14102E;
+    background-color: #1E293B;
+    border-color: #1E293B;
 }
 .navbar-inverse .navbar-brand,
 .navbar-inverse .navbar-brand:hover,
@@ -24,15 +24,15 @@ body {
 
 /* ---- 사이드바 (다크 인디고) ---- */
 .sidebar {
-    background-color: #14102E;
+    background-color: #1E293B;
 }
 /* 기존 .sidebar a (color:#201e1c) 보다 높은 specificity 로 메뉴 텍스트 색 확정 */
 .nav-sidebar > li > a {
-    color: #A7AAD6;
+    color: #94A3B8;
 }
 .nav-sidebar > li > a:hover,
 .nav-sidebar > li > a:focus {
-    background-color: #241C52;
+    background-color: #334155;
     color: #FFFFFF;
 }
 /* active: bg #241C52 + 흰 텍스트 + 시안 좌측바 2px
@@ -40,9 +40,9 @@ body {
 .nav-sidebar > li.active > a,
 .nav-sidebar > li.active > a:hover,
 .nav-sidebar > li.active > a:focus {
-    background-color: #241C52;
+    background-color: #334155;
     color: #FFFFFF;
-    box-shadow: inset 2px 0 0 #22D3EE;
+    box-shadow: inset 2px 0 0 #38BDF8;
 }
 
 /* ---- 기본 버튼 (인디고) ---- */
@@ -97,7 +97,7 @@ table.dataTable td:last-child {
         overflow-x: hidden;
         overflow-y: auto;
         z-index: 1000;
-        background-color: #14102E;
+        background-color: #1E293B;
         border-right: none;
     }
     .main {
@@ -124,7 +124,7 @@ table.dataTable td:last-child {
         overflow-x: hidden;
         overflow-y: auto;
         border-right: none;
-        background-color: #14102E;
+        background-color: #1E293B;
         z-index: 1000;
         box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
     }
