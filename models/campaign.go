@@ -550,7 +550,7 @@ func GetCampaignSummary(id int64, uid int64) (CampaignSummary, error) {
 // ref: #1726
 func GetCampaignMailContext(id int64, uid int64) (Campaign, error) {
 	c := Campaign{}
-	err := db.Where("id = ?", id).Where("user_id = ?", uid).Find(&c).Error
+	err := db.Where("id = ?", id).Where("user_id = ?", uid).First(&c).Error
 	if err != nil {
 		return c, err
 	}
