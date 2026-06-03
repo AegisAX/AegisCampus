@@ -3,10 +3,17 @@
   <desc>Hero, architecture, key features, and tech stack overview of AegisCampus.</desc>
 
   <!-- ============ SECTION 1: Hero ============ -->
-  <svg x="375" y="20" width="50" height="50" viewBox="0 0 80 80">
-    <polygon points="40,11 66,25 66,55 40,69 14,55 14,25" fill="none" stroke="#3F3D7A" stroke-width="3"/>
-    <polygon points="40,21 56,30 56,50 40,59 24,50 24,30" fill="none" stroke="#7F77DD" stroke-width="2"/>
-    <polygon points="40,31 47,35 47,45 40,49 33,45 33,35" fill="#F0B429"/>
+  <svg x="375" y="20" width="50" height="50" viewBox="0 0 100 100">
+    <defs>
+      <linearGradient id="igsl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2A2750"/><stop offset="1" stop-color="#14122E"/></linearGradient>
+      <linearGradient id="igbl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#B9C0CC"/><stop offset="0.5" stop-color="#7C8498"/><stop offset="1" stop-color="#A7AEBC"/></linearGradient>
+    </defs>
+    <path fill="url(#igbl)" d="M50,7 L86,19 C86,46 86,61 80,70 C73,84 62,91 50,95 C38,91 27,84 20,70 C14,61 14,46 14,19 Z"/>
+    <path fill="url(#igsl)" d="M50,13 L80,23 C80,46 80,59 75,67 C69,79 60,85 50,89 C40,85 31,79 25,67 C20,59 20,46 20,23 Z"/>
+    <path fill="#EDEFF4" d="M50,28 L50,54 L37,82 L23,82 Z"/>
+    <path fill="#AEB4C2" d="M50,28 L77,82 L63,82 L50,54 Z"/>
+    <path fill="#EDEFF4" d="M39,64 L61,64 L57,72 L43,72 Z"/>
+    <path fill="none" stroke="#22D3EE" stroke-width="2.4" stroke-linecap="round" opacity="0.9" d="M40,88 Q50,92 60,88"/>
   </svg>
   <text x="400" y="96" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="26" font-weight="800" fill="#3F3D7A" letter-spacing="-0.5">AegisCampus</text>
   <text x="400" y="118" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="12.5" fill="#5F5F5F">Cybersecurity Training &amp; Simulation Platform</text>
@@ -108,7 +115,7 @@
     <text x="20" y="26" font-family="'Open Sans', system-ui, sans-serif" font-size="13" font-weight="700" fill="#3F3D7A">Korean ready</text>
     <text x="20" y="44" font-family="'Open Sans', system-ui, sans-serif" font-size="11" font-weight="500" fill="#7F77DD">한국 기업 환경</text>
     <text x="20" y="64" font-family="'Open Sans', system-ui, sans-serif" font-size="10.5" fill="#5F5F5F">RFC 2047/5987 · FQDN Msg-ID</text>
-  </g>
+  </g><text x="400" y="585" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="10.5" fill="#7F7F7F" letter-spacing="0.3">Go 1.25+  ·  Node 20+  ·  SQLite / MySQL  ·  ffmpeg  ·  Self-hosted  ·  MIT License</text>
 
   <g transform="translate(528, 478)">
     <rect width="232" height="76" fill="#FAFAFA" stroke="#E5E5EA" stroke-width="0.5" rx="6"/>
@@ -119,6 +126,6 @@
   </g>
 
   <!-- ============ SECTION 4: Tech stack ============ -->
-  <text x="400" y="585" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="10.5" fill="#7F7F7F" letter-spacing="0.3">Go 1.23+  ·  Node 20+  ·  SQLite / MySQL  ·  ffmpeg  ·  Self-hosted  ·  MIT License</text>
+  <text x="400" y="585" text-anchor="middle" font-family="'Open Sans', system-ui, sans-serif" font-size="10.5" fill="#7F7F7F" letter-spacing="0.3">Go 1.25+  ·  Node 20+  ·  SQLite / MySQL  ·  ffmpeg  ·  Self-hosted  ·  MIT License</text>
 
 </svg>
