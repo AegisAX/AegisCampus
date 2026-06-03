@@ -12,7 +12,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/version-1.0.0--rc4-3F3D7A" alt="Version" />
   <img src="https://img.shields.io/badge/license-MIT-3F3D7A" alt="License" />
-  <img src="https://img.shields.io/badge/Go-1.23%2B-3F3D7A" alt="Go" />
+  <img src="https://img.shields.io/badge/Go-1.25%2B-3F3D7A" alt="Go" />
 </p>
 
 ---
@@ -40,7 +40,7 @@
 
 ## 요구 사항 / Requirements
 
-- **Go** 1.23.0 이상 (toolchain 1.24.6 권장)
+- **Go** 1.25.0 이상 (toolchain 1.26.3 권장)
 - **Node.js** 20 이상 (`gulp scripts` / `gulp styles` 빌드용)
 - **ffmpeg** + **ffprobe** (PATH 또는 환경변수로 경로 지정)
 - **SQLite3** (기본) 또는 **MySQL**

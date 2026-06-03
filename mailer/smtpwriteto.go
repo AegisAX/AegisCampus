@@ -310,7 +310,7 @@ func (w *base64LineWriter) Write(p []byte) (int, error) {
 var now = time.Now
 
 // === MIME serialization helpers ===
-// AegisCampus requires Go 1.23+ so the legacy gopkg.in/alexcesaro fallback is unnecessary.
+// AegisCampus requires Go 1.25+ so the legacy gopkg.in/alexcesaro fallback is unnecessary.
 
 var newQPWriter = quotedprintable.NewWriter
 var lastIndexByte = strings.LastIndexByte
