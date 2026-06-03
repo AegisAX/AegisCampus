@@ -556,7 +556,8 @@ var renderTimelineChart = function (chartopts) {
         chart: {
             zoomType: 'x',
             type: 'line',
-            height: "200px"
+            height: "200px",
+            backgroundColor: 'transparent'
         },
         title: {
             text: 'Campaign Timeline'
@@ -639,6 +640,7 @@ var renderPieChart = function (chartopts) {
     return Highcharts.chart(chartopts['elemId'], {
         chart: {
             type: 'pie',
+            backgroundColor: 'transparent',
             events: {
                 load: function () {
                     var chart = this,
