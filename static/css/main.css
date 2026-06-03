@@ -319,7 +319,7 @@ p {
 }
 
 .ct-point-sent {
-    fill: #3F3D7A !important;
+    fill: #1abc9c  !important;
 }
 
 .ct-point-success {
@@ -421,7 +421,7 @@ p {
 }
 
 .ct-slice-donut.ct-slice-donut-sent {
-    stroke: #3F3D7A !important
+    stroke: #1abc9c !important
 }
 
 .ct-slice-donut.ct-slice-donut-opened {
@@ -449,7 +449,7 @@ p {
 }
 
 .ct-legend-sent {
-    background-color: #3F3D7A !important;
+    background-color: #1abc9c !important;
 }
 
 .ct-legend-opened {
