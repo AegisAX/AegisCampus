@@ -225,10 +225,11 @@ function load() {
                 $("#groupTable").show()
                 var groupTable = $("#groupTable").DataTable({
                     destroy: true,
-                    columnDefs: [{
-                        orderable: false,
-                        targets: "no-sort"
-                    }]
+                    autoWidth: false,
+                    columnDefs: [
+                        { orderable: false, width: "150px", targets: "no-sort" },
+                        { width: "190px", targets: "date-col" }
+                    ]
                 });
                 groupTable.clear();
                 var groupRows = []
@@ -237,7 +238,7 @@ function load() {
                         escapeHtml(group.name),
                         escapeHtml(group.num_targets),
                         moment(group.modified_date).format('YYYY.MM.DD, HH:mm:ss'),
-                        "<div class='pull-right'><button class='btn btn-primary' data-toggle='modal' data-backdrop='static' data-target='#modal' onclick='edit(" + group.id + ")'>\
+                        "<div class='text-left' style='white-space:nowrap;'><button class='btn btn-primary' data-toggle='modal' data-backdrop='static' data-target='#modal' onclick='edit(" + group.id + ")'>\
                     <i class='fa fa-pencil'></i>\
                     </button>\
                     <button class='btn btn-danger' onclick='deleteGroup(" + group.id + ")'>\

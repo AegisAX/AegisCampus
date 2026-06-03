@@ -194,12 +194,13 @@ const load = () => {
             $("#loading").hide()
             $("#userTable").show()
             let userTable = $("#userTable").DataTable({
-                destroy: true,
-                columnDefs: [{
-                    orderable: false,
-                    targets: "no-sort"
-                }]
-            });
+                    destroy: true,
+                    autoWidth: false,
+                    columnDefs: [
+                        { orderable: false, width: "150px", targets: "no-sort" },
+                        { width: "190px", targets: "date-col" }
+                    ]
+                });
             userTable.clear();
             userRows = []
             $.each(users, (i, user) => {
@@ -211,7 +212,7 @@ const load = () => {
                     escapeHtml(user.username),
                     escapeHtml(user.role.name),
                     lastlogin,
-                    "<div class='pull-right'>\
+                    "<div class='text-left' style='white-space:nowrap;'>\
                     <button class='btn btn-warning impersonate_button' data-user-id='" + user.id + "'>\
                     <i class='fa fa-retweet'></i>\
                     </button>\

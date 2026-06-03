@@ -327,10 +327,11 @@ function load() {
                 $("#templateTable").show()
                 templateTable = $("#templateTable").DataTable({
                     destroy: true,
-                    columnDefs: [{
-                        orderable: false,
-                        targets: "no-sort"
-                    }]
+                    autoWidth: false,
+                    columnDefs: [
+                        { orderable: false, width: "150px", targets: "no-sort" },
+                        { width: "190px", targets: "date-col" }
+                    ]
                 });
                 templateTable.clear()
                 templateRows = []
@@ -338,7 +339,7 @@ function load() {
                     templateRows.push([
                         escapeHtml(template.name),
                         moment(template.modified_date).format('YYYY.MM.DD, HH:mm:ss'),
-                        "<div class='pull-right'><span data-toggle='modal' data-backdrop='static' data-target='#modal'><button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='Edit Template' onclick='edit(" + i + ")'>\
+                        "<div class='text-left' style='white-space:nowrap;'><span data-toggle='modal' data-backdrop='static' data-target='#modal'><button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='Edit Template' onclick='edit(" + i + ")'>\
                     <i class='fa fa-pencil'></i>\
                     </button></span>\
 		    <span data-toggle='modal' data-target='#modal'><button class='btn btn-success' data-toggle='tooltip' data-placement='left' title='Copy Template' onclick='copy(" + i + ")'>\

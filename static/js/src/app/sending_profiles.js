@@ -197,10 +197,11 @@ function load() {
                 $("#profileTable").show()
                 profileTable = $("#profileTable").DataTable({
                     destroy: true,
-                    columnDefs: [{
-                        orderable: false,
-                        targets: "no-sort"
-                    }]
+                    autoWidth: false,
+                    columnDefs: [
+                        { orderable: false, width: "150px", targets: "no-sort" },
+                        { width: "190px", targets: "date-col" }
+                    ]
                 });
                 profileTable.clear()
                 profileRows = []
@@ -209,7 +210,7 @@ function load() {
                         escapeHtml(profile.name),
                         profile.interface_type,
                         moment(profile.modified_date).format('YYYY.MM.DD, HH:mm:ss'),
-                        "<div class='pull-right'><span data-toggle='modal' data-backdrop='static' data-target='#modal'><button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='Edit Profile' onclick='edit(" + i + ")'>\
+                        "<div class='text-left' style='white-space:nowrap;'><span data-toggle='modal' data-backdrop='static' data-target='#modal'><button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='Edit Profile' onclick='edit(" + i + ")'>\
                     <i class='fa fa-pencil'></i>\
                     </button></span>\
 		    <span data-toggle='modal' data-target='#modal'><button class='btn btn-success' data-toggle='tooltip' data-placement='left' title='Copy Profile' onclick='copy(" + i + ")'>\
