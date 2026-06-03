@@ -132,7 +132,7 @@ func GetGroupSummaries(uid int64) (GroupSummaries, error) {
 // GetGroup returns the group, if it exists, specified by the given id and user_id.
 func GetGroup(id int64, uid int64) (Group, error) {
 	g := Group{}
-	err := db.Where("user_id=? and id=?", uid, id).Find(&g).Error
+	err := db.Where("user_id=? and id=?", uid, id).First(&g).Error
 	if err != nil {
 		log.Error(err)
 		return g, err

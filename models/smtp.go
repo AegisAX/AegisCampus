@@ -153,7 +153,7 @@ func GetSMTPs(uid int64) ([]SMTP, error) {
 // GetSMTP returns the SMTP, if it exists, specified by the given id and user_id.
 func GetSMTP(id int64, uid int64) (SMTP, error) {
 	s := SMTP{}
-	err := db.Where("user_id=? and id=?", uid, id).Find(&s).Error
+	err := db.Where("user_id=? and id=?", uid, id).First(&s).Error
 	if err != nil {
 		log.Error(err)
 		return s, err
