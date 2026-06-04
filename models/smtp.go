@@ -235,11 +235,32 @@ func PutSMTP(s *SMTP) error {
 	return err
 }
 
+// ErrSMTPInUse 는 캠페인이 참조 중인 발송 프로파일 삭제 시도 시 반환됩니다.
+var ErrSMTPInUse = errors.New("Sending profile is in use by one or more campaigns and cannot be deleted")
+
+// IsSMTPInUse 는 어떤 캠페인이든 이 발송 프로파일을 참조하면 true 를 반환합니다(전체 user).
+func IsSMTPInUse(id int64) (bool, error) {
+	var count int64
+	err := db.Table("campaigns").Where("smtp_id = ?", id).Count(&count).Error
+	if err != nil {
+		log.Error(err)
+		return false, err
+	}
+	return count > 0, nil
+}
+
 // DeleteSMTP deletes an existing SMTP in the database.
 // An error is returned if a SMTP with the given user id and SMTP id is not found.
 func DeleteSMTP(id int64, uid int64) error {
+	inUse, err := IsSMTPInUse(id)
+	if err != nil {
+		return err
+	}
+	if inUse {
+		return ErrSMTPInUse
+	}
 	// Delete all custom headers
-	err := db.Where("smtp_id=?", id).Delete(&Header{}).Error
+	err = db.Where("smtp_id=?", id).Delete(&Header{}).Error
 	if err != nil {
 		log.Error(err)
 		return err

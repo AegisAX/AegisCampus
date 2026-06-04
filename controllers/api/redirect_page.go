@@ -148,6 +148,10 @@ func (as *Server) RedirectPage(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodDelete:
 		if err := models.DeleteRedirectPage(id, uid); err != nil {
+			if err == models.ErrRedirectPageInUse {
+				JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusConflict)
+				return
+			}
 			JSONResponse(w, models.Response{Success: false, Message: "Error deleting redirect page"}, http.StatusInternalServerError)
 			return
 		}

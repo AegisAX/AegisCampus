@@ -89,6 +89,10 @@ func (as *Server) Page(w http.ResponseWriter, r *http.Request) {
 		JSONResponse(w, p, http.StatusOK)
 	case r.Method == "DELETE":
 		err = models.DeletePage(id, ctx.Get(r, "user_id").(int64))
+		if err == models.ErrPageInUse {
+			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusConflict)
+			return
+		}
 		if err != nil {
 			JSONResponse(w, models.Response{Success: false, Message: "Error deleting page"}, http.StatusInternalServerError)
 			return

@@ -151,10 +151,31 @@ func PutPage(p *Page) error {
 	return err
 }
 
+// ErrPageInUse 는 캠페인이 참조 중인 랜딩 페이지 삭제 시도 시 반환됩니다.
+var ErrPageInUse = errors.New("Landing page is in use by one or more campaigns and cannot be deleted")
+
+// IsPageInUse 는 어떤 캠페인이든 이 랜딩 페이지를 참조하면 true 를 반환합니다(전체 user).
+func IsPageInUse(id int64) (bool, error) {
+	var count int64
+	err := db.Table("campaigns").Where("page_id = ?", id).Count(&count).Error
+	if err != nil {
+		log.Error(err)
+		return false, err
+	}
+	return count > 0, nil
+}
+
 // DeletePage deletes an existing page in the database.
 // An error is returned if a page with the given user id and page id is not found.
 func DeletePage(id int64, uid int64) error {
-	err := db.Where("user_id=?", uid).Delete(Page{Id: id}).Error
+	inUse, err := IsPageInUse(id)
+	if err != nil {
+		return err
+	}
+	if inUse {
+		return ErrPageInUse
+	}
+	err = db.Where("user_id=?", uid).Delete(Page{Id: id}).Error
 	if err != nil {
 		log.Error(err)
 	}

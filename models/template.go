@@ -177,11 +177,36 @@ func PutTemplate(t *Template) error {
 	return nil
 }
 
+// ErrTemplateInUse 는 캠페인이 참조 중인 템플릿 삭제 시도 시 반환됩니다.
+var ErrTemplateInUse = errors.New("Template is in use by one or more campaigns and cannot be deleted")
+
+// IsTemplateInUse 는 어떤 캠페인이든(완료 포함) 이 템플릿을 참조하면 true 를 반환합니다.
+// 전체 user 대상. 캠페인은 launch 시점에 template_id 를 캠페인 레코드에 박아두므로,
+// 참조가 남아있는 한 원본 삭제를 차단합니다.
+func IsTemplateInUse(id int64) (bool, error) {
+	var count int64
+	err := db.Table("campaigns").Where("template_id = ?", id).Count(&count).Error
+	if err != nil {
+		log.Error(err)
+		return false, err
+	}
+	return count > 0, nil
+}
+
 // DeleteTemplate deletes an existing template in the database.
 // An error is returned if a template with the given user id and template id is not found.
 func DeleteTemplate(id int64, uid int64) error {
+	// 사용 중(캠페인 참조) 검사 — 참조가 있으면 삭제 차단
+	inUse, err := IsTemplateInUse(id)
+	if err != nil {
+		return err
+	}
+	if inUse {
+		return ErrTemplateInUse
+	}
+
 	// Delete attachments
-	err := db.Where("template_id=?", id).Delete(&Attachment{}).Error
+	err = db.Where("template_id=?", id).Delete(&Attachment{}).Error
 	if err != nil {
 		log.Error(err)
 		return err

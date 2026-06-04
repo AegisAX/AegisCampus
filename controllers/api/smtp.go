@@ -69,6 +69,10 @@ func (as *Server) SendingProfile(w http.ResponseWriter, r *http.Request) {
 		JSONResponse(w, s, http.StatusOK)
 	case r.Method == "DELETE":
 		err = models.DeleteSMTP(id, ctx.Get(r, "user_id").(int64))
+		if err == models.ErrSMTPInUse {
+			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusConflict)
+			return
+		}
 		if err != nil {
 			JSONResponse(w, models.Response{Success: false, Message: "Error deleting SMTP"}, http.StatusInternalServerError)
 			return

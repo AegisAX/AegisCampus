@@ -153,9 +153,37 @@ func PutRedirectPage(rp *RedirectPage) error {
 	return nil
 }
 
+// ErrRedirectPageInUse 는 LP 가 RedirectURL 로 참조 중인 RP 삭제 시도 시 반환됩니다.
+var ErrRedirectPageInUse = errors.New("Redirect page is in use by one or more landing pages and cannot be deleted")
+
+// IsRedirectPageInUse 는 어떤 랜딩 페이지든 RedirectURL 로 이 RP 를 가리키면 true 를
+// 반환합니다(전체 user). LIKE 로 /rp/ 포함 후보를 좁힌 뒤 ExtractRedirectPageID 로
+// 정확한 ID 일치를 확정합니다(/rp/3 이 /rp/30 을 오탐하지 않도록).
+func IsRedirectPageInUse(id int64) (bool, error) {
+	var redirectURLs []string
+	err := db.Table("pages").Where("redirect_url LIKE ?", "%/rp/%").Pluck("redirect_url", &redirectURLs).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		log.Error(err)
+		return false, err
+	}
+	for _, u := range redirectURLs {
+		if ExtractRedirectPageID(u) == id {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // DeleteRedirectPage 는 Redirect Page를 삭제합니다.
 func DeleteRedirectPage(id int64, uid int64) error {
-	err := db.Where("user_id = ?", uid).Delete(RedirectPage{Id: id}).Error
+	inUse, err := IsRedirectPageInUse(id)
+	if err != nil {
+		return err
+	}
+	if inUse {
+		return ErrRedirectPageInUse
+	}
+	err = db.Where("user_id = ?", uid).Delete(RedirectPage{Id: id}).Error
 	if err != nil {
 		log.Error(err)
 	}
