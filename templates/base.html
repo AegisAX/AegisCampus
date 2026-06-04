@@ -13,7 +13,7 @@
 
     <title>{{ .Title }} - AegisCampus</title>
 
-    <link href="/css/dist/aegiscampus.css?v=20260603d" rel="stylesheet" type="text/css">
+    <link href="/css/dist/aegiscampus.css?v={{.Version}}" rel="stylesheet" type="text/css">
     <link href="/css/flag-icons/css/flag-icons.min.css" rel="stylesheet" type="text/css">
     <script>
         {{if .User}}
@@ -66,8 +66,8 @@
     {{template "nav" .}}
     {{template "body" .}}
     <!-- Placed at the end of the document so the pages load faster -->
-    <script src="/js/dist/vendor.min.js?v=20260603d"></script>
-    <script src="/js/dist/app/aegiscampus.min.js?v=20260603d"></script>
+    <script src="/js/dist/vendor.min.js?v={{.Version}}"></script>
+    <script src="/js/dist/app/aegiscampus.min.js?v={{.Version}}"></script>
     {{template "scripts" .}}
     <script>
     (function () {

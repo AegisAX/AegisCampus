@@ -339,7 +339,8 @@ func (as *AdminServer) handleInvalidLogin(w http.ResponseWriter, r *http.Request
 		Title   string
 		Flashes []interface{}
 		Token   string
-	}{Title: "Login", Token: csrf.Token(r)}
+		Version string
+	}{Title: "Login", Token: csrf.Token(r), Version: config.Version}
 	params.Flashes = session.Flashes()
 	session.Save(r, w)
 	templates := template.New("template")
@@ -385,7 +386,8 @@ func (as *AdminServer) Login(w http.ResponseWriter, r *http.Request) {
 		Title   string
 		Flashes []interface{}
 		Token   string
-	}{Title: "Login", Token: csrf.Token(r)}
+		Version string
+	}{Title: "Login", Token: csrf.Token(r), Version: config.Version}
 	session := ctx.Get(r, "session").(*sessions.Session)
 	switch {
 	case r.Method == "GET":

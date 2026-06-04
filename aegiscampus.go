@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 
 	"gopkg.in/alecthomas/kingpin.v2"
 
@@ -39,7 +40,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	kingpin.Version(string(version))
+	versionStr := strings.TrimSpace(string(version))
+	kingpin.Version(versionStr)
 
 	// Parse the CLI flags and load the config
 	kingpin.CommandLine.HelpFlag.Short('h')
@@ -55,7 +57,7 @@ func main() {
 		log.Warnf("No contact address has been configured.")
 		log.Warnf("Please consider adding a contact_address entry in your config.json")
 	}
-	config.Version = string(version)
+	config.Version = versionStr
 
 	// Configure our various upstream clients to make sure that we restrict
 	// outbound connections as needed.
