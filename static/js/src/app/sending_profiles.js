@@ -115,13 +115,14 @@ var deleteProfile = function (idx) {
         reverseButtons: true,
         allowOutsideClick: false,
         preConfirm: function () {
-            return new Promise(function (resolve, reject) {
+            return new Promise(function (resolve) {
                 api.SMTPId.delete(profiles[idx].id)
                     .success(function (msg) {
                         resolve()
                     })
                     .error(function (data) {
-                        reject(extractErr(data))
+                        Swal.showValidationMessage(extractErr(data))
+                        resolve()
                     })
             })
         }

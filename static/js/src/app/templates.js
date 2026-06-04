@@ -100,13 +100,14 @@ var deleteTemplate = function (idx) {
         reverseButtons: true,
         allowOutsideClick: false,
         preConfirm: function () {
-            return new Promise(function (resolve, reject) {
+            return new Promise(function (resolve) {
                 api.templateId.delete(templates[idx].id)
                     .success(function (msg) {
                         resolve()
                     })
                     .error(function (data) {
-                        reject(extractErr(data))
+                        Swal.showValidationMessage(extractErr(data))
+                        resolve()
                     })
             })
         }
@@ -122,16 +123,6 @@ var deleteTemplate = function (idx) {
             location.reload()
         })
     })
-}
-
-function deleteTemplate(idx) {
-    if (confirm("Delete " + templates[idx].name + "?")) {
-        api.templateId.delete(templates[idx].id)
-            .success(function (data) {
-                successFlash(data.message)
-                load()
-            })
-    }
 }
 
 function attach(files) {
