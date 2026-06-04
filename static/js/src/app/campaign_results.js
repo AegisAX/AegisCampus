@@ -924,7 +924,9 @@ function poll() {
 
 function load() {
     campaign.id = window.location.pathname.split('/').slice(-1)[0]
-    var use_map = JSON.parse(localStorage.getItem('aegiscampus.use_map'))
+    // 미설정(null)이면 기본 표시. settings.js 의 기본값과 일치.
+    var rawUseMap = localStorage.getItem('aegiscampus.use_map')
+    var use_map = rawUseMap === null ? true : JSON.parse(rawUseMap)
     api.campaignId.results(campaign.id)
         .success(function (c) {
             // (#64) viewer/owner 모드 분기. 응답의 is_owner 가 false 면 viewer.

@@ -229,7 +229,8 @@ $(document).ready(function () {
     }
 
     var use_map = localStorage.getItem('aegiscampus.use_map')
-    $("#use_map").prop('checked', JSON.parse(use_map))
+    // 미설정(null)이면 기본 체크. 명시적으로 'false' 저장한 사용자는 존중.
+    $("#use_map").prop('checked', use_map === null ? true : JSON.parse(use_map))
     $("#use_map").on('change', function () {
         localStorage.setItem('aegiscampus.use_map', JSON.stringify(this.checked))
     })
