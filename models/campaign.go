@@ -219,7 +219,7 @@ func (c *Campaign) getDetails() error {
 		log.Warnf("%s: events not found for campaign", err)
 		return err
 	}
-	err = db.Table("templates").Where("id=?", c.TemplateId).Find(&c.Template).Error
+	err = db.Table("templates").Where("id=?", c.TemplateId).First(&c.Template).Error
 	if err != nil {
 		if err != gorm.ErrRecordNotFound {
 			return err
@@ -232,7 +232,7 @@ func (c *Campaign) getDetails() error {
 		log.Warn(err)
 		return err
 	}
-	err = db.Table("pages").Where("id=?", c.PageId).Find(&c.Page).Error
+	err = db.Table("pages").Where("id=?", c.PageId).First(&c.Page).Error
 	if err != nil {
 		if err != gorm.ErrRecordNotFound {
 			return err
@@ -240,7 +240,7 @@ func (c *Campaign) getDetails() error {
 		c.Page = Page{Name: "[Deleted]"}
 		log.Warnf("%s: page not found for campaign", err)
 	}
-	err = db.Table("smtp").Where("id=?", c.SMTPId).Find(&c.SMTP).Error
+	err = db.Table("smtp").Where("id=?", c.SMTPId).First(&c.SMTP).Error
 	if err != nil {
 		// Check if the SMTP was deleted
 		if err != gorm.ErrRecordNotFound {
