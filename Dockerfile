@@ -1,16 +1,16 @@
 # Minify client side assets (JavaScript)
-FROM node:latest AS build-js
+FROM node:24 AS build-js
 
 RUN npm install gulp gulp-cli -g
 
 WORKDIR /build
 COPY . .
-RUN npm install --only=dev
-RUN gulp
+RUN npm ci
+RUN npx gulp build
 
 
 # Build Golang binary
-FROM golang:1.26 AS build-golang
+FROM golang:1.26.4 AS build-golang
 
 WORKDIR /go/src/github.com/AegisAX/AegisCampus
 COPY . .
@@ -40,6 +40,6 @@ USER app
 RUN sed -i 's/127.0.0.1/0.0.0.0/g' config.json
 RUN touch config.json.tmp
 
-EXPOSE 3333 8080 8443 80
+EXPOSE 3333 8088
 
 CMD ["./docker/run.sh"]
