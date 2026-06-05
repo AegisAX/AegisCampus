@@ -39,6 +39,8 @@ func (s *ModelsSuite) TearDownTest(c *check.C) {
 	db.Delete(Page{})
 	db.Delete(Result{})
 	db.Delete(MailLog{})
+	db.Delete(Template{})
+	db.Delete(Attachment{})
 	db.Delete(Campaign{})
 
 	// Reset users table to default state.
