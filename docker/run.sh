@@ -84,5 +84,5 @@ fi
 echo "Runtime configuration: "
 cat config.json
 
-# start aegiscampus
-./aegiscampus
+# start aegiscampus (exec: PID 1로 치환 → docker stop의 SIGTERM을 앱이 직접 수신, graceful shutdown)
+exec ./aegiscampus

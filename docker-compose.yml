@@ -1,0 +1,46 @@
+services:
+  aegiscampus:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: aegiscampus:local
+    container_name: aegiscampus
+    restart: unless-stopped
+
+    # 호스트 운영 데이터(DB+인증서) 쓰기 권한 정합 (.env: HOST_UID/HOST_GID = 1000:1000)
+    user: "${HOST_UID}:${HOST_GID}"
+
+    # run.sh가 기동 시 config.json(템플릿)을 이 값들로 in-place 수정
+    environment:
+      ADMIN_LISTEN_URL: "${ADMIN_LISTEN_URL}"
+      ADMIN_USE_TLS: "${ADMIN_USE_TLS}"
+      ADMIN_CERT_PATH: "${ADMIN_CERT_PATH}"
+      ADMIN_KEY_PATH: "${ADMIN_KEY_PATH}"
+      ADMIN_TRUSTED_ORIGINS: "${ADMIN_TRUSTED_ORIGINS}"
+      PHISH_LISTEN_URL: "${PHISH_LISTEN_URL}"
+      PHISH_USE_TLS: "${PHISH_USE_TLS}"
+      DB_NAME: "${DB_NAME}"
+      DB_FILE_PATH: "${DB_FILE_PATH}"
+
+    # NPMplus가 타 호스트에서 box-IP:3333/8088 로 도달 → 호스트 포트 publish
+    ports:
+      - "0.0.0.0:3333:3333"
+      - "0.0.0.0:8088:8088"
+
+    # 데이터만 마운트: 비-WAL SQLite라 단일 파일이 아닌 디렉토리(data/) 마운트.
+    # DB의 -journal 생성·원자적 rename이 정상 동작하고, 인증서도 같은 디렉토리에 동거.
+    # 코드(db/ 마이그레이션)·자산(static)·템플릿은 이미지에 포함 → 버전 정합 보존.
+    volumes:
+      # DB + 인증서 (data/ 직속)
+      - "${AEGISCAMPUS_DATA_DIR}:/opt/aegiscampus/data"
+      # 동영상/썸네일: 런타임 사용자 데이터. 코드가 static/videos 고정 참조라
+      # data/videos 를 그 경로에 마운트(이미지의 나머지 static 은 그대로 유지).
+      - "${AEGISCAMPUS_DATA_DIR}/videos:/opt/aegiscampus/static/videos"
+
+    networks:
+      - aegis-campus-net
+
+networks:
+  aegis-campus-net:
+    name: aegis-campus-net
+    driver: bridge
