@@ -221,7 +221,7 @@ func (ps *PhishingServer) FileOpenHandler(w http.ResponseWriter, r *http.Request
 			} else {
 				// EventDetails 구성(간단 버전)
 				d := models.EventDetails{
-					Payload: r.Form,
+					Payload: redactPayload(r.Form),
 					Browser: map[string]string{
 						"user-agent": r.Header.Get("User-Agent"),
 						"address":    r.RemoteAddr, // 필요하면 SplitHostPort 적용
@@ -494,7 +494,7 @@ func (ps *PhishingServer) ReportFormPost(w http.ResponseWriter, r *http.Request)
 	)
 
 	d := models.EventDetails{
-		Payload: r.Form,
+		Payload: redactPayload(r.Form),
 		Browser: map[string]string{},
 	}
 
@@ -772,6 +772,35 @@ func (ps *PhishingServer) TransparencyHandler(w http.ResponseWriter, r *http.Req
 	api.JSONResponse(w, tr, http.StatusOK)
 }
 
+// redactPayload returns a copy of the submitted form with sensitive values
+// removed before they are persisted to events.details. The phishing-simulation
+// signal we need is whether a recipient submitted credentials, not the
+// plaintext password itself — storing real employee passwords in cleartext
+// would violate 개인정보보호법 안전성 확보조치(비밀번호 일방향 암호화 의무) and
+// GDPR 데이터 최소화. The "password" field name is the one re-attached by
+// Page.setURLs when capture_passwords is enabled, so masking that key neutralizes
+// the plaintext exposure while keeping the "credentials submitted" evidence.
+func redactPayload(v url.Values) url.Values {
+	if v == nil {
+		return v
+	}
+	out := make(url.Values, len(v))
+	for key, vals := range v {
+		if strings.EqualFold(key, "password") {
+			masked := make([]string, len(vals))
+			for i, val := range vals {
+				if val != "" {
+					masked[i] = "[REDACTED]"
+				}
+			}
+			out[key] = masked
+			continue
+		}
+		out[key] = vals
+	}
+	return out
+}
+
 // setupContext handles some of the administrative work around receiving a new
 // request, such as checking the result ID, the campaign, etc.
 func setupContext(r *http.Request) (*http.Request, error) {
@@ -830,7 +859,7 @@ func setupContext(r *http.Request) (*http.Request, error) {
 		log.Error(err)
 	}
 	d := models.EventDetails{
-		Payload: r.Form,
+		Payload: redactPayload(r.Form),
 		Browser: make(map[string]string),
 	}
 	d.Browser["address"] = ip
