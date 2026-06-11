@@ -1,9 +1,9 @@
 # AegisCampus 아키텍처 & 설계 문서
 
-- 버전: v1.0.0-rc4
-- 발행일: 2026-05-31
+- 버전: v1.0.0-rc8
+- 발행일: 2026-05-31 (rc8 갱신: 2026-06-11)
 - 베이스: GoPhish 0.12.1 fork
-- 성격: AegisCampus 의 **첫 공식 설계 문서**. 본 문서는 v1.0.0-rc1 코드를 1차 출처로 기술하며, rc2/rc3/rc4 및 이전 베타 단계의 변경 이력은 릴리스 노트(CHANGELOG)에서 관리한다.
+- 성격: AegisCampus 의 **첫 공식 설계 문서**. 본 문서는 v1.0.0-rc1 코드를 1차 출처로 기술하되 rc8 기준으로 갱신하며, rc2~rc8 및 이전 베타 단계의 변경 이력은 릴리스 노트(CHANGELOG)에서 관리한다.
 
 > 이 문서는 작성 시점 코드(`v1.0.0-rc1`) 기준으로 직접 추출한 라우트·미들웨어·데이터 모델·마이그레이션 등의 내용을 근거로 작성되었다. 향후 코드 변경 시 본 문서와 `docs/*.mmd` 다이어그램 소스를 같은 변경 단위에서 갱신한다.
 
@@ -50,7 +50,7 @@ AegisCampus 은 GoPhish 0.12.1 의 피싱 시뮬레이션 기능을 **사이버�
 
 - 신규 모델 3개: Video, VideoProgress, RedirectPage
 - 신규 유틸 패키지: util/mimeutil (RFC 2047/5987)
-- AegisCampus-era 마이그레이션 10건 (SQLite + MySQL 동일 구조)
+- AegisCampus-era 마이그레이션 13건 (SQLite + MySQL 동일 구조)
 - 신규 phishing 라우트 다수 + 신규 admin/API 라우트 (4장 참조)
 
 ---
@@ -93,7 +93,7 @@ flowchart LR
     Admin([관리자]):::actor
     MW["미들웨어 체인<br/>Login·RBAC·CSRF"]:::base
     UI["관리 UI<br/>campaigns·videos·redirect_pages"]:::add
-    API["REST API /api/<br/>videos·redirect_pages·video_progress"]:::add
+    API["REST API /api/<br/>videos·redirect_pages·video_progress<br/>campaign_shares·user_preferences·country_stats"]:::add
     PUT["videos/{id} PUT<br/>소유권+화이트리스트"]:::hard
     STR["StreamVideo<br/>owner/is_public IDOR 가드"]:::hard
     UP["Upload<br/>ModifyObjects 권한"]:::add
@@ -161,7 +161,7 @@ flowchart LR
 3. GZIP 압축 (`gziphandler`, BestCompression)
 4. Security Headers (`mid.ApplySecurityHeaders`)
 5. Context 설정 (`mid.GetContext`)
-6. CSRF 예외 + CSRF 검증 (`mid.CSRFExceptions` → `csrf.Protect`)
+6. CSRF 예외 + CSRF 검증 (`mid.CSRFExceptions` → `csrf.Protect`). rc5부터 `filippo.io/csrf/gorilla` 드롭인으로 교체 — 폼 토큰 더블서밋이 아니라 **Origin / Sec-Fetch-Site 기반** cross-origin 차단이며, `config.TrustedOrigins`(campus/campaign.aegisax.com) 만 허용. `/api` 는 면제(세션 인증 폴백 없이 API 키 전용이라 CSRF 비대상)
 7. 라우트별 `RequireLogin` / `RequirePermission(...)`
 
 Phishing 서버는 위 체인을 거치지 않는다.
@@ -191,6 +191,9 @@ erDiagram
     PAGES }o--o| VIDEOS : embeds
     REDIRECT_PAGES }o--o| VIDEOS : embeds
     TEMPLATES ||--o{ ATTACHMENTS : has
+    CAMPAIGNS ||--o{ CAMPAIGN_SHARES : "공유(읽기전용)"
+    USERS ||--o{ CAMPAIGN_SHARES : "피공유 viewer"
+    USERS ||--|| USER_PREFERENCES : has
 ```
 
 ### 3.2 rc1 핵심 엔티티 상세
@@ -236,6 +239,8 @@ erDiagram
 - **videos** — 영상 자산 카탈로그. 파일명 = SHA-256 해시(동일 영상 재업로드 시 임시 파일 폐기 → 기존 파일 재참조, 자동 중복 제거). `is_public` = 다른 User 가 자기 캠페인에 재사용 가능. 삭제는 `CountVideosByFileName` 으로 마지막 참조일 때만 디스크 파일 제거. `duration_seconds` 는 ffprobe 가 설정하며 수강 완료 판정의 서버 권위값이다.
 - **video_progresses** — 수강 진행. 자연 키 `(user_id, result_id, video_id)` (인덱스로 보장, Save() upsert). `seconds_watched` 는 단조 증가하며 서버 보유 `videos.duration_seconds` 로 상한 클램프된다. `percent`/`completed` 는 서버 길이 기준으로만 계산되고, 클라이언트가 보낸 `completed` 불리언은 신뢰하지 않는다.
 - **redirect_pages** — 캠페인 종료 후 교육 페이지. `VideoId *int64` (nullable, Validate() 에서 0→NULL 정규화). `GetRedirectPages()` 는 video_id 수집 후 단일 IN 쿼리로 N+1 회피. `GetRedirectPageByID()` 는 user 필터 없이 조회(외부 핸들러용, 호출자가 소유권 검증).
+- **campaign_shares** (rc3 #64) — 캠페인 결과 읽기전용 공유. 자연 키 `(campaign_id, user_id)`. `CanViewCampaign()` = 소유자 OR 공유 viewer. 캠페인 삭제 시 `DeleteCampaignSharesByCampaign`, user 삭제 시 `DeleteCampaignSharesByUser` 로 동반 정리. 쓰기 권한은 부여하지 않음(viewer 는 GET 만).
+- **user_preferences** (rc3 #66) — 사용자별 UI 상태. 1:1 `(user_id)`, `dashboard_campaign_filter`. `/api/users/me/preferences` GET/PUT.
 
 ### 3.4 기존 테이블 변경
 
@@ -282,7 +287,7 @@ erDiagram
 
 ### 4.3 REST API (/api/ 서브라우터)
 
-campaigns(/{id}, /results, /summary, /complete), `campaigns/{id}/results/ {rid}/report` DELETE(신고 취소), `campaigns/{id}/video_progress` GET, groups, templates, pages, `redirect_pages/`(GET/POST)·`redirect_pages/{id}`, `videos/`(GET/POST)·`videos/{id}`(GET/PUT/DELETE — PUT 화이트리스트: name/description/is_public), smtp, users(ModifySystem), util/send_test_email, import/*, webhooks(ModifySystem).
+campaigns(/{id}, /results, /summary, /complete), `campaigns/{id}/results/{rid}/report` POST(신고)·DELETE(신고 취소), `campaigns/{id}/video_progress` GET, `campaigns/{id}/country_stats` GET, `campaigns/{id}/shares` GET/POST·`campaigns/{id}/shares/{uid}` DELETE(rc3 #64 읽기전용 공유), groups, templates, pages, `redirect_pages/`(GET/POST)·`redirect_pages/{id}`, `videos/`(GET/POST)·`videos/{id}`(GET/PUT/DELETE — PUT 화이트리스트: name/description/is_public), smtp, imap(GET/POST·/validate), `users/me/preferences` GET/PUT(rc3 #66), users(ModifySystem), util/send_test_email, import/*, webhooks(ModifySystem).
 
 ---
 
@@ -454,7 +459,7 @@ RP/LP HTML 에 `Swal.fire` 호출은 있으나 `window.Swal` 정의가 없는 �
 
 ## 8. 마이그레이션
 
-### 8.1 AegisCampus-era 적용 순서 (10건)
+### 8.1 AegisCampus-era 적용 순서 (13건)
 
 | # | 파일 | 의미 |
 | --- | --- | --- |
@@ -468,6 +473,9 @@ RP/LP HTML 에 `Swal.fire` 호출은 있으나 `window.Swal` 정의가 없는 �
 | 8 | 20260409000000_add_redirect_pages | redirect_pages + 인덱스 |
 | 9 | 20260410000000_add_video_id_to_pages | pages.video_id |
 | 10 | 20260507000000_add_rid_to_video_src | 기존 페이지 HTML `<source>` 에 `?rid={{.RId}}` 자동 패치(멱등, Down 롤백) |
+| 11 | 20260528000000_add_unique_index_video_progress | video_progresses `(user_id,result_id,video_id)` UNIQUE 인덱스(rc3 #57). ⚠ 사전 dedup 없는 `CREATE UNIQUE INDEX` — 기존 중복행이 있으면 적용 실패(업그레이드 주의) |
+| 12 | 20260529000000_add_campaign_shares | campaign_shares 테이블(rc3 #64 읽기전용 공유) |
+| 13 | 20260530000000_add_user_preferences | user_preferences 테이블(rc3 #66 대시보드 필터) |
 
 SQLite + MySQL 동일 구조로 양쪽 유지(`db/db_sqlite3/migrations`, `db/db_mysql/migrations`).
 멱등(`CREATE TABLE/INDEX IF NOT EXISTS`, 조건부 UPDATE).
@@ -494,7 +502,7 @@ go build -ldflags="-s -w" -trimpath -o aegiscampus .
 ### 9.2 배포
 
 개발 디렉터리(`~/GitHub/AegisCampus`)에서 빌드 → 운영(`~/AegisCampus/`)으로 바이너리 배포 후 재기동. 운영 DB(`aegiscampus.db`)는 덮어쓰지 않는다.
-admin = aegiscampus.whitehat.kr, phish = campaign.whitehat.kr (NPMplus 프록시).
+admin = campus.aegisax.com, phish = campaign.aegisax.com (NPMplus 프록시, TLS 종단). 운영은 rc5 이후 Docker(`docker compose`)로 가동하며 런타임 데이터는 `~/AegisCampus/data/` 로 외부화한다.
 
 ### 9.3 환경 변수
 
@@ -504,6 +512,8 @@ admin = aegiscampus.whitehat.kr, phish = campaign.whitehat.kr (NPMplus 프록시
 | AEGISCAMPUS_FFPROBE | ffprobe | ffprobe 경로 |
 | AEGISCAMPUS_MAX_VIDEO_BYTES | (코드) | 영상 업로드 상한 |
 | AEGISCAMPUS_MSGID_DOMAIN | (EnvelopeSender 도메인) | Message-ID FQDN |
+| AEGISCAMPUS_EHLO_DOMAIN | (FQDN hostname) | SMTP EHLO/HELO 도메인 |
+| AEGISCAMPUS_INITIAL_ADMIN_PASSWORD | (자동 생성·임시) | 초기 관리자 비밀번호(미설정 시 무작위 생성·로그 1회 출력, 강제 재설정) |
 | AEGISCAMPUS_INITIAL_ADMIN_API_TOKEN | (자동 생성) | 초기 관리자 API 토큰 |
 
 ---
@@ -517,7 +527,7 @@ admin = aegiscampus.whitehat.kr, phish = campaign.whitehat.kr (NPMplus 프록시
 ### 10.2 백로그
 
 - **stale RP/LP page body** — 빌더 JS 개선이 DB 저장된 기존 RP/LP 본문에 미소급. 운영 대응 = 관리 UI 학습 템플릿 재저장. 코드 트랙은 후속 후보.
-- **dist 동기화 stale** — `dist/*.min.js` 가 src 보다 과거. gulp 재빌드 필요. 의존성 보안 패치와 함께 Phase 1.5 별도 트랙.
+- **dist 동기화 CI 게이트 부재** — 현재 `dist/*.min.js` 는 src 와 정합(rc8 `npx gulp build` 후 변경 0 확인). 단 CI(`ci.yml`)가 빌드 후 `git diff` 로 정합을 강제하지 않아 src 수정·dist 미커밋 시 drift 가능. 빌드도구체인(gulp4/webpack4) 현대화와 함께 별도 트랙.
 - 문서 측: mmd→svg 변환 + PDF 동시 생성, 본 문서를 앱 내 도큐먼트 링크로 노출 — 후속 개선 항목.
 
 ### 10.3 로드맵
@@ -527,8 +537,10 @@ admin = aegiscampus.whitehat.kr, phish = campaign.whitehat.kr (NPMplus 프록시
 | v1.0.0-rc1 | 기능 안정화. 운영 검증 + 전수 감사 결함 차단, 회귀 가드 |
 | v1.0.0-rc2 | 첨부파일 기능 개선(직접/자동 첨부, 자동생성 B형, Executed 후 RP/LP 리다이렉트, RP 우선) + 전수 코드 감사 |
 | v1.0.0-rc3 | 운영 검증 + 보안/UX 누적분 (#42~#66) + 캠페인 결과 공유(#64) + Dashboard 통합(#66) |
-| v1.0.0-rc4 (현재) | AegisCampus → AegisCampus 1차 브랜딩 (LICENSE/NOTICE, 식별 헤더, 텍스트, 자산 리네임, Google Fonts 로컬 vendor) |
-| v1.0.0 GA | rc1~rc4 안정화 검증 후 정식 릴리스 |
+| v1.0.0-rc4 | AegisCampus 1차 브랜딩 (LICENSE/NOTICE, 식별 헤더, 텍스트, 자산 리네임, Google Fonts 로컬 vendor) |
+| v1.0.0-rc5 | CSRF 모델 교체(gorilla/csrf → filippo.io/csrf, Origin/Sec-Fetch 기반) + 운영 Docker 전환(런타임 데이터 data/ 외부화) |
+| v1.0.0-rc6~rc8 (현재) | 빌드 환경 정합(Go 1.26.4 / Node 24), 의존성·문서 정돈, GA 직전 전수 테스트 |
+| v1.0.0 GA | rc1~rc8 안정화 검증 후 정식 릴리스 |
 
 ---
 
@@ -548,7 +560,7 @@ v1.0.0-rc1 은 기능 표면을 고정한 채, 운영 검증과 출시 후보 �
 | isSafeInternalPath | 백슬래시/제어문자 통과 → `\\evil.com`→`//evil.com` 오픈 리다이렉트 우회 → 차단 |
 | Media | rid TransparencySuffix 미제거(타 핸들러 비일관) → 일관 처리 |
 
-검증: 전 패키지 `go test ./...` 통과(실패 0), `go vet ./...` 클린, 운영 빌드 성공, 마이그레이션 SQLite/MySQL AegisCampus-era 10건 패리티. 회귀 가드 `TestTrackVideoServerAuthoritative`(controllers/phish_test.go) — 위조 완료 차단 + 정상 완주 무회귀 + seconds_watched 클램프 동시 검증. 운영 스모크 (LP/RP 영상 수강, 새로고침 완료유지, ended controls 제거, Media 스트리밍, stale 페이지 Swal) 이상 없음.
+검증: 전 패키지 `go test ./...` 통과(실패 0), `go vet ./...` 클린, 운영 빌드 성공, 마이그레이션 SQLite/MySQL AegisCampus-era 13건 패리티. 회귀 가드 `TestTrackVideoServerAuthoritative`(controllers/phish_test.go) — 위조 완료 차단 + 정상 완주 무회귀 + seconds_watched 클램프 동시 검증. 운영 스모크 (LP/RP 영상 수강, 새로고침 완료유지, ended controls 제거, Media 스트리밍, stale 페이지 Swal) 이상 없음.
 
 ---
 
@@ -578,4 +590,4 @@ v1.0.0-rc1 은 기능 표면을 고정한 채, 운영 검증과 출시 후보 �
 
 ---
 
-*AegisCampus v1.0.0-rc4 / 2026-05-31*
+*AegisCampus v1.0.0-rc8 / 2026-06-11*

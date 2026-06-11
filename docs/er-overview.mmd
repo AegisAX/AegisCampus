@@ -13,3 +13,6 @@ erDiagram
     PAGES }o--o| VIDEOS : embeds
     REDIRECT_PAGES }o--o| VIDEOS : embeds
     TEMPLATES ||--o{ ATTACHMENTS : has
+    CAMPAIGNS ||--o{ CAMPAIGN_SHARES : "공유(읽기전용)"
+    USERS ||--o{ CAMPAIGN_SHARES : "피공유 viewer"
+    USERS ||--|| USER_PREFERENCES : has
