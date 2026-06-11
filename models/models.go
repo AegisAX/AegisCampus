@@ -132,6 +132,35 @@ func createTemporaryPassword(u *User) error {
 //
 // Once the database is up-to-date, we create an admin user (if needed) that
 // has a randomly generated API key and password.
+// dedupeVideoProgress removes duplicate video_progresses rows, keeping the
+// highest id per natural key (user_id, result_id, video_id), so the 20260528
+// unique-index migration can apply on databases that accumulated duplicates
+// before that index existed. No-op on a fresh database (table absent) or an
+// already-migrated one (no duplicates). The nested subquery form is required
+// for MySQL (error 1093) and is also valid on SQLite.
+func dedupeVideoProgress() error {
+	if !db.HasTable("video_progresses") {
+		return nil
+	}
+	var dupes int64
+	if err := db.Raw(`SELECT COUNT(*) FROM (
+		SELECT 1 FROM video_progresses
+		GROUP BY user_id, result_id, video_id HAVING COUNT(*) > 1
+	) d`).Row().Scan(&dupes); err != nil {
+		return err
+	}
+	if dupes == 0 {
+		return nil
+	}
+	log.Warnf("video_progresses: %d duplicate natural-key group(s) found; de-duplicating before unique-index migration", dupes)
+	return db.Exec(`DELETE FROM video_progresses WHERE id NOT IN (
+		SELECT keep_id FROM (
+			SELECT MAX(id) AS keep_id FROM video_progresses
+			GROUP BY user_id, result_id, video_id
+		) t
+	)`).Error
+}
+
 func Setup(c *config.Config) error {
 	// Setup the package-scoped config
 	conf = c
@@ -190,6 +219,15 @@ func Setup(c *config.Config) error {
 	db.SetLogger(log.Logger)
 	db.DB().SetMaxOpenConns(1)
 	if err != nil {
+		log.Error(err)
+		return err
+	}
+	// Pre-migration safety: 20260528 의 unique-index 마이그레이션은 사전 dedup 없이
+	// CREATE UNIQUE INDEX 를 실행하므로, 인덱스 도입 전 쌓인 중복
+	// (user_id, result_id, video_id) 행이 있으면 적용에 실패해 업그레이드가 중단된다.
+	// goose 는 실패 시 멈춰 후속(교정용) 마이그레이션을 실행할 수 없으므로,
+	// 마이그레이션 직전 여기서 중복을 제거한다(과거 마이그레이션 파일은 불변).
+	if err = dedupeVideoProgress(); err != nil {
 		log.Error(err)
 		return err
 	}
