@@ -58,7 +58,19 @@ func (r *Result) HandleAttachmentExecuted(details EventDetails) error {
 }
 
 // HandleTrainingCompleted 는 수강 완료 시 이벤트를 남깁니다.
+// 멱등: 동일 result(campaign+email)에 Trained 이벤트가 이미 있으면 중복 생성하지
+// 않는다. /api/training/complete 가 반복 호출돼도 Trained 가 누적되지 않아 수강률
+// 집계(getCampaignStats 의 DISTINCT email 카운트와는 별개로) 가 왜곡되지 않는다.
 func (r *Result) HandleTrainingCompleted(details EventDetails) error {
+	var existing int64
+	if err := db.Model(&Event{}).
+		Where("campaign_id = ? AND email = ? AND message = ?", r.CampaignId, r.Email, EventTrainingCompleted).
+		Count(&existing).Error; err != nil {
+		return err
+	}
+	if existing > 0 {
+		return nil
+	}
 	event, err := r.createEvent(EventTrainingCompleted, details)
 	if err != nil {
 		return err
