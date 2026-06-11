@@ -28,6 +28,14 @@ jobs:
         npm ci
         npx gulp build
 
+    - name: Verify dist assets are in sync with sources
+      run: |
+        if ! git diff --quiet -- static/; then
+          echo "::error::Built dist assets differ from committed files. Run 'npx gulp build' and commit static/."
+          git --no-pager diff --stat -- static/
+          exit 1
+        fi
+
     - name: Get dependencies
       run: |
         go get -v -t -d ./...
@@ -41,3 +49,8 @@ jobs:
 
     - name: Test
       run: go test ./...
+
+    - name: Vulnerability scan
+      run: |
+        go install golang.org/x/vuln/cmd/govulncheck@latest
+        "$(go env GOPATH)/bin/govulncheck" ./...
