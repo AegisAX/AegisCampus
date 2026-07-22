@@ -1,0 +1,36 @@
+# DOCKER-USER 규칙 정본 (AegisCampus)
+#
+# 사유: 앞단 NPMplus 가 타 호스트라 compose publish 를 127.0.0.1 로 묶을 수 없다
+#       (전역 security.md C-3-1 예외). publish 는 0.0.0.0 으로 두되, 도달 가능한
+#       출발지를 방화벽으로 NPMplus 호스트 하나로 좁히는 것이 그 예외의 보완책이다.
+#
+# 적용: deploy/apply-docker-user.sh (기본 dry-run, --apply 로 실제 반영)
+#       이 파일을 고치고 스크립트를 재실행하는 것이 유일한 반영 경로다.
+#       호스트에서 iptables 를 직접 두드리지 말 것 — 정본이 갈라진다.
+#
+# 토큰: 스크립트가 치환한다. 값을 이 파일에 박지 않는다.
+#   %NPMPLUS_IP%  NPMplus 호스트 IP (단일 IP 또는 CIDR)
+#   %WAN_IF%      외부 트래픽이 들어오는 호스트 인터페이스
+#
+#   IP 를 파일에 박지 않는 이유: 이 저장소는 GoPhish fork 공개 저장소다.
+#   내부 주소는 커밋 대상이 아니며, 운영 값은 스크립트 인자/환경변수로만 준다.
+#
+# 형식: 주석(#)과 빈 줄은 무시. 나머지 각 줄은 iptables 규칙 스펙 한 개이며
+#       기재된 순서 그대로 DOCKER-USER 체인 맨 앞에 삽입된다.
+#
+# 주의 1) 컨테이너 publish 포트와 내부 포트가 3333/8088 로 동일해 DNAT(PREROUTING)
+#         이후에도 --dport 가 그대로다. 포트 매핑을 바꾸면 여기 --dport 도 바꿔야 한다.
+# 주의 2) 허용은 ACCEPT 가 아니라 RETURN 이다. DOCKER-USER 에서 ACCEPT 하면 뒤따르는
+#         docker 자체 FORWARD 규칙을 통째로 건너뛴다. RETURN 이 정상 경로다.
+# 주의 3) -i %WAN_IF% 로 유입 방향을 못박는다. 출발지만 보고 막으면 컨테이너 egress 의
+#         응답 트래픽까지 죽는다(전역 security.md).
+# 주의 4) DOCKER-USER 는 컨테이너 재기동에는 살아남지만 호스트 재부팅·iptables 플러시
+#         에는 사라진다. 재부팅 후 --apply 재실행 또는 부팅 시 자동 실행이 필요하다.
+
+# --- 허용: NPMplus 호스트만 ---
+-i %WAN_IF% -p tcp -s %NPMPLUS_IP% --dport 3333 -j RETURN
+-i %WAN_IF% -p tcp -s %NPMPLUS_IP% --dport 8088 -j RETURN
+
+# --- 차단: 그 외 전부 ---
+-i %WAN_IF% -p tcp --dport 3333 -j DROP
+-i %WAN_IF% -p tcp --dport 8088 -j DROP
