@@ -1,0 +1,25 @@
+# DOCKER-USER 허용목록을 부팅 시 재적용한다. 이 파일이 정본이다.
+#
+# 규칙은 호스트 재부팅·iptables 플러시로 사라진다. 없으면 3333/8088 이
+# LAN 전체에 다시 열리며, 그 사실이 조용히 진행된다.
+#
+# 운영 값(프록시 IP·인터페이스)은 이 파일에 박지 않는다 — 공개 저장소다.
+# /etc/aegiscampus-docker-user.env 에 두고 여기서 읽는다.
+#
+# 설치:
+#   sudo cp deploy/docker-user.service /etc/systemd/system/aegiscampus-docker-user.service
+#   sudo systemctl daemon-reload && sudo systemctl enable --now aegiscampus-docker-user
+
+[Unit]
+Description=AegisCampus DOCKER-USER 허용목록 적용
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=/etc/aegiscampus-docker-user.env
+ExecStart=/bin/sh -c '"${REPO}/deploy/apply-docker-user.sh" --npmplus-ip "${NPMPLUS_IP}" --wan-if "${WAN_IF}" --apply'
+
+[Install]
+WantedBy=multi-user.target
