@@ -125,7 +125,7 @@ while IFS= read -r arule; do
   # shellcheck disable=SC2086
   iptables ${arule/#-A/-D}
   removed=$((removed + 1))
-done < <(iptables -S "$CHAIN" | grep -F -- "--comment \"$TAG\"" || true)
+done < <(iptables -S "$CHAIN" | grep -E -- "--comment \"?${TAG}\"?( |$)" || true)
 printf '기존 태그 규칙 제거: %d 건\n' "$removed"
 
 if [ "$REVERT" -eq 0 ]; then
