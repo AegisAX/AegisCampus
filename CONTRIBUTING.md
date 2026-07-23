@@ -45,9 +45,13 @@ AegisCampus 에 기여해주셔서 감사합니다. 이 문서는 효율적인 �
 npx gulp build
 
 # Backend
-go build -ldflags="-s -w" -trimpath .
+go build -ldflags="-s -w" -trimpath -o aegiscampus .
 go test ./...
 ```
+
+출력 파일명은 반드시 소문자 `aegiscampus` — 생략하면 모듈명(대문자) 그대로 생성됩니다.
+
+*The output filename must be lowercase `aegiscampus` — omitting it generates the module name (uppercase) as-is.*
 
 빌드와 테스트가 모두 통과해야 PR 가능합니다.
 
@@ -55,9 +59,9 @@ go test ./...
 
 ### 4. 커밋 메시지 / Commit messages
 
-간결한 한국어 또는 영문, conventional commit 스타일 권장.
+커밋 메시지는 `타입(범위): 무엇을 했는가` 형식, 전체 5줄 이내, 한 커밋에 한 가지 변경. 타입·범위는 영문. 본문은 메인테이너 커밋은 한국어, 외부 기여는 한국어 또는 영문 모두 허용합니다.
 
-*Concise Korean or English, conventional commit style preferred.*
+*Commit messages use the `type(scope): what changed` format, within 5 lines total, one change per commit. Type and scope are in English. For the body, maintainer commits are in Korean, while external contributions may be in Korean or English.*
 
 예 / Examples:
 - `fix(api): handle nil rid in /report-form`
@@ -80,7 +84,7 @@ go test ./...
 | **JavaScript** | 변경 후 `npx gulp scripts` 로 minified 파일 동기화 |
 | **CSS** | 변경 후 `npx gulp styles` 로 dist 동기화 |
 | **Imports** | 미사용 import 는 commit 전 제거 (Go 컴파일러가 실패시킴) |
-| **언어 / Language** | UI 사용자 노출 메시지는 한국어, 코드 주석은 영문 또는 한국어 자유 |
+| **언어 / Language** | UI 사용자 노출 메시지는 한국어. 새로 작성하는 코드 주석도 한국어(upstream 에서 물려받은 영문 주석은 그대로 보존) |
 
 빌드 파이프라인 메모: JS / CSS 소스 변경 후 gulp 빌드를 하지 않으면 `dist/` 가 갱신되지 않아 변경이 적용되지 않은 것처럼 보입니다.
 
